@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #10B981;
+  --color-primary-dark: #059669;
+  --color-primary-light: #D1FAE5;
+  --color-primary-50: #ECFDF5;
+  --color-secondary: #6366F1;
+  --color-secondary-dark: #4F46E5;
+  --color-secondary-light: #E0E7FF;
+  --color-navy: #0F172A;
+  --color-navy-light: #1E293B;
+  --color-gray-bg: #F5F7FA;
+  --color-gray-border: #E5E7EB;
+  --color-gray-text: #64748B;
+  --color-gray-label: #94A3B8;
+  --color-text-primary: #1E293B;
+  --color-text-secondary: #64748B;
+  --color-status-green: #10B981;
+  --color-status-yellow: #F59E0B;
+  --color-status-red: #EF4444;
+  --color-status-blue: #3B82F6;
+  --color-status-orange: #F97316;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-text-primary);
+    background-color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  button {
+    cursor: pointer;
+    border: none;
+    outline: none;
+    background: none;
+    font-family: inherit;
+  }
+
+  input, textarea, select {
+    font-family: inherit;
+    outline: none;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}

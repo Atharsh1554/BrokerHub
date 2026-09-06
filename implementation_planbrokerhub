@@ -1,0 +1,358 @@
+# BrokerHub — Full-Stack Web Application Implementation Plan
+
+## Overview
+
+Build a production-quality **B2C BrokerHub** web application based on 3 Figma prototypes comprising **15+ screens** across:
+- **Customer-Facing Flow** (landing page, auth, customer dashboard)
+- **Broker Auth Flow** (secondary purple-themed BrokerHub registration/login with mobile responsive)
+- **Broker Dashboard Portal** (6-screen professional SaaS dashboard)
+
+---
+
+## Design Analysis Summary
+
+### Color Palette (from Figma)
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| Primary Green | `#10B981` / `#2DD4A8` | CTA buttons, active nav items, links, badges |
+| Dark Navy | `#0F172A` | Footer, heading text, dark backgrounds |
+| Light Gray BG | `#F5F7FA` | Page backgrounds, auth pages |
+| White | `#FFFFFF` | Cards, content areas |
+| Card Border | `#E5E7EB` | Card borders, table dividers |
+| Text Primary | `#1E293B` | Headings |
+| Text Secondary | `#64748B` | Body text, descriptions |
+| Status Green | `#10B981` | Delivered, Connected |
+| Status Yellow | `#F59E0B` | Under Review, In Transit |
+| Status Red | `#EF4444` | Pending, Cancelled |
+| Status Blue | `#3B82F6` | Pending Match, info |
+| Purple/Indigo | `#6366F1` | BrokerHub auth flow (prototype 2) |
+
+### Typography
+- **Font Family**: Inter (Google Font)
+- **Headings**: Bold, 24–36px
+- **Body**: Regular/Medium, 14–16px
+- **Labels**: Medium, 12–14px
+
+---
+
+## Tech Stack
+
+| Technology | Purpose |
+|-----------|---------|
+| **React 18** | UI framework |
+| **TypeScript** | Type safety |
+| **Vite** | Build tool |
+| **Tailwind CSS v3** | Styling (user requested utility-first CSS) |
+| **React Router v6** | Client-side routing |
+| **Lucide React** | Icons (matches Figma icon style) |
+| **Recharts** | Bar chart for Selling Trends |
+
+---
+
+## Application Structure & Routes
+
+```
+/                          → Landing Page
+/login                     → Customer Login
+/signup                    → Customer/Broker Sign Up
+/broker/auth               → Broker Auth (purple BrokerHub flow)
+/customer/dashboard        → Customer Dashboard
+/customer/my-brokers       → My Brokers List
+/customer/products         → Browse Products
+/customer/messages         → Customer Messages
+/customer/appointments     → Appointments
+/customer/settings         → Customer Settings
+/broker/dashboard          → Broker Dashboard Overview
+/broker/products           → Product Management
+/broker/messages           → Broker Customer Chat
+/broker/notifications      → Notification Center
+/broker/orders             → Order Tracking & Management
+/broker/settings           → Broker Profile & Preferences
+```
+
+---
+
+## Proposed Changes
+
+### Project Initialization
+
+#### [NEW] Project scaffold
+- Initialize Vite + React + TypeScript project in workspace
+- Install Tailwind CSS v3, React Router v6, Lucide React, Recharts
+- Configure Tailwind with custom color tokens from design
+
+---
+
+### Core Layout Components
+
+#### [NEW] `src/components/layout/CustomerSidebar.tsx`
+Customer-side left sidebar with B2C logo, nav items (Dashboard, My Brokers, Products, Messages, Appointments, Settings), Logout at bottom. Green highlight for active item.
+
+#### [NEW] `src/components/layout/BrokerSidebar.tsx`
+Broker-side left sidebar: B2C Broker logo, nav items (Dashboard, My Products, Messages, Notifications, Orders, Settings), user profile card at bottom (Alex Mercer, Prime Brokerage with avatar).
+
+#### [NEW] `src/components/layout/TopHeader.tsx`
+Top header bar with search input ("Search transactions, products..."), notification bell icon, message/chat icon. Used in broker dashboard.
+
+#### [NEW] `src/components/layout/Navbar.tsx`
+Landing page top navigation: B2C logo, Home, How It Works, Features, Testimonials links, Login/Sign Up buttons.
+
+#### [NEW] `src/components/layout/Footer.tsx`
+Dark navy footer with B2C BROKER HUB logo, Platform/Company/Legal link columns.
+
+#### [NEW] `src/components/layout/CustomerLayout.tsx`
+Wrapper layout for customer pages (sidebar + header + content area).
+
+#### [NEW] `src/components/layout/BrokerLayout.tsx`
+Wrapper layout for broker pages (sidebar + top header + content area).
+
+---
+
+### Reusable UI Components
+
+#### [NEW] `src/components/ui/Button.tsx`
+Button component with variants: primary (green filled), secondary (green outlined), danger (red), ghost. Multiple sizes.
+
+#### [NEW] `src/components/ui/Input.tsx`
+Form input with label, icon support, password toggle eye icon, error states.
+
+#### [NEW] `src/components/ui/StatCard.tsx`
+Statistics card: label, large number, optional percentage change badge (+12.3% green / -1.2% red).
+
+#### [NEW] `src/components/ui/StatusBadge.tsx`
+Status badge component: Connected (green), Under Review (yellow), Pending Match (blue), Delivered (green), In Transit (yellow), Pending (orange), Cancelled (red).
+
+#### [NEW] `src/components/ui/SearchBar.tsx`
+Search input with magnifying glass icon, rounded border.
+
+#### [NEW] `src/components/ui/Tabs.tsx`
+Tab navigation component with count badges (used in Notifications page).
+
+#### [NEW] `src/components/ui/Modal.tsx`
+Reusable modal/dialog with backdrop, close button.
+
+#### [NEW] `src/components/ui/Pagination.tsx`
+Pagination component: Previous, page numbers, Next (from Orders page).
+
+#### [NEW] `src/components/ui/Avatar.tsx`
+Avatar component with image support and fallback initials.
+
+#### [NEW] `src/components/ui/Card.tsx`
+Generic card wrapper with border, rounded corners, shadow.
+
+#### [NEW] `src/components/ui/Select.tsx`
+Dropdown select with chevron icon (for filters).
+
+#### [NEW] `src/components/ui/Toast.tsx`
+Toast notification system for success/error feedback.
+
+---
+
+### Page Implementations
+
+#### Landing Page
+#### [NEW] `src/pages/LandingPage.tsx`
+- Navbar with B2C logo + nav links + Login/Sign Up
+- Hero section: badge "⚡ Verified Connections in Under 24 Hours", heading "Find the perfect broker for your required things", description, two CTA buttons, business handshake image
+- "Why choose BROKER HUB?" section with 3 feature cards (Expert Broker Matching, Trusted & Verified Reviews, Fast Direct Connections)
+- "How it works" section: 01 Tell Us Your Goal, 02 Compare Your Matches, 03 Schedule & Secure
+- Dark navy footer
+
+---
+
+#### Authentication Pages
+#### [NEW] `src/pages/auth/LoginPage.tsx`
+Split layout: left B2C logo (large), right white card with login form. Email, Password (with eye toggle), Remember me, Forgot password?, green Sign In button, Sign up link.
+
+#### [NEW] `src/pages/auth/SignUpPage.tsx`
+Split layout: left B2C logo, right card with sign-up form. Account Type toggle (Customer/Broker), Full Name, Email, Phone, Password, Confirm Password, green Sign Up button, Login link.
+
+#### [NEW] `src/pages/auth/BrokerAuthPage.tsx`
+Purple-themed BrokerHub auth page (from Prototype 2). Split layout: left purple gradient with BrokerHub branding + user testimonial card, right white form with Email/Phone tabs, Full Name, Phone with country code, OTP, Terms checkbox, purple "Create Account" button, social login buttons. Includes responsive mobile view matching Flowspace mobile design.
+
+---
+
+#### Customer Pages
+#### [NEW] `src/pages/customer/CustomerDashboard.tsx`
+- Welcome header "Welcome back, Sarah Jenkins" with avatar
+- 4 stat cards row: Active Brokers (3), Pending Requests (1), Upcoming Appointments (2), Unread Messages (5) — each with colored icon
+- "Your Matched Brokers" section: 3 broker cards with avatar, name, specialty, company, status badge, chat/calendar action icons
+- "Recent Activity" section: activity list with timestamps
+
+#### [NEW] `src/pages/customer/MyBrokersPage.tsx`
+Full brokers list view with search/filter, broker cards expandable from dashboard.
+
+#### [NEW] `src/pages/customer/ProductsPage.tsx`
+Products browsing page for customers.
+
+#### [NEW] `src/pages/customer/MessagesPage.tsx`
+Customer messaging interface.
+
+#### [NEW] `src/pages/customer/AppointmentsPage.tsx`
+Appointments management page.
+
+#### [NEW] `src/pages/customer/CustomerSettingsPage.tsx`
+Customer profile and settings.
+
+---
+
+#### Broker Dashboard Pages
+#### [NEW] `src/pages/broker/BrokerDashboard.tsx`
+- Page title "Dashboard Overview" with search bar + notification/message icons
+- 4 stat cards: Total Sales (1,248, +12.3%), Total Revenue ($45,231.80, +8.4%), Active Listings (342, -1.2%), Pending Orders (18, +24.0%)
+- "Selling Trends (Monthly)" bar chart: Jan–Jun 2026, teal/green gradient bars
+- "Quick Glance" card: 4 New Messages, 3 Alerts & Requests
+- "Recent Orders" table: ID, Customer, Product, Amount, Status columns with 3 rows
+
+#### [NEW] `src/pages/broker/ProductManagement.tsx`
+- Page title "Product Management"
+- Filters row: All Categories dropdown, Status: All dropdown, "+ Add New Product" button (green)
+- Product cards grid (3×2): product image, name, price (green), stock count, edit/delete icons
+- Products: Quantum Smart Watch Series X ($299), Studio Pro ANC Headphones ($189), Dual-Driver Wireless Earbuds ($89.50, "Out of Stock" badge), Pro Ergonomic Office Chair ($420), Super-Speed Charging Hub ($49.99), Leather Travel Backpack ($150)
+
+#### [NEW] `src/pages/broker/BrokerMessages.tsx`
+- Page title "Broker Customer Chat"
+- Left panel "Recent Conversations": contact list with avatars, names, preview text, timestamps
+- Right panel: active chat header with contact name + "Online" status + "..." menu
+- Chat messages with bubbles (gray for received, green for sent), timestamps
+- Message input bar with attachment, emoji, send button
+
+#### [NEW] `src/pages/broker/NotificationCenter.tsx`
+- Page title "Notification Center"
+- Tab bar: All Notifications (12), Call Requests (3), Orders Alert (5), General (4) — with count badges
+- Notification items list: icon, bold name, description, timestamp, action buttons (Accept/Decline green/gray, or View Details)
+
+#### [NEW] `src/pages/broker/OrderTracking.tsx`
+- Page title "Order Tracking & Management"
+- 4 stat cards: Total Orders (3,142, +15%), Delivered (2,891, +10%), In Transit (184, -5%), Pending Approval (67, +18%)
+- "All Client Transactions" table with Sort by: Date dropdown
+- Columns: Order ID, Customer, Product, Qty, Amount, Order Date, Status
+- 5 order rows with status badges
+- Pagination: "Showing 1-5 of 124 transactions", Previous / 1 / 2 / Next
+
+#### [NEW] `src/pages/broker/BrokerSettings.tsx`
+- Page title "Broker Profile & Preferences"
+- Left sub-nav: Profile Details (active, green), Theme Preferences, Account & Payouts, "Log Out Session" button (red)
+- Right content: Profile Photo with Upload New / Remove buttons
+- Personal Details form: Full Name, Email Address, Phone Number, Office Address
+- Interface Theme toggle: Light Theme (active) / Dark Theme
+- Cancel / Save Changes buttons
+
+---
+
+### Data Layer
+
+#### [NEW] `src/data/mockData.ts`
+Structured mock data for all entities: users, brokers, customers, products, orders, notifications, messages, appointments.
+
+#### [NEW] `src/types/index.ts`
+TypeScript interfaces for User, Broker, Customer, Product, Order, Notification, Message, Appointment, etc.
+
+---
+
+### Responsive Design Strategy
+
+- **Desktop (≥1280px)**: Full sidebar + content, exact Figma dimensions
+- **Tablet (768–1279px)**: Collapsible sidebar, responsive grid
+- **Mobile (< 768px)**: Hamburger menu, stacked cards, scrollable tables, mobile-optimized forms
+- BrokerHub auth page has explicit mobile design (Flowspace-branded mobile screens from Prototype 2)
+
+---
+
+## File Structure
+
+```
+src/
+├── components/
+│   ├── layout/
+│   │   ├── Navbar.tsx
+│   │   ├── Footer.tsx
+│   │   ├── CustomerSidebar.tsx
+│   │   ├── BrokerSidebar.tsx
+│   │   ├── TopHeader.tsx
+│   │   ├── CustomerLayout.tsx
+│   │   └── BrokerLayout.tsx
+│   └── ui/
+│       ├── Button.tsx
+│       ├── Input.tsx
+│       ├── StatCard.tsx
+│       ├── StatusBadge.tsx
+│       ├── SearchBar.tsx
+│       ├── Tabs.tsx
+│       ├── Modal.tsx
+│       ├── Pagination.tsx
+│       ├── Avatar.tsx
+│       ├── Card.tsx
+│       ├── Select.tsx
+│       └── Toast.tsx
+├── pages/
+│   ├── LandingPage.tsx
+│   ├── auth/
+│   │   ├── LoginPage.tsx
+│   │   ├── SignUpPage.tsx
+│   │   └── BrokerAuthPage.tsx
+│   ├── customer/
+│   │   ├── CustomerDashboard.tsx
+│   │   ├── MyBrokersPage.tsx
+│   │   ├── ProductsPage.tsx
+│   │   ├── MessagesPage.tsx
+│   │   ├── AppointmentsPage.tsx
+│   │   └── CustomerSettingsPage.tsx
+│   └── broker/
+│       ├── BrokerDashboard.tsx
+│       ├── ProductManagement.tsx
+│       ├── BrokerMessages.tsx
+│       ├── NotificationCenter.tsx
+│       ├── OrderTracking.tsx
+│       └── BrokerSettings.tsx
+├── data/
+│   └── mockData.ts
+├── types/
+│   └── index.ts
+├── App.tsx
+├── main.tsx
+└── index.css
+```
+
+---
+
+## Build Order
+
+1. **Phase 1**: Project setup, Tailwind config, design tokens, types, mock data
+2. **Phase 2**: Reusable UI components (Button, Input, StatCard, StatusBadge, etc.)
+3. **Phase 3**: Layout components (Navbar, Sidebars, Headers, Footer, Layout wrappers)
+4. **Phase 4**: Landing Page + Auth Pages (Login, SignUp, BrokerAuth)
+5. **Phase 5**: Customer Dashboard + Customer pages
+6. **Phase 6**: Broker Dashboard + all 5 broker sub-pages
+7. **Phase 7**: Responsive refinement + polish + accessibility
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- `npm run build` — verify TypeScript compiles without errors
+- `npx tsc --noEmit` — type checking
+
+### Manual Verification
+- Visual comparison of each screen against Figma screenshots
+- Navigation flow testing across all routes
+- Responsive testing at desktop/tablet/mobile breakpoints
+- Form validation testing
+- Interactive elements (dropdowns, tabs, modals, chat)
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> **Prototype 2 (BrokerHub purple theme)**: The second Figma prototype uses a completely different brand name ("BrokerHub"/"Flowspace") and purple/indigo color scheme. Should I:
+> - **Option A**: Integrate it as the Broker-specific registration/login flow within the same B2C app (recommended — accessible at `/broker/auth`)
+> - **Option B**: Build it as a completely separate standalone page/app
+
+> [!NOTE]
+> **Product Images**: The broker dashboard shows product images (smartwatch, headphones, etc.). I will generate placeholder product images using the image generation tool to match the Figma designs.
+
+> [!NOTE]
+> **B2C Logo**: The workspace contains the B2C logo file which I'll use directly in the application.
