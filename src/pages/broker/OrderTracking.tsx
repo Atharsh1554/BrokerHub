@@ -23,17 +23,17 @@ export const OrderTracking: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Order Tracking</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          <h1 className="text-2xl font-bold text-zinc-900">Order Tracking</h1>
+          <p className="text-sm text-zinc-500 mt-1">
             Monitor and update order status across all your broker sales
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2" onClick={() => alert('Order CSV report exported successfully!')}>
+          <Button variant="outline" className="gap-2 border-zinc-200 text-zinc-700 hover:bg-zinc-50" onClick={() => alert('Order CSV report exported successfully!')}>
             <Download className="w-4 h-4" />
             Export CSV
           </Button>
@@ -41,7 +41,7 @@ export const OrderTracking: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-zinc-200 shadow-xs">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <input
@@ -49,7 +49,7 @@ export const OrderTracking: React.FC = () => {
             placeholder="Search order ID, buyer, product..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
+            className="w-full pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm text-zinc-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
         </div>
 
@@ -59,10 +59,10 @@ export const OrderTracking: React.FC = () => {
             <button
               key={status}
               onClick={() => setSelectedStatus(status)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors shrink-0 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors shrink-0 cursor-pointer ${
                 selectedStatus === status
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
               }`}
             >
               {status}
@@ -74,10 +74,10 @@ export const OrderTracking: React.FC = () => {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Orders Table List */}
-        <div className="lg:col-span-2 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs overflow-hidden">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-medium">
+              <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-medium">
                 <tr>
                   <th className="p-4">Order ID</th>
                   <th className="p-4">Customer</th>
@@ -87,7 +87,7 @@ export const OrderTracking: React.FC = () => {
                   <th className="p-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <tbody className="divide-y divide-zinc-100">
                 {filteredOrders.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center py-12 text-zinc-400">
@@ -101,20 +101,20 @@ export const OrderTracking: React.FC = () => {
                       <tr
                         key={order.id}
                         onClick={() => setSelectedOrder(order)}
-                        className={`cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors ${
-                          selectedOrder?.id === order.id ? 'bg-indigo-50/50 dark:bg-indigo-950/20' : ''
+                        className={`cursor-pointer hover:bg-zinc-50 transition-colors ${
+                          selectedOrder?.id === order.id ? 'bg-primary-50/50' : ''
                         }`}
                       >
-                        <td className="p-4 font-semibold text-indigo-600 dark:text-indigo-400">
+                        <td className="p-4 font-semibold text-primary">
                           {order.id}
                         </td>
-                        <td className="p-4 font-medium text-zinc-900 dark:text-white">
+                        <td className="p-4 font-medium text-zinc-900">
                           {order.customerName}
                         </td>
-                        <td className="p-4 text-zinc-500 dark:text-zinc-400 text-xs">
+                        <td className="p-4 text-zinc-500 text-xs">
                           {order.date}
                         </td>
-                        <td className="p-4 font-semibold text-zinc-900 dark:text-white">
+                        <td className="p-4 font-semibold text-zinc-900">
                           ${orderTotal.toLocaleString()}
                         </td>
                         <td className="p-4">
@@ -122,7 +122,7 @@ export const OrderTracking: React.FC = () => {
                         </td>
                         <td className="p-4 text-right">
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <ChevronRight className="w-4 h-4" />
+                            <ChevronRight className="w-4 h-4 text-zinc-400" />
                           </Button>
                         </td>
                       </tr>
@@ -135,12 +135,12 @@ export const OrderTracking: React.FC = () => {
         </div>
 
         {/* Selected Order Details Panel */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-6">
+        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-6">
           {selectedOrder ? (
             <>
-              <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
                 <div>
-                  <h3 className="font-bold text-lg text-zinc-900 dark:text-white">{selectedOrder.id}</h3>
+                  <h3 className="font-bold text-lg text-zinc-900">{selectedOrder.id}</h3>
                   <p className="text-xs text-zinc-500">{selectedOrder.date}</p>
                 </div>
                 <StatusBadge status={selectedOrder.status} />
@@ -149,9 +149,9 @@ export const OrderTracking: React.FC = () => {
               {/* Customer Info */}
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Customer Details</p>
-                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl space-y-1">
-                  <p className="font-semibold text-zinc-900 dark:text-white text-sm">{selectedOrder.customerName}</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Shipping: 123 Commercial Way, Suite 400</p>
+                <div className="p-3 bg-zinc-50 rounded-xl space-y-1 border border-zinc-100">
+                  <p className="font-semibold text-zinc-900 text-sm">{selectedOrder.customerName}</p>
+                  <p className="text-xs text-zinc-500">Shipping: 123 Commercial Way, Suite 400</p>
                 </div>
               </div>
 
@@ -163,23 +163,23 @@ export const OrderTracking: React.FC = () => {
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {selectedOrder.items ? (
                     selectedOrder.items.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-2.5 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl text-xs">
+                      <div key={idx} className="flex items-center justify-between p-2.5 bg-zinc-50 rounded-xl text-xs border border-zinc-100">
                         <div>
-                          <p className="font-medium text-zinc-900 dark:text-white">{item.productName}</p>
+                          <p className="font-medium text-zinc-900">{item.productName}</p>
                           <p className="text-zinc-400">Qty: {item.quantity} x ${item.unitPrice}</p>
                         </div>
-                        <span className="font-semibold text-zinc-900 dark:text-white">
+                        <span className="font-semibold text-zinc-900">
                           ${(item.quantity * item.unitPrice).toLocaleString()}
                         </span>
                       </div>
                     ))
                   ) : (
-                    <div className="flex items-center justify-between p-2.5 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl text-xs">
+                    <div className="flex items-center justify-between p-2.5 bg-zinc-50 rounded-xl text-xs border border-zinc-100">
                       <div>
-                        <p className="font-medium text-zinc-900 dark:text-white">{selectedOrder.product || 'Commercial Deal'}</p>
+                        <p className="font-medium text-zinc-900">{selectedOrder.product || 'Commercial Deal'}</p>
                         <p className="text-zinc-400">Qty: {selectedOrder.quantity || 1}</p>
                       </div>
-                      <span className="font-semibold text-zinc-900 dark:text-white">
+                      <span className="font-semibold text-zinc-900">
                         ${(selectedOrder.amount || 0).toLocaleString()}
                       </span>
                     </div>
@@ -191,7 +191,7 @@ export const OrderTracking: React.FC = () => {
               {(() => {
                 const total = selectedOrder.totalAmount ?? selectedOrder.amount ?? 0;
                 return (
-                  <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4 space-y-2 text-sm">
+                  <div className="border-t border-zinc-100 pt-4 space-y-2 text-sm">
                     <div className="flex justify-between text-zinc-500">
                       <span>Subtotal</span>
                       <span>${total.toLocaleString()}</span>
@@ -200,9 +200,9 @@ export const OrderTracking: React.FC = () => {
                       <span>Commission Fee</span>
                       <span className="text-emerald-600 font-medium">-${(total * 0.05).toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between font-bold text-zinc-900 dark:text-white text-base pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                    <div className="flex justify-between font-bold text-zinc-900 text-base pt-2 border-t border-zinc-100">
                       <span>Net Payout</span>
-                      <span className="text-indigo-600 dark:text-indigo-400">${(total * 0.95).toFixed(2)}</span>
+                      <span className="text-primary">${(total * 0.95).toFixed(2)}</span>
                     </div>
                   </div>
                 );
@@ -215,7 +215,7 @@ export const OrderTracking: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs gap-1"
+                    className="w-full text-xs gap-1 border-zinc-200 text-zinc-700 hover:bg-zinc-50"
                     onClick={() => {
                       updateOrderStatus(selectedOrder.id, 'In Transit');
                       setSelectedOrder({ ...selectedOrder, status: 'In Transit' });
@@ -227,7 +227,7 @@ export const OrderTracking: React.FC = () => {
                   <Button
                     variant="primary"
                     size="sm"
-                    className="w-full text-xs gap-1"
+                    className="w-full text-xs gap-1 bg-primary hover:bg-primary-dark text-white"
                     onClick={() => {
                       updateOrderStatus(selectedOrder.id, 'Delivered');
                       setSelectedOrder({ ...selectedOrder, status: 'Delivered' });
@@ -241,7 +241,7 @@ export const OrderTracking: React.FC = () => {
             </>
           ) : (
             <div className="text-center py-16 space-y-3">
-              <Package className="w-12 h-12 text-zinc-300 dark:text-zinc-600 mx-auto" />
+              <Package className="w-12 h-12 text-zinc-300 mx-auto" />
               <p className="text-sm font-medium text-zinc-500">Select an order from the list to view full tracking and payout breakdown.</p>
             </div>
           )}

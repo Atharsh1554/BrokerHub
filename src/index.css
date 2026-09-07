@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary: #10B981;
   --color-primary-dark: #059669;
@@ -32,10 +34,15 @@
     box-sizing: border-box;
   }
 
-  body {
+  :root {
+    color-scheme: light;
+  }
+
+  html, body {
     font-family: var(--font-sans);
     color: var(--color-text-primary);
-    background-color: #ffffff;
+    background-color: #F8FAFC;
+    color-scheme: light;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

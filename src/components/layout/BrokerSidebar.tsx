@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Settings,
 } from 'lucide-react';
+import { useNotifications } from '../../context/NotificationContext';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/broker/dashboard' },
@@ -20,6 +21,7 @@ const navItems = [
 
 export const BrokerSidebar: React.FC = () => {
   const location = useLocation();
+  const { unreadCount } = useNotifications();
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-border flex flex-col z-40">
@@ -40,18 +42,27 @@ export const BrokerSidebar: React.FC = () => {
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
+            const isNotifications = item.label === 'Notifications';
+
             return (
               <li key={item.path}>
                 <Link
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
+                  className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                     ${isActive
                       ? 'bg-primary-50 text-primary'
                       : 'text-gray-text hover:bg-gray-50 hover:text-text-primary'
                     }`}
                 >
-                  <Icon size={20} />
-                  <span>{item.label}</span>
+                  <div className="flex items-center gap-3">
+                    <Icon size={20} />
+                    <span>{item.label}</span>
+                  </div>
+                  {isNotifications && unreadCount > 0 && (
+                    <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-red-500 text-white leading-none">
+                      {unreadCount}
+                    </span>
+                  )}
                 </Link>
               </li>
             );

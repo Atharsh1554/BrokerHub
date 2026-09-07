@@ -59,6 +59,49 @@ export interface Notification {
   actions?: { label: string; variant: 'primary' | 'secondary' }[];
 }
 
+export type BrokerNotificationType = 
+  | 'call_request' 
+  | 'message' 
+  | 'order' 
+  | 'meeting' 
+  | 'profile_request' 
+  | 'general';
+
+export type NotificationStatus = 'pending' | 'accepted' | 'rejected' | 'completed' | 'handled';
+
+export interface BrokerNotification {
+  id: string;
+  broker_id: string;
+  customer_id: string;
+  customer_name: string;
+  customer_avatar?: string;
+  type: BrokerNotificationType;
+  title: string;
+  description?: string;
+  related_order_id?: string;
+  related_meeting_id?: string;
+  related_product_id?: string;
+  related_conversation_id?: string;
+  is_read: boolean;
+  status: NotificationStatus;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export interface CustomerProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  avatar?: string;
+  location?: string;
+  joinedDate?: string;
+  totalOrders?: number;
+  totalSpent?: number;
+  notes?: string;
+  status?: string;
+}
+
 export interface Message {
   id: string;
   senderId: string;

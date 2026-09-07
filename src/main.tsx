@@ -4,11 +4,14 @@ import './index.css'
 import App from './App.tsx'
 
 import { AppProvider } from './context/AppContext.tsx'
+import { NotificationProvider } from './context/NotificationContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppProvider>
-      <App />
+      <NotificationProvider>
+        <App />
+      </NotificationProvider>
     </AppProvider>
   </StrictMode>,
 )
