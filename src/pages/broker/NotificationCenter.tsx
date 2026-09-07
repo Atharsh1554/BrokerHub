@@ -22,7 +22,7 @@ import { Button } from '../../components/ui/Button';
 import { useNotifications } from '../../context/NotificationContext';
 import { useApp } from '../../context/AppContext';
 import { CustomerProfileModal } from '../../components/broker/CustomerProfileModal';
-import type { BrokerNotification, BrokerNotificationType, NotificationStatus, CustomerProfile } from '../../types';
+import type { BrokerNotification, BrokerNotificationType, CustomerProfile } from '../../types';
 
 type CategoryFilter = 'all' | BrokerNotificationType;
 type StatusFilter = 'all' | 'pending' | 'accepted' | 'rejected' | 'completed';
