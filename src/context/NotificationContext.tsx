@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { BrokerNotification, NotificationStatus, CustomerProfile } from '../types';
 import { INITIAL_NOTIFICATIONS, MOCK_CUSTOMER_PROFILES } from '../lib/seedNotifications';
+import { useAuth } from './AuthContext';
 
 interface NotificationContextType {
   notifications: BrokerNotification[];
@@ -19,10 +20,10 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const BROKER_ID = 'broker_alex';
 const LOCAL_STORAGE_KEY = 'brokerhub_notifications_v1';
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<BrokerNotification[]>(() => {
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -51,11 +52,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('broker_notifications')
-        .select('*')
-        .eq('broker_id', BROKER_ID)
-        .order('created_at', { ascending: false });
+      let query = supabase.from('broker_notifications').select('*');
+
+      if (user) {
+        query = query.or(`broker_id.eq.${user.id},customer_id.eq.${user.id}`);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.warn('Supabase fetch error:', error.message);
@@ -64,11 +67,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (data && data.length > 0) {
         setNotifications(data as BrokerNotification[]);
-      } else {
-        // Seed initial notifications into Supabase
+      } else if (user && user.role === 'broker') {
+        // Seed initial notifications into Supabase for this broker
         const seedPayload = INITIAL_NOTIFICATIONS.map(({ id: _, ...rest }) => ({
           ...rest,
-          broker_id: BROKER_ID,
+          broker_id: user.id,
         }));
         const { data: inserted, error: seedErr } = await supabase
           .from('broker_notifications')
@@ -84,7 +87,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchSupabaseNotifications();
@@ -99,9 +102,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             event: '*',
             schema: 'public',
             table: 'broker_notifications',
-            filter: `broker_id=eq.${BROKER_ID}`,
           },
           (payload) => {
+            const notif = (payload.new || payload.old) as BrokerNotification;
+            if (user && notif && notif.broker_id !== user.id && notif.customer_id !== user.id) {
+              return; // Filter out notifications not meant for current user
+            }
+
             if (payload.eventType === 'INSERT') {
               const newNotif = payload.new as BrokerNotification;
               setNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
@@ -120,7 +127,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         supabase.removeChannel(channel);
       };
     }
-  }, [fetchSupabaseNotifications]);
+  }, [fetchSupabaseNotifications, user]);
 
   const markRead = async (id: string) => {
     setNotifications((prev) =>
@@ -142,12 +149,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const markAllAsRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseConfigured && user) {
       try {
         await supabase
           .from('broker_notifications')
           .update({ is_read: true })
-          .eq('broker_id', BROKER_ID);
+          .or(`broker_id.eq.${user.id},customer_id.eq.${user.id}`);
       } catch (err) {
         console.warn('Failed to mark all read in Supabase:', err);
       }
@@ -266,3 +273,4 @@ export const useNotifications = () => {
   }
   return context;
 };
+

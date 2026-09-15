@@ -6,6 +6,7 @@ import { getBrokers } from '../lib/api/brokers';
 import { getProducts } from '../lib/api/products';
 import { getOrders } from '../lib/api/orders';
 import { getAppointments } from '../lib/api/appointments';
+import { sendDBMessage, getUserConversations, getMessagesBetweenUsers } from '../lib/api/messages';
 import { 
   conversations as initialConversations, 
   chatMessages as initialChatMessages 
@@ -70,12 +71,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         const fetchedAppointments = await getAppointments(user.id, user.role);
         setAppointments(fetchedAppointments);
+
+        // Fetch conversations
+        const dbConvs = await getUserConversations(user.id);
+        if (dbConvs.length > 0) {
+          setConversations(dbConvs);
+          // Load messages for initial conversations
+          for (const conv of dbConvs) {
+            const msgs = await getMessagesBetweenUsers(user.id, conv.id);
+            if (msgs.length > 0) {
+              setMessagesMap((prev) => ({ ...prev, [conv.id]: msgs }));
+            }
+          }
+        }
         
         // Fetch notifications
         const { data: notifs } = await supabase
           .from('broker_notifications')
           .select('*')
-          .eq(user.role === 'broker' ? 'broker_id' : 'customer_id', user.id)
+          .or(`broker_id.eq.${user.id},customer_id.eq.${user.id}`)
           .order('created_at', { ascending: false });
           
         if (notifs) {
@@ -94,6 +108,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadData();
   }, [user]);
 
+  // Real-time Supabase message subscription
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('public_messages_realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          const newMsg = payload.new as any;
+          if (newMsg.sender_id === user.id || newMsg.receiver_id === user.id) {
+            const convId = newMsg.sender_id === user.id ? newMsg.receiver_id : newMsg.sender_id;
+            const timeStr = new Date(newMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const msgObj: Message = {
+              id: newMsg.id,
+              senderId: newMsg.sender_id,
+              senderName: newMsg.sender_id === user.id ? 'You' : 'Contact',
+              content: newMsg.content,
+              timestamp: timeStr,
+              isOwn: newMsg.sender_id === user.id,
+            };
+
+            setMessagesMap((prev) => {
+              const list = prev[convId] || [];
+              if (list.some((m) => m.id === msgObj.id)) return prev;
+              return { ...prev, [convId]: [...list, msgObj] };
+            });
+
+            setConversations((prev) =>
+              prev.map((c) => (c.id === convId ? { ...c, lastMessage: newMsg.content, timestamp: timeStr } : c))
+            );
+
+            if (newMsg.sender_id !== user.id) {
+              showToast(`New message: "${newMsg.content.substring(0, 30)}..."`, 'info');
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   // Toast Helper
   const showToast = (message: string, type: 'success' | 'info' | 'warning' = 'success') => {
     const id = Date.now().toString();
@@ -107,28 +168,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Real-time Send Message (Mocked for now due to complexity of Conversations schema)
-  const sendMessage = (convId: string, text: string, isOwn: boolean = true) => {
+  // Real-time Send Message
+  const sendMessage = async (convId: string, text: string, isOwn: boolean = true) => {
     if (!text.trim()) return;
 
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const newMsg: Message = {
+    const localMsg: Message = {
       id: `msg_${Date.now()}`,
-      senderId: isOwn ? 'user' : 'other',
+      senderId: isOwn ? (user?.id || 'user') : 'other',
       senderName: isOwn ? 'You' : 'Contact',
       content: text,
       timestamp: timeStr,
       isOwn,
     };
 
+    // Optimistic UI update
     setMessagesMap((prev) => ({
       ...prev,
-      [convId]: [...(prev[convId] || []), newMsg],
+      [convId]: [...(prev[convId] || []), localMsg],
     }));
 
     setConversations((prev) =>
       prev.map((c) => (c.id === convId ? { ...c, lastMessage: text, timestamp: timeStr, unread: 0 } : c))
     );
+
+    // Save to Supabase if authenticated
+    if (user && convId && convId !== 'conv1') {
+      const dbMsg = await sendDBMessage(user.id, convId, text);
+      if (dbMsg) {
+        // Create live notification for recipient
+        await supabase.from('broker_notifications').insert({
+          broker_id: user.role === 'customer' ? convId : user.id,
+          customer_id: user.role === 'customer' ? user.id : convId,
+          customer_name: user.full_name || 'User',
+          type: 'message',
+          title: `New message from ${user.full_name || 'Client'}`,
+          description: text,
+          is_read: false,
+          status: 'pending',
+        });
+      }
+    }
   };
 
   // Product Actions

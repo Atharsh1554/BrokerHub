@@ -145,14 +145,14 @@ export const CustomerDashboard: React.FC = () => {
                 <StatusBadge status={broker.status} size="sm" />
               </div>
               <div className="flex items-center gap-2 pt-3 border-t border-gray-border">
-                <button className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-primary hover:bg-primary-50 transition-colors">
+                <Link to="/customer/messages" className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-primary hover:bg-primary-50 transition-colors">
                   <MessageCircle size={14} />
                   Chat
-                </button>
-                <button className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-primary hover:bg-primary-50 transition-colors">
+                </Link>
+                <Link to="/customer/appointments" className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-primary hover:bg-primary-50 transition-colors">
                   <CalendarDays size={14} />
                   Schedule
-                </button>
+                </Link>
               </div>
             </div>
           ))}

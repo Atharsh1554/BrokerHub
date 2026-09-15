@@ -2,6 +2,7 @@ import React from 'react';
 import { Search, Bell, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface TopHeaderProps {
   title?: string;
@@ -10,6 +11,23 @@ interface TopHeaderProps {
 export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
+  const { user } = useAuth();
+
+  const handleNotificationsClick = () => {
+    if (user?.role === 'customer') {
+      navigate('/customer/messages');
+    } else {
+      navigate('/broker/notifications');
+    }
+  };
+
+  const handleMessagesClick = () => {
+    if (user?.role === 'customer') {
+      navigate('/customer/messages');
+    } else {
+      navigate('/broker/messages');
+    }
+  };
 
   return (
     <header className="h-16 bg-white border-b border-gray-border flex items-center justify-between px-6 sticky top-0 z-30">
@@ -29,8 +47,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
 
         {/* Notification Bell */}
         <button 
-          onClick={() => navigate('/broker/notifications')}
-          aria-label="Broker Notifications"
+          onClick={handleNotificationsClick}
+          aria-label="Notifications"
           className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-all cursor-pointer group"
           title="Notification Center"
         >
@@ -44,7 +62,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
 
         {/* Messages */}
         <button 
-          onClick={() => navigate('/broker/messages')}
+          onClick={handleMessagesClick}
           aria-label="Direct Messages"
           className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-all cursor-pointer group"
           title="Messages"
@@ -55,3 +73,4 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
     </header>
   );
 };
+
