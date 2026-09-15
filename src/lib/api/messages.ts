@@ -104,7 +104,7 @@ export async function getUserConversations(userId: string): Promise<Conversation
         conversations.push({
           id: u.id,
           contactName: u.full_name || u.email || 'User',
-          avatar: u.avatar || '',
+          contactAvatar: u.avatar || '',
           lastMessage: meta?.lastMsg || 'Tap to start conversation',
           timestamp: meta?.time || '',
           unread: meta?.unread || 0,

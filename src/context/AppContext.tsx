@@ -242,9 +242,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         await supabase.from('broker_notifications').insert({
           broker_id: user.role === 'customer' ? convId : user.id,
           customer_id: user.role === 'customer' ? user.id : convId,
-          customer_name: user.full_name || 'User',
+          customer_name: user.fullName || 'User',
           type: 'message',
-          title: `New message from ${user.full_name || 'Client'}`,
+          title: `New message from ${user.fullName || 'Client'}`,
           description: text,
           is_read: false,
           status: 'pending',
