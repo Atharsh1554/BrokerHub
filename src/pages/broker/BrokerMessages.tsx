@@ -1,15 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Smile, Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 
 export const BrokerMessages: React.FC = () => {
-  const { conversations, messagesMap, sendMessage } = useApp();
+  const { user } = useAuth();
+  const { conversations, messagesMap, sendMessage, fetchConversationMessages } = useApp();
   const [activeConvId, setActiveConvId] = useState(conversations[0]?.id || 'conv1');
   const [inputMessage, setInputMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const activeConv = conversations.find((c) => c.id === activeConvId) || conversations[0];
+  const activeConv = conversations.find((c) => c.id === activeConvId) || conversations[0] || {
+    id: 'conv1',
+    contactName: 'Client Contact',
+    lastMessage: '',
+    timestamp: '',
+    unread: 0,
+    online: true,
+  };
   const messages = messagesMap[activeConvId] || [];
 
   const filteredConversations = conversations.filter((c) =>
@@ -19,6 +28,12 @@ export const BrokerMessages: React.FC = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  useEffect(() => {
+    if (activeConvId) {
+      fetchConversationMessages(activeConvId);
+    }
+  }, [activeConvId, fetchConversationMessages]);
 
   useEffect(() => {
     scrollToBottom();
@@ -103,22 +118,27 @@ export const BrokerMessages: React.FC = () => {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-50/50 dark:bg-zinc-950/40">
-              {messages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-xs ${
-                      msg.isOwn
-                        ? 'bg-indigo-600 text-white rounded-br-none'
-                        : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-bl-none'
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed">{msg.content}</p>
-                    <p className={`text-[10px] mt-1 text-right ${msg.isOwn ? 'text-white/80' : 'text-zinc-400'}`}>
-                      {msg.timestamp}
-                    </p>
+              {messages.map((msg) => {
+                const isOwn = user
+                  ? msg.senderId === user.id
+                  : (msg.senderId !== activeConv.id && msg.senderId !== 'c1' && msg.senderId !== 'cust');
+                return (
+                  <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                    <div
+                      className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-xs ${
+                        isOwn
+                          ? 'bg-indigo-600 text-white rounded-br-none'
+                          : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-bl-none'
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed">{msg.content}</p>
+                      <p className={`text-[10px] mt-1 text-right ${isOwn ? 'text-white/80' : 'text-zinc-400'}`}>
+                        {msg.timestamp}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
 

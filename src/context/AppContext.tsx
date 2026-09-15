@@ -30,6 +30,7 @@ interface AppContextType {
 
   // Actions
   sendMessage: (convId: string, text: string, isOwn?: boolean) => void;
+  fetchConversationMessages: (convId: string) => Promise<void>;
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
@@ -440,6 +441,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const fetchConversationMessages = async (convId: string) => {
+    if (!user || !convId) return;
+    const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    if (!isUuid(user.id) || !isUuid(convId)) return;
+
+    const msgs = await getMessagesBetweenUsers(user.id, convId);
+    if (msgs) {
+      setMessagesMap((prev) => ({ ...prev, [convId]: msgs }));
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -452,6 +464,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         appointments,
         toasts,
         sendMessage,
+        fetchConversationMessages,
         addProduct,
         updateProduct,
         deleteProduct,
