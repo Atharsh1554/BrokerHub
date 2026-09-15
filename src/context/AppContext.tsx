@@ -108,9 +108,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadData();
   }, [user]);
 
-  // Real-time Supabase message subscription
+  // Real-time Supabase message subscription & Broadcast Channel
   useEffect(() => {
-    if (!user) return;
+    // 1. Listen on BroadcastChannel for instant multi-tab sync
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('brokerhub_live_chat');
+      bc.onmessage = (event) => {
+        const { convId, msgObj, lastText, timeStr } = event.data;
+        if (convId && msgObj) {
+          setMessagesMap((prev) => {
+            const list = prev[convId] || [];
+            if (list.some((m) => m.id === msgObj.id)) return prev;
+            return { ...prev, [convId]: [...list, msgObj] };
+          });
+          setConversations((prev) =>
+            prev.map((c) => (c.id === convId ? { ...c, lastMessage: lastText, timestamp: timeStr } : c))
+          );
+        }
+      };
+    } catch {
+      // BroadcastChannel not supported in old browser
+    }
+
+    // 2. Listen on Supabase Realtime for cross-device DB sync
+    if (!user) {
+      return () => {
+        bc?.close();
+      };
+    }
 
     const channel = supabase
       .channel('public_messages_realtime')
@@ -152,6 +178,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     return () => {
       supabase.removeChannel(channel);
+      bc?.close();
     };
   }, [user]);
 
@@ -182,7 +209,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isOwn,
     };
 
-    // Optimistic UI update
+    // 1. Optimistic UI update
     setMessagesMap((prev) => ({
       ...prev,
       [convId]: [...(prev[convId] || []), localMsg],
@@ -192,11 +219,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map((c) => (c.id === convId ? { ...c, lastMessage: text, timestamp: timeStr, unread: 0 } : c))
     );
 
-    // Save to Supabase if authenticated
-    if (user && convId && convId !== 'conv1') {
+    // 2. Multi-tab Broadcast Sync
+    try {
+      const bc = new BroadcastChannel('brokerhub_live_chat');
+      bc.postMessage({
+        convId,
+        msgObj: { ...localMsg, isOwn: false },
+        lastText: text,
+        timeStr,
+      });
+      bc.close();
+    } catch {
+      // ignore
+    }
+
+    // 3. Save to Supabase if authenticated & valid UUIDs
+    const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+    if (user && isUuid(user.id) && isUuid(convId)) {
       const dbMsg = await sendDBMessage(user.id, convId, text);
       if (dbMsg) {
-        // Create live notification for recipient
         await supabase.from('broker_notifications').insert({
           broker_id: user.role === 'customer' ? convId : user.id,
           customer_id: user.role === 'customer' ? user.id : convId,
@@ -208,8 +250,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           status: 'pending',
         });
       }
+    } else {
+      // Demo auto-reply simulation for testing
+      setTimeout(() => {
+        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const autoReplyText = getAutoReplyText(text);
+        const replyMsg: Message = {
+          id: `reply_${Date.now()}`,
+          senderId: convId,
+          senderName: 'Contact',
+          content: autoReplyText,
+          timestamp: replyTime,
+          isOwn: false,
+        };
+
+        setMessagesMap((prev) => ({
+          ...prev,
+          [convId]: [...(prev[convId] || []), replyMsg],
+        }));
+
+        setConversations((prev) =>
+          prev.map((c) => (c.id === convId ? { ...c, lastMessage: autoReplyText, timestamp: replyTime } : c))
+        );
+
+        showToast(`New reply: "${autoReplyText.substring(0, 35)}..."`, 'info');
+      }, 1200);
     }
   };
+
+  function getAutoReplyText(input: string): string {
+    const lower = input.toLowerCase();
+    if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
+      return "Hello! Thanks for connecting. How can I assist you with your trade inquiry today?";
+    }
+    if (lower.includes('price') || lower.includes('cost') || lower.includes('quote')) {
+      return "I can provide detailed unit pricing and custom volume discounts. Let me prepare a breakdown for you.";
+    }
+    if (lower.includes('order') || lower.includes('ship') || lower.includes('status')) {
+      return "Your inquiry regarding order status has been logged. Our logistics manager is verifying dispatch details.";
+    }
+    return "Thank you for your message! I've received your inquiry and will review the specifications immediately.";
+  }
 
   // Product Actions
   const addProduct = async (prodData: Omit<Product, 'id'>) => {
