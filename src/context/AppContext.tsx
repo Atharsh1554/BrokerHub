@@ -115,20 +115,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       bc = new BroadcastChannel('brokerhub_live_chat');
       bc.onmessage = (event) => {
-        const { convId, msgObj, lastText, timeStr } = event.data;
-        if (convId && msgObj) {
-          setMessagesMap((prev) => {
-            const list = prev[convId] || [];
-            if (list.some((m) => m.id === msgObj.id)) return prev;
-            return { ...prev, [convId]: [...list, msgObj] };
-          });
-          setConversations((prev) =>
-            prev.map((c) => (c.id === convId ? { ...c, lastMessage: lastText, timestamp: timeStr } : c))
-          );
-        }
+        const { senderId, receiverId, content, timestamp, id } = event.data;
+        if (!senderId || !receiverId) return;
+
+        const timeStr = timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        setMessagesMap((prev) => {
+          let targetConvId = '';
+          let isOwn = false;
+
+          if (user) {
+            if (user.id === senderId) {
+              targetConvId = receiverId;
+              isOwn = true;
+            } else if (user.id === receiverId) {
+              targetConvId = senderId;
+              isOwn = false;
+            } else {
+              return prev;
+            }
+          } else {
+            targetConvId = receiverId === 'user' ? senderId : receiverId;
+            isOwn = senderId === 'user';
+          }
+
+          const msgObj: Message = {
+            id: id || `msg_${Date.now()}`,
+            senderId,
+            senderName: isOwn ? 'You' : 'Contact',
+            content,
+            timestamp: timeStr,
+            isOwn,
+          };
+
+          const list = prev[targetConvId] || [];
+          if (list.some((m) => m.id === msgObj.id)) return prev;
+          return { ...prev, [targetConvId]: [...list, msgObj] };
+        });
+
+        setConversations((prev) =>
+          prev.map((c) => {
+            const isMatch = user
+              ? (c.id === (user.id === senderId ? receiverId : senderId))
+              : (c.id === senderId || c.id === receiverId);
+            return isMatch ? { ...c, lastMessage: content, timestamp: timeStr } : c;
+          })
+        );
       };
     } catch {
-      // BroadcastChannel not supported in old browser
+      // BroadcastChannel fallback
     }
 
     // 2. Listen on Supabase Realtime for cross-device DB sync
@@ -146,29 +181,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         (payload) => {
           const newMsg = payload.new as any;
           if (newMsg.sender_id === user.id || newMsg.receiver_id === user.id) {
-            const convId = newMsg.sender_id === user.id ? newMsg.receiver_id : newMsg.sender_id;
+            const isOwn = newMsg.sender_id === user.id;
+            const targetConvId = isOwn ? newMsg.receiver_id : newMsg.sender_id;
             const timeStr = new Date(newMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             const msgObj: Message = {
               id: newMsg.id,
               senderId: newMsg.sender_id,
-              senderName: newMsg.sender_id === user.id ? 'You' : 'Contact',
+              senderName: isOwn ? 'You' : 'Contact',
               content: newMsg.content,
               timestamp: timeStr,
-              isOwn: newMsg.sender_id === user.id,
+              isOwn,
             };
 
             setMessagesMap((prev) => {
-              const list = prev[convId] || [];
+              const list = prev[targetConvId] || [];
               if (list.some((m) => m.id === msgObj.id)) return prev;
-              return { ...prev, [convId]: [...list, msgObj] };
+              return { ...prev, [targetConvId]: [...list, msgObj] };
             });
 
             setConversations((prev) =>
-              prev.map((c) => (c.id === convId ? { ...c, lastMessage: newMsg.content, timestamp: timeStr } : c))
+              prev.map((c) => (c.id === targetConvId ? { ...c, lastMessage: newMsg.content, timestamp: timeStr } : c))
             );
 
-            if (newMsg.sender_id !== user.id) {
+            if (!isOwn) {
               showToast(`New message: "${newMsg.content.substring(0, 30)}..."`, 'info');
             }
           }
@@ -196,37 +232,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Real-time Send Message
-  const sendMessage = async (convId: string, text: string, isOwn: boolean = true) => {
+  const sendMessage = async (convId: string, text: string, _isOwn: boolean = true) => {
     if (!text.trim()) return;
 
+    const senderId = user?.id || 'user';
+    const receiverId = convId;
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const msgId = `msg_${Date.now()}`;
+
     const localMsg: Message = {
-      id: `msg_${Date.now()}`,
-      senderId: isOwn ? (user?.id || 'user') : 'other',
-      senderName: isOwn ? 'You' : 'Contact',
+      id: msgId,
+      senderId: senderId,
+      senderName: 'You',
       content: text,
       timestamp: timeStr,
-      isOwn,
+      isOwn: true,
     };
 
-    // 1. Optimistic UI update
+    // 1. Optimistic UI update for Sender (key = receiverId)
     setMessagesMap((prev) => ({
       ...prev,
-      [convId]: [...(prev[convId] || []), localMsg],
+      [receiverId]: [...(prev[receiverId] || []), localMsg],
     }));
 
     setConversations((prev) =>
-      prev.map((c) => (c.id === convId ? { ...c, lastMessage: text, timestamp: timeStr, unread: 0 } : c))
+      prev.map((c) => (c.id === receiverId ? { ...c, lastMessage: text, timestamp: timeStr, unread: 0 } : c))
     );
 
-    // 2. Multi-tab Broadcast Sync
+    // 2. Broadcast for Multi-Tab Sync
     try {
       const bc = new BroadcastChannel('brokerhub_live_chat');
       bc.postMessage({
-        convId,
-        msgObj: { ...localMsg, isOwn: false },
-        lastText: text,
-        timeStr,
+        id: msgId,
+        senderId,
+        receiverId,
+        content: text,
+        timestamp: timeStr,
       });
       bc.close();
     } catch {
@@ -236,12 +277,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 3. Save to Supabase if authenticated & valid UUIDs
     const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
-    if (user && isUuid(user.id) && isUuid(convId)) {
-      const dbMsg = await sendDBMessage(user.id, convId, text);
+    if (user && isUuid(senderId) && isUuid(receiverId)) {
+      const dbMsg = await sendDBMessage(senderId, receiverId, text);
       if (dbMsg) {
         await supabase.from('broker_notifications').insert({
-          broker_id: user.role === 'customer' ? convId : user.id,
-          customer_id: user.role === 'customer' ? user.id : convId,
+          broker_id: user.role === 'customer' ? receiverId : senderId,
+          customer_id: user.role === 'customer' ? senderId : receiverId,
           customer_name: user.fullName || 'User',
           type: 'message',
           title: `New message from ${user.fullName || 'Client'}`,
@@ -257,7 +298,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const autoReplyText = getAutoReplyText(text);
         const replyMsg: Message = {
           id: `reply_${Date.now()}`,
-          senderId: convId,
+          senderId: receiverId,
           senderName: 'Contact',
           content: autoReplyText,
           timestamp: replyTime,
@@ -266,11 +307,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         setMessagesMap((prev) => ({
           ...prev,
-          [convId]: [...(prev[convId] || []), replyMsg],
+          [receiverId]: [...(prev[receiverId] || []), replyMsg],
         }));
 
         setConversations((prev) =>
-          prev.map((c) => (c.id === convId ? { ...c, lastMessage: autoReplyText, timestamp: replyTime } : c))
+          prev.map((c) => (c.id === receiverId ? { ...c, lastMessage: autoReplyText, timestamp: replyTime } : c))
         );
 
         showToast(`New reply: "${autoReplyText.substring(0, 35)}..."`, 'info');
