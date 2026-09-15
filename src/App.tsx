@@ -10,6 +10,7 @@ import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { SignUpPage } from './pages/auth/SignUpPage';
 import { BrokerAuthPage } from './pages/auth/BrokerAuthPage';
+import { AuthCallbackPage } from './pages/auth/AuthCallbackPage';
 
 // MYSTRIO Initiative Sub-Pages
 import { AboutMystrioPage } from './pages/mytrio/AboutMystrioPage';
@@ -42,6 +43,7 @@ export const App: React.FC = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/broker/auth" element={<BrokerAuthPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
         {/* MYSTRIO Sub-Pages */}
         <Route path="/about-mystrio" element={<AboutMystrioPage />} />

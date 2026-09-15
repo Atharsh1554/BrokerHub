@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Broker, Product, Order, Notification, Conversation, Message, Appointment } from '../types';
-import {
-  brokers as initialBrokers,
-  products as initialProducts,
-  orders as initialOrders,
-  notifications as initialNotifications,
-  conversations as initialConversations,
-  chatMessages as initialChatMessages,
-  appointments as initialAppointments,
+import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
+import { getBrokers } from '../lib/api/brokers';
+import { getProducts } from '../lib/api/products';
+import { getOrders } from '../lib/api/orders';
+import { getAppointments } from '../lib/api/appointments';
+import { 
+  conversations as initialConversations, 
+  chatMessages as initialChatMessages 
 } from '../data/mockData';
 
 interface Toast {
@@ -43,72 +44,55 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load from localStorage or default mockData
-  const [brokers, setBrokers] = useState<Broker[]>(() => {
-    const saved = localStorage.getItem('brokerhub_brokers');
-    return saved ? JSON.parse(saved) : initialBrokers;
-  });
-
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('brokerhub_products');
-    return saved ? JSON.parse(saved) : initialProducts;
-  });
-
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('brokerhub_orders');
-    return saved ? JSON.parse(saved) : initialOrders;
-  });
-
-  const [notifications, setNotifications] = useState<Notification[]>(() => {
-    const saved = localStorage.getItem('brokerhub_notifications');
-    return saved ? JSON.parse(saved) : initialNotifications;
-  });
-
-  const [conversations, setConversations] = useState<Conversation[]>(() => {
-    const saved = localStorage.getItem('brokerhub_conversations');
-    return saved ? JSON.parse(saved) : initialConversations;
-  });
-
-  const [messagesMap, setMessagesMap] = useState<Record<string, Message[]>>(() => {
-    const saved = localStorage.getItem('brokerhub_messagesMap');
-    return saved ? JSON.parse(saved) : { conv1: initialChatMessages };
-  });
-
-  const [appointments, setAppointments] = useState<Appointment[]>(() => {
-    const saved = localStorage.getItem('brokerhub_appointments');
-    return saved ? JSON.parse(saved) : initialAppointments;
-  });
-
+  const { user } = useAuth();
+  
+  const [brokers, setBrokers] = useState<Broker[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
+  const [messagesMap, setMessagesMap] = useState<Record<string, Message[]>>({ conv1: initialChatMessages });
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  // Sync to localStorage
+  // Fetch real data on mount or when user changes
   useEffect(() => {
-    localStorage.setItem('brokerhub_brokers', JSON.stringify(brokers));
-  }, [brokers]);
-
-  useEffect(() => {
-    localStorage.setItem('brokerhub_products', JSON.stringify(products));
-  }, [products]);
-
-  useEffect(() => {
-    localStorage.setItem('brokerhub_orders', JSON.stringify(orders));
-  }, [orders]);
-
-  useEffect(() => {
-    localStorage.setItem('brokerhub_notifications', JSON.stringify(notifications));
-  }, [notifications]);
-
-  useEffect(() => {
-    localStorage.setItem('brokerhub_conversations', JSON.stringify(conversations));
-  }, [conversations]);
-
-  useEffect(() => {
-    localStorage.setItem('brokerhub_messagesMap', JSON.stringify(messagesMap));
-  }, [messagesMap]);
-
-  useEffect(() => {
-    localStorage.setItem('brokerhub_appointments', JSON.stringify(appointments));
-  }, [appointments]);
+    const loadData = async () => {
+      const fetchedBrokers = await getBrokers();
+      setBrokers(fetchedBrokers);
+      
+      const fetchedProducts = await getProducts();
+      setProducts(fetchedProducts);
+      
+      if (user) {
+        const fetchedOrders = await getOrders(user.id, user.role);
+        setOrders(fetchedOrders);
+        
+        const fetchedAppointments = await getAppointments(user.id, user.role);
+        setAppointments(fetchedAppointments);
+        
+        // Fetch notifications
+        const { data: notifs } = await supabase
+          .from('broker_notifications')
+          .select('*')
+          .eq(user.role === 'broker' ? 'broker_id' : 'customer_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (notifs) {
+          setNotifications(notifs.map(n => ({
+            id: n.id,
+            type: n.type as any,
+            title: n.title,
+            description: n.description || '',
+            timestamp: new Date(n.created_at).toLocaleString(),
+            read: n.is_read
+          })));
+        }
+      }
+    };
+    
+    loadData();
+  }, [user]);
 
   // Toast Helper
   const showToast = (message: string, type: 'success' | 'info' | 'warning' = 'success') => {
@@ -123,7 +107,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Real-time Send Message
+  // Real-time Send Message (Mocked for now due to complexity of Conversations schema)
   const sendMessage = (convId: string, text: string, isOwn: boolean = true) => {
     if (!text.trim()) return;
 
@@ -142,79 +126,94 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       [convId]: [...(prev[convId] || []), newMsg],
     }));
 
-    // Update conversation last message
     setConversations((prev) =>
       prev.map((c) => (c.id === convId ? { ...c, lastMessage: text, timestamp: timeStr, unread: 0 } : c))
     );
-
-    // Simulate real-time automated response after 1.5 seconds if sent by user
-    if (isOwn) {
-      setTimeout(() => {
-        const replyStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const autoReply: Message = {
-          id: `reply_${Date.now()}`,
-          senderId: 'other',
-          senderName: 'Contact',
-          content: `Thanks for your message regarding "${text.slice(0, 20)}...". Our team will assist you immediately!`,
-          timestamp: replyStr,
-          isOwn: false,
-        };
-
-        setMessagesMap((prev) => ({
-          ...prev,
-          [convId]: [...(prev[convId] || []), autoReply],
-        }));
-
-        setConversations((prev) =>
-          prev.map((c) => (c.id === convId ? { ...c, lastMessage: autoReply.content, timestamp: replyStr } : c))
-        );
-      }, 1200);
-    }
   };
 
   // Product Actions
-  const addProduct = (prodData: Omit<Product, 'id'>) => {
-    const newProd: Product = {
-      ...prodData,
-      id: `p_${Date.now()}`,
-    };
-    setProducts((prev) => [newProd, ...prev]);
-    showToast(`Product "${newProd.name}" added successfully!`);
+  const addProduct = async (prodData: Omit<Product, 'id'>) => {
+    const { data, error } = await supabase.from('products').insert([{
+      name: prodData.name,
+      price: prodData.price,
+      image: prodData.image,
+      category: prodData.category,
+      stock: prodData.stock,
+      status: prodData.status,
+      description: prodData.description
+    }]).select().single();
+    
+    if (!error && data) {
+      const newProd: Product = { ...prodData, id: data.id };
+      setProducts((prev) => [newProd, ...prev]);
+      showToast(`Product "${newProd.name}" added successfully!`);
+    } else {
+      showToast(`Error adding product: ${error?.message}`, 'warning');
+    }
   };
 
-  const updateProduct = (id: string, updatedFields: Partial<Product>) => {
-    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)));
-    showToast('Product updated successfully!');
+  const updateProduct = async (id: string, updatedFields: Partial<Product>) => {
+    const { error } = await supabase.from('products').update(updatedFields).eq('id', id);
+    if (!error) {
+      setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)));
+      showToast('Product updated successfully!');
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-    showToast('Product deleted from inventory.', 'warning');
+  const deleteProduct = async (id: string) => {
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (!error) {
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      showToast('Product deleted from inventory.', 'warning');
+    }
   };
 
   // Order Actions
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
-    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus as any } : o)));
-    showToast(`Order ${orderId} status changed to ${newStatus}`);
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+    if (!error) {
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus as any } : o)));
+      showToast(`Order ${orderId} status changed to ${newStatus}`);
+    }
   };
 
   // Appointment Actions
-  const addAppointment = (appData: Omit<Appointment, 'id'>) => {
-    const newApp: Appointment = {
-      ...appData,
-      id: `app_${Date.now()}`,
-    };
-    setAppointments((prev) => [newApp, ...prev]);
-    showToast(`Appointment booked with ${newApp.brokerName} for ${newApp.date}`);
+  const addAppointment = async (appData: Omit<Appointment, 'id'>) => {
+    if (!user) return;
+    
+    // In a real app we'd need brokerId. For now, since appData doesn't have it explicitly structured,
+    // we'll try to find it by name or just use a mock UUID.
+    const broker = brokers.find(b => b.name === appData.brokerName);
+    if (!broker) return;
+
+    const { data, error } = await supabase.from('appointments').insert([{
+      customer_id: user.id,
+      broker_id: broker.id,
+      date: appData.date,
+      time: appData.time,
+      type: appData.type,
+      status: appData.status,
+      notes: appData.notes
+    }]).select().single();
+
+    if (!error && data) {
+      const newApp: Appointment = { ...appData, id: data.id };
+      setAppointments((prev) => [newApp, ...prev]);
+      showToast(`Appointment booked with ${newApp.brokerName} for ${newApp.date}`);
+    }
   };
 
-  const cancelAppointment = (id: string) => {
-    setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: 'Cancelled' } : a)));
-    showToast('Appointment cancelled.', 'warning');
+  const cancelAppointment = async (id: string) => {
+    const { error } = await supabase.from('appointments').update({ status: 'Cancelled' }).eq('id', id);
+    if (!error) {
+      setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: 'Cancelled' } : a)));
+      showToast('Appointment cancelled.', 'warning');
+    }
   };
 
   // Broker Connect Action
-  const toggleConnectBroker = (brokerId: string) => {
+  const toggleConnectBroker = async (brokerId: string) => {
+    // In a real DB, this would create a relation/notification. We'll simulate it locally.
     setBrokers((prev) =>
       prev.map((b) => {
         if (b.id === brokerId) {
@@ -232,8 +231,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Notification Actions
-  const markNotificationRead = (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  const markNotificationRead = async (id: string) => {
+    const { error } = await supabase.from('broker_notifications').update({ is_read: true }).eq('id', id);
+    if (!error) {
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    }
   };
 
   return (

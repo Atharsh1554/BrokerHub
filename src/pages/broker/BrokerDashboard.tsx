@@ -2,10 +2,13 @@ import React from 'react';
 import { DollarSign, ShoppingBag, BarChart3, Clock, MessageSquare, AlertTriangle } from 'lucide-react';
 import { StatCard } from '../../components/ui/StatCard';
 import { StatusBadge } from '../../components/ui/StatusBadge';
-import { brokerStats, orders, sellingTrendsData } from '../../data/mockData';
+import { brokerStats, sellingTrendsData } from '../../data/mockData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useApp } from '../../context/AppContext';
 
 export const BrokerDashboard: React.FC = () => {
+  const { orders } = useApp();
+
   const statIcons = [
     <DollarSign size={20} />,
     <DollarSign size={20} />,

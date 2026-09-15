@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import { Users, Clock, Calendar, MessageSquare, MessageCircle, CalendarDays, ShoppingBag, ArrowRight, Sparkles } from 'lucide-react';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useApp } from '../../context/AppContext';
-import { customerStats, brokers, recentActivity } from '../../data/mockData';
+import { customerStats, recentActivity } from '../../data/mockData';
 
 export const CustomerDashboard: React.FC = () => {
-  const { products } = useApp();
+  const { products, brokers } = useApp();
 
   const statIcons = [
     <Users size={20} />,
