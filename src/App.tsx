@@ -22,6 +22,10 @@ import { ContactPage } from './pages/mytrio/ContactPage';
 import { CustomerDashboard } from './pages/customer/CustomerDashboard';
 import { MyBrokersPage } from './pages/customer/MyBrokersPage';
 import { ProductsPage } from './pages/customer/ProductsPage';
+import { ProductDetailPage } from './pages/customer/ProductDetailPage';
+import { BrokerProfilePage } from './pages/customer/BrokerProfilePage';
+import { CartPage } from './pages/customer/CartPage';
+import { CheckoutPage } from './pages/customer/CheckoutPage';
 import { MessagesPage } from './pages/customer/MessagesPage';
 import { AppointmentsPage } from './pages/customer/AppointmentsPage';
 import { CustomerSettingsPage } from './pages/customer/CustomerSettingsPage';
@@ -57,6 +61,10 @@ export const App: React.FC = () => {
           <Route path="dashboard" element={<CustomerDashboard />} />
           <Route path="my-brokers" element={<MyBrokersPage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="products/:productId" element={<ProductDetailPage />} />
+          <Route path="brokers/:brokerId" element={<BrokerProfilePage />} />
+          <Route path="cart" element={<CartPage />} />
+          <Route path="checkout" element={<CheckoutPage />} />
           <Route path="messages" element={<MessagesPage />} />
           <Route path="appointments" element={<AppointmentsPage />} />
           <Route path="settings" element={<CustomerSettingsPage />} />

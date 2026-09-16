@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Broker, Product, Order, Notification, Conversation, Message, Appointment } from '../types';
+import type { Broker, Product, Order, Notification, Conversation, Message, Appointment, CartItem } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { getBrokers } from '../lib/api/brokers';
@@ -27,6 +27,8 @@ interface AppContextType {
   messagesMap: Record<string, Message[]>;
   appointments: Appointment[];
   toasts: Toast[];
+  cart: CartItem[];
+  cartCount: number;
 
   // Actions
   sendMessage: (convId: string, text: string, isOwn?: boolean) => void;
@@ -41,6 +43,10 @@ interface AppContextType {
   markNotificationRead: (id: string) => void;
   showToast: (message: string, type?: 'success' | 'info' | 'warning') => void;
   removeToast: (id: string) => void;
+  addToCart: (item: CartItem) => void;
+  removeFromCart: (productId: string) => void;
+  updateCartQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -56,6 +62,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [messagesMap, setMessagesMap] = useState<Record<string, Message[]>>({ conv1: initialChatMessages });
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
+
+  // Cart state — load from localStorage on init
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('brokerhub_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persist cart to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('brokerhub_cart', JSON.stringify(cart));
+    } catch {
+      // ignore storage errors
+    }
+  }, [cart]);
+
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // Fetch real data on mount or when user changes
   useEffect(() => {
@@ -356,38 +383,97 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Product Actions
   const addProduct = async (prodData: Omit<Product, 'id'>) => {
-    const { data, error } = await supabase.from('products').insert([{
-      name: prodData.name,
-      price: prodData.price,
-      image: prodData.image,
-      category: prodData.category,
-      stock: prodData.stock,
-      status: prodData.status,
-      description: prodData.description
-    }]).select().single();
-    
-    if (!error && data) {
-      const newProd: Product = { ...prodData, id: data.id };
-      setProducts((prev) => [newProd, ...prev]);
-      showToast(`Product "${newProd.name}" added successfully!`);
-    } else {
-      showToast(`Error adding product: ${error?.message}`, 'warning');
+    let newProd: Product | null = null;
+    const isUuid = (str?: string) => Boolean(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str));
+    const brokerId = isUuid(user?.id) ? user?.id : 'b1';
+
+    try {
+      const { data, error } = await supabase.from('products').insert([{
+        name: prodData.name,
+        price: prodData.price,
+        image: prodData.image,
+        category: prodData.category,
+        stock: prodData.stock,
+        status: prodData.status,
+        description: prodData.description,
+        ...(isUuid(brokerId) ? { broker_id: brokerId } : {}),
+      }]).select().single();
+
+      if (!error && data) {
+        newProd = {
+          ...prodData,
+          id: data.id,
+          brokerId: data.broker_id || brokerId,
+        };
+      }
+    } catch {
+      // ignore
     }
+
+    if (!newProd) {
+      newProd = {
+        ...prodData,
+        id: `p_${Date.now()}`,
+        brokerId: brokerId,
+      };
+      try {
+        const customProds = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
+        localStorage.setItem('brokerhub_custom_products', JSON.stringify([newProd, ...customProds]));
+      } catch {}
+    }
+
+    setProducts((prev) => [newProd!, ...prev]);
+    showToast(`Product "${newProd.name}" added successfully!`);
   };
 
   const updateProduct = async (id: string, updatedFields: Partial<Product>) => {
-    const { error } = await supabase.from('products').update(updatedFields).eq('id', id);
-    if (!error) {
-      setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)));
-      showToast('Product updated successfully!');
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (isUuid) {
+      await supabase.from('products').update({
+        ...(updatedFields.name ? { name: updatedFields.name } : {}),
+        ...(updatedFields.price !== undefined ? { price: updatedFields.price } : {}),
+        ...(updatedFields.image !== undefined ? { image: updatedFields.image } : {}),
+        ...(updatedFields.category ? { category: updatedFields.category } : {}),
+        ...(updatedFields.stock !== undefined ? { stock: updatedFields.stock } : {}),
+        ...(updatedFields.status ? { status: updatedFields.status } : {}),
+        ...(updatedFields.description !== undefined ? { description: updatedFields.description } : {}),
+      }).eq('id', id);
+    } else {
+      try {
+        const customProds: Product[] = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
+        const updatedCustom = customProds.map((p) => (p.id === id ? { ...p, ...updatedFields } : p));
+        localStorage.setItem('brokerhub_custom_products', JSON.stringify(updatedCustom));
+      } catch {}
     }
+
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)));
+    showToast('Product updated successfully!');
   };
 
   const deleteProduct = async (id: string) => {
-    const { error } = await supabase.from('products').delete().eq('id', id);
-    if (!error) {
-      setProducts((prev) => prev.filter((p) => p.id !== id));
-      showToast('Product deleted from inventory.', 'warning');
+    // 1. Optimistic UI update
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+    showToast('Product deleted from inventory.', 'warning');
+
+    // 2. Persist deleted ID in localStorage so deleted mock & custom products NEVER reappear on refresh
+    try {
+      const deleted: string[] = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
+      if (!deleted.includes(id)) {
+        localStorage.setItem('brokerhub_deleted_products', JSON.stringify([...deleted, id]));
+      }
+
+      const customProds: Product[] = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
+      const updatedCustom = customProds.filter((p) => p.id !== id);
+      localStorage.setItem('brokerhub_custom_products', JSON.stringify(updatedCustom));
+    } catch {}
+
+    // 3. Delete from Supabase if valid UUID
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (isUuid) {
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) {
+        console.error('Error deleting product from Supabase:', error);
+      }
     }
   };
 
@@ -461,6 +547,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Cart Actions
+  const addToCart = (item: CartItem) => {
+    setCart((prev) => {
+      const existing = prev.find((c) => c.productId === item.productId);
+      if (existing) {
+        return prev.map((c) =>
+          c.productId === item.productId
+            ? { ...c, quantity: c.quantity + item.quantity, totalPrice: (c.quantity + item.quantity) * c.price }
+            : c
+        );
+      }
+      return [...prev, item];
+    });
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart((prev) => prev.filter((c) => c.productId !== productId));
+  };
+
+  const updateCartQuantity = (productId: string, quantity: number) => {
+    if (quantity < 1) return;
+    setCart((prev) =>
+      prev.map((c) =>
+        c.productId === productId ? { ...c, quantity, totalPrice: quantity * c.price } : c
+      )
+    );
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    try { localStorage.removeItem('brokerhub_cart'); } catch { /**/ }
+  };
+
   const fetchConversationMessages = async (convId: string) => {
     if (!user || !convId) return;
     const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
@@ -483,6 +602,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         messagesMap,
         appointments,
         toasts,
+        cart,
+        cartCount,
         sendMessage,
         fetchConversationMessages,
         addProduct,
@@ -495,6 +616,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         markNotificationRead,
         showToast,
         removeToast,
+        addToCart,
+        removeFromCart,
+        updateCartQuantity,
+        clearCart,
       }}
     >
       {children}

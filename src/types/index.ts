@@ -13,6 +13,7 @@ export interface Broker {
   specialty: string;
   company: string;
   avatar?: string;
+  location?: string;
   status: 'Connected' | 'Under Review' | 'Pending Match';
   rating: number;
   reviewCount: number;
@@ -24,10 +25,38 @@ export interface Product {
   name: string;
   price: number;
   image: string;
+  images?: string[];
   category: string;
   stock: number;
   status: 'In Stock' | 'Out of Stock' | 'Low Stock';
   description?: string;
+  brokerId?: string;
+  rating?: number;
+  reviewCount?: number;
+  specifications?: Record<string, string>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CartItem {
+  productId: string;
+  productName: string;
+  productImage: string;
+  brokerId: string;
+  brokerName: string;
+  price: number;
+  quantity: number;
+  totalPrice?: number;
+}
+
+export interface ProductReview {
+  id: string;
+  customerId: string;
+  customerName: string;
+  customerAvatar?: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
 }
 
 export interface OrderItem {

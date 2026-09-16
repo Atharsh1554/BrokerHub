@@ -4,18 +4,21 @@ import {
   LayoutDashboard,
   Users,
   ShoppingBag,
+  ShoppingCart,
   MessageSquare,
   Calendar,
   Settings,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useApp } from '../../context/AppContext';
 import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/customer/dashboard' },
   { label: 'My Brokers', icon: Users, path: '/customer/my-brokers' },
   { label: 'Products', icon: ShoppingBag, path: '/customer/products' },
+  { label: 'Cart', icon: ShoppingCart, path: '/customer/cart', hasBadge: true },
   { label: 'Messages', icon: MessageSquare, path: '/customer/messages' },
   { label: 'Appointments', icon: Calendar, path: '/customer/appointments' },
   { label: 'Settings', icon: Settings, path: '/customer/settings' },
@@ -25,6 +28,9 @@ export const CustomerSidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { cart } = useApp();
+
+  const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleLogout = async () => {
     await signOut();
@@ -51,20 +57,27 @@ export const CustomerSidebar: React.FC = () => {
       <nav className="flex-1 py-4 px-3 overflow-y-auto">
         <ul className="space-y-1">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path || (item.path !== '/customer/dashboard' && location.pathname.startsWith(item.path));
             const Icon = item.icon;
             return (
               <li key={item.path}>
                 <Link
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
+                  className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                     ${isActive
-                      ? 'bg-primary-50 text-primary'
+                      ? 'bg-primary-50 text-primary font-semibold'
                       : 'text-gray-text hover:bg-gray-50 hover:text-text-primary'
                     }`}
                 >
-                  <Icon size={20} />
-                  <span>{item.label}</span>
+                  <div className="flex items-center gap-3">
+                    <Icon size={20} />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.hasBadge && totalCartCount > 0 && (
+                    <span className="bg-emerald-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {totalCartCount}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
@@ -95,4 +108,3 @@ export const CustomerSidebar: React.FC = () => {
     </aside>
   );
 };
-
