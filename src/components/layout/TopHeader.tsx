@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, Bell, MessageSquare } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, Bell, MessageSquare, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
@@ -12,10 +12,23 @@ interface TopHeaderProps {
 export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const displayName = resolveUserDisplayName(user?.fullName, user?.email);
   const initials = getUserInitials(displayName);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleNotificationsClick = () => {
     if (user?.role === 'customer') {
@@ -33,12 +46,19 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
     }
   };
 
-  const handleProfileClick = () => {
+  const handleSettingsClick = () => {
+    setShowDropdown(false);
     if (user?.role === 'customer') {
       navigate('/customer/settings');
     } else {
       navigate('/broker/settings');
     }
+  };
+
+  const handleLogout = async () => {
+    setShowDropdown(false);
+    await signOut();
+    navigate('/login');
   };
 
   return (
@@ -58,7 +78,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
         </div>
 
         {/* Notification Bell */}
-        <button 
+        <button
           onClick={handleNotificationsClick}
           aria-label="Notifications"
           className="relative p-2 rounded-lg hover:bg-gray-100 transition-all cursor-pointer group"
@@ -73,7 +93,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
         </button>
 
         {/* Messages */}
-        <button 
+        <button
           onClick={handleMessagesClick}
           aria-label="Direct Messages"
           className="relative p-2 rounded-lg hover:bg-gray-100 transition-all cursor-pointer group"
@@ -82,24 +102,70 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
           <MessageSquare size={20} className="text-gray-text group-hover:text-primary transition-colors" />
         </button>
 
-        {/* User Profile Pill */}
-        <button
-          onClick={handleProfileClick}
-          className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors border border-gray-border cursor-pointer group"
-          title="Profile Settings"
-        >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-bold text-xs shadow-xs">
-            {initials}
-          </div>
-          <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-semibold text-text-primary group-hover:text-primary transition-colors max-w-[120px] truncate leading-tight">
-              {displayName}
-            </span>
-            <span className="text-[10px] text-gray-text capitalize leading-tight">
-              {user?.role || 'Guest'}
-            </span>
-          </div>
-        </button>
+        {/* User Profile Pill with Dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setShowDropdown((prev) => !prev)}
+            className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-full hover:bg-gray-100 transition-colors border border-gray-border cursor-pointer group"
+            title="Account Menu"
+            aria-expanded={showDropdown}
+          >
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-bold text-xs shadow-xs">
+              {initials}
+            </div>
+            <div className="hidden sm:flex flex-col text-left">
+              <span className="text-xs font-semibold text-text-primary group-hover:text-primary transition-colors max-w-[110px] truncate leading-tight">
+                {displayName}
+              </span>
+              <span className="text-[10px] text-gray-text capitalize leading-tight">
+                {user?.role || 'Guest'}
+              </span>
+            </div>
+            <ChevronDown
+              size={14}
+              className={`text-gray-label transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {/* Dropdown Menu */}
+          {showDropdown && (
+            <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-xl border border-gray-border py-1.5 z-50 animate-fade-in">
+              {/* User info header */}
+              <div className="px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                    {initials}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-text-primary truncate">{displayName}</p>
+                    <p className="text-[11px] text-gray-text capitalize">{user?.role || 'Guest'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Menu items */}
+              <div className="py-1">
+                <button
+                  onClick={handleSettingsClick}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors cursor-pointer"
+                >
+                  <Settings size={16} className="text-gray-400" />
+                  Profile & Settings
+                </button>
+
+                <div className="border-t border-gray-100 my-1" />
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer font-medium"
+                >
+                  <LogOut size={16} />
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

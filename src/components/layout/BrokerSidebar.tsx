@@ -7,6 +7,7 @@ import {
   Bell,
   ClipboardList,
   Settings,
+  LogOut,
 } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
@@ -24,7 +25,7 @@ const navItems = [
 export const BrokerSidebar: React.FC = () => {
   const location = useLocation();
   const { unreadCount } = useNotifications();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const displayName = resolveUserDisplayName(user?.fullName, user?.email);
   const initials = getUserInitials(displayName);
@@ -76,17 +77,25 @@ export const BrokerSidebar: React.FC = () => {
         </ul>
       </nav>
 
-      {/* User Profile Card */}
-      <div className="p-4 border-t border-gray-border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-semibold text-sm shadow-xs">
+      {/* User Profile & Logout */}
+      <div className="p-3 border-t border-gray-border space-y-2">
+        <div className="flex items-center gap-3 px-2 py-1.5">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-semibold text-xs shadow-xs shrink-0">
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-text-primary truncate">{displayName}</p>
-            <p className="text-xs text-gray-label truncate">{user?.email || 'Broker Account'}</p>
+            <p className="text-xs font-semibold text-text-primary truncate">{displayName}</p>
+            <p className="text-[10px] text-gray-label truncate">{user?.email || 'Broker Account'}</p>
           </div>
         </div>
+
+        <button
+          onClick={() => signOut()}
+          className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-status-red hover:bg-red-50 transition-all duration-200 cursor-pointer"
+        >
+          <LogOut size={18} />
+          <span>Logout</span>
+        </button>
       </div>
     </aside>
   );
