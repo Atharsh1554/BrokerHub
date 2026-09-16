@@ -187,8 +187,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // scope: 'global' signs out from ALL sessions on all devices
+    await supabase.auth.signOut({ scope: 'global' });
     setUser(null);
+    // Clear any persisted state from localStorage
+    localStorage.removeItem('brokerhub_google_role');
   };
 
   return (

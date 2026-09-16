@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -23,7 +23,13 @@ const navItems = [
 
 export const CustomerSidebar: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   const displayName = resolveUserDisplayName(user?.fullName, user?.email);
   const initials = getUserInitials(displayName);
@@ -79,7 +85,7 @@ export const CustomerSidebar: React.FC = () => {
         </div>
 
         <button
-          onClick={() => signOut()}
+          onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-status-red hover:bg-red-50 transition-all duration-200 cursor-pointer"
         >
           <LogOut size={18} />
