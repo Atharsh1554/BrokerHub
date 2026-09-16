@@ -1,7 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Smile, Search } from 'lucide-react';
+import { Send, Paperclip, Smile, Search, ArrowLeft, MessageSquare, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
+
+const QUICK_PROMPTS = [
+  'Inquiring about product pricing',
+  'Can we schedule a consultation call?',
+  'Update on current order status',
+  'Requesting volume discount quote',
+];
+
+const EMOJI_LIST = ['😊', '👍', '🚀', '📦', '💼', '💰', '🙏', '✅', '⚡', '🤝', '📈', '🔥'];
 
 export const MessagesPage: React.FC = () => {
   const { user } = useAuth();
@@ -9,16 +19,19 @@ export const MessagesPage: React.FC = () => {
   const [activeConvId, setActiveConvId] = useState(conversations[0]?.id || 'conv1');
   const [inputMessage, setInputMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeConv = conversations.find((c) => c.id === activeConvId) || conversations[0] || {
     id: 'conv1',
-    contactName: 'Broker Support',
+    contactName: 'Broker Contact',
     lastMessage: '',
     timestamp: '',
     unread: 0,
     online: true,
   };
+
   const messages = messagesMap[activeConvId] || [];
 
   const filteredConversations = conversations.filter((c) =>
@@ -39,147 +52,279 @@ export const MessagesPage: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
+  const handleSelectConv = (convId: string) => {
+    setActiveConvId(convId);
+    setShowMobileChat(true);
+  };
+
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    sendMessage(activeConvId, inputMessage, true);
+    sendMessage(activeConvId, inputMessage.trim(), true);
     setInputMessage('');
+    setShowEmojiPicker(false);
   };
 
+  const handleQuickPrompt = (prompt: string) => {
+    setInputMessage(prompt);
+  };
+
+  const addEmoji = (emoji: string) => {
+    setInputMessage((prev) => prev + emoji);
+  };
+
+  const currentUserName = resolveUserDisplayName(user?.fullName, user?.email);
+
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-primary mb-1">Messages</h1>
-        <p className="text-sm text-gray-text">Real-time messaging with your assigned brokers</p>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary tracking-tight">Messages & Communication</h1>
+          <p className="text-xs sm:text-sm text-gray-text mt-0.5">
+            Direct real-time channel with your verified brokers
+          </p>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-border overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
-        <div className="flex h-full">
-          {/* Conversations List */}
-          <div className="w-80 border-r border-gray-border flex flex-col">
-            <div className="p-4 border-b border-gray-border relative">
-              <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search conversations..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-gray-border rounded-lg text-sm bg-gray-bg focus:border-primary focus:ring-1 focus:ring-primary"
-              />
+      {/* Main Container */}
+      <div className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs h-[calc(100vh-180px)] min-h-[540px] flex flex-col">
+        <div className="flex flex-1 h-full overflow-hidden relative">
+          
+          {/* Sidebar / Conversation List */}
+          <div
+            className={`w-full md:w-80 lg:w-96 border-r border-gray-border flex flex-col bg-white shrink-0 ${
+              showMobileChat ? 'hidden md:flex' : 'flex'
+            }`}
+          >
+            {/* Search Bar */}
+            <div className="p-4 border-b border-gray-border bg-gray-50/50">
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-label" />
+                <input
+                  type="text"
+                  placeholder="Search broker contacts..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 border border-gray-border rounded-xl text-sm bg-white text-text-primary placeholder-gray-label focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                />
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto">
-              {filteredConversations.map((conv) => (
-                <button
-                  key={conv.id}
-                  onClick={() => setActiveConvId(conv.id)}
-                  className={`w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors border-b border-gray-border ${
-                    activeConvId === conv.id ? 'bg-primary-50/70 border-l-4 border-l-primary' : ''
-                  }`}
-                >
-                  <div className="relative shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-semibold text-sm shadow-xs">
-                      {conv.contactName.split(' ').map((n) => n[0]).join('')}
-                    </div>
-                    {conv.online && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-status-green rounded-full border-2 border-white" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-text-primary truncate">{conv.contactName}</p>
-                      <span className="text-xs text-gray-label shrink-0">{conv.timestamp}</span>
-                    </div>
-                    <p className="text-xs text-gray-text truncate mt-0.5">{conv.lastMessage}</p>
-                  </div>
-                  {conv.unread > 0 && (
-                    <span className="w-5 h-5 rounded-full bg-primary text-white text-xs flex items-center justify-center shrink-0">
-                      {conv.unread}
-                    </span>
-                  )}
-                </button>
-              ))}
+
+            {/* Conversation Items */}
+            <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+              {filteredConversations.length === 0 ? (
+                <div className="p-8 text-center text-gray-text">
+                  <MessageSquare className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm font-medium">No conversations found</p>
+                  <p className="text-xs text-gray-label mt-1">Try a different search query</p>
+                </div>
+              ) : (
+                filteredConversations.map((conv) => {
+                  const isSelected = activeConvId === conv.id;
+                  const initials = getUserInitials(conv.contactName);
+                  return (
+                    <button
+                      key={conv.id}
+                      onClick={() => handleSelectConv(conv.id)}
+                      className={`w-full flex items-center gap-3 p-4 text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-primary-50/80 border-l-4 border-l-primary'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="relative shrink-0">
+                        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-bold text-sm shadow-xs">
+                          {initials}
+                        </div>
+                        {conv.online && (
+                          <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-status-green rounded-full border-2 border-white" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-sm font-semibold text-text-primary truncate">{conv.contactName}</p>
+                          <span className="text-[11px] text-gray-label shrink-0 font-medium">{conv.timestamp}</span>
+                        </div>
+                        <p className="text-xs text-gray-text truncate">{conv.lastMessage || 'Click to start chatting'}</p>
+                      </div>
+
+                      {conv.unread > 0 && (
+                        <span className="min-w-[20px] h-[20px] px-1.5 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center shrink-0 shadow-xs">
+                          {conv.unread}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
 
-          {/* Chat Area */}
-          <div className="flex-1 flex flex-col">
-            {/* Chat Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-border bg-white">
+          {/* Active Chat Panel */}
+          <div
+            className={`flex-1 flex flex-col bg-gray-bg/40 ${
+              !showMobileChat ? 'hidden md:flex' : 'flex'
+            }`}
+          >
+            {/* Chat Top Header */}
+            <div className="flex items-center justify-between p-4 bg-white border-b border-gray-border shadow-xs">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-semibold text-sm shadow-xs">
-                  {activeConv.contactName.split(' ').map((n) => n[0]).join('')}
+                <button
+                  onClick={() => setShowMobileChat(false)}
+                  className="md:hidden p-2 text-gray-text hover:text-text-primary hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                  title="Back to conversation list"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-bold text-sm shadow-xs">
+                    {getUserInitials(activeConv.contactName)}
+                  </div>
+                  {activeConv.online && (
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-status-green rounded-full border-2 border-white" />
+                  )}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-text-primary">{activeConv.contactName}</p>
-                  <p className="text-xs text-status-green flex items-center gap-1">
+                  <h2 className="text-sm font-bold text-text-primary">{activeConv.contactName}</h2>
+                  <p className="text-[11px] text-status-green font-medium flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-status-green animate-pulse" />
-                    {activeConv.online ? 'Online & Ready to chat' : 'Offline (Replies within 1 hour)'}
+                    {activeConv.online ? 'Online & Available' : 'Offline'}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-bg/50">
-              {messages.map((msg) => {
-                const isOwn = user
-                  ? msg.senderId === user.id
-                  : (msg.senderId === 'cust' || msg.senderId === 'user' || msg.isOwn);
-                return (
-                  <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                    <div
-                      className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-xs ${
-                        isOwn
-                          ? 'bg-primary text-white rounded-br-none'
-                          : 'bg-white border border-gray-border text-text-primary rounded-bl-none'
-                      }`}
-                    >
-                      <p className="text-sm leading-relaxed">{msg.content}</p>
-                      <p className={`text-[10px] mt-1 text-right ${isOwn ? 'text-white/80' : 'text-gray-400'}`}>
-                        {msg.timestamp}
-                      </p>
-                    </div>
+            {/* Messages Display Area */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+              {messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                  <div className="w-14 h-14 rounded-2xl bg-primary-50 text-primary flex items-center justify-center mb-3">
+                    <Sparkles size={28} />
                   </div>
-                );
-              })}
+                  <h3 className="text-base font-bold text-text-primary">Start the Conversation</h3>
+                  <p className="text-xs text-gray-text max-w-sm mt-1">
+                    Send a message to discuss products, pricing quotes, or order fulfillment details.
+                  </p>
+                </div>
+              ) : (
+                messages.map((msg) => {
+                  const isOwn = user
+                    ? msg.senderId === user.id
+                    : (msg.senderId === 'cust' || msg.senderId === 'user' || msg.isOwn);
+                  
+                  const senderDisplayName = isOwn ? currentUserName : (msg.senderName || activeConv.contactName);
+                  const senderInitials = getUserInitials(senderDisplayName);
+
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 text-gray-700 flex items-center justify-center text-xs font-bold shrink-0 mt-1 shadow-xs">
+                        {senderInitials}
+                      </div>
+
+                      <div className={`max-w-[80%] sm:max-w-[70%] space-y-1`}>
+                        <div className={`flex items-center gap-2 text-[10px] text-gray-label ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                          <span className="font-semibold text-text-primary">{senderDisplayName}</span>
+                          <span>•</span>
+                          <span>{msg.timestamp}</span>
+                        </div>
+
+                        <div
+                          className={`rounded-2xl px-4 py-3 shadow-xs text-sm leading-relaxed ${
+                            isOwn
+                              ? 'bg-primary text-white rounded-tr-none'
+                              : 'bg-white border border-gray-border text-text-primary rounded-tl-none'
+                          }`}
+                        >
+                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input Form */}
-            <form onSubmit={handleSend} className="p-4 border-t border-gray-border bg-white">
-              <div className="flex items-center gap-2">
+            {/* Quick Reply Tags */}
+            <div className="px-4 py-2 bg-white border-t border-gray-100 flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <span className="text-[11px] font-semibold text-gray-label shrink-0">Quick Ask:</span>
+              {QUICK_PROMPTS.map((prompt, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleQuickPrompt(prompt)}
+                  className="px-2.5 py-1 rounded-full text-xs bg-gray-100 text-gray-text hover:bg-primary-50 hover:text-primary transition-all shrink-0 cursor-pointer border border-gray-border/60"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+
+            {/* Input Bar & Controls */}
+            <div className="p-4 bg-white border-t border-gray-border relative">
+              {/* Emoji Picker Popover */}
+              {showEmojiPicker && (
+                <div className="absolute bottom-full left-4 mb-2 p-3 bg-white rounded-xl border border-gray-border shadow-xl grid grid-cols-6 gap-2 z-20">
+                  {EMOJI_LIST.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => addEmoji(emoji)}
+                      className="p-2 text-xl hover:bg-gray-100 rounded-lg transition-transform hover:scale-115 cursor-pointer"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <form onSubmit={handleSend} className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => alert('Attachment feature simulated: File attached.')}
-                  className="p-2 text-gray-label hover:text-primary transition-colors rounded-lg hover:bg-gray-100"
+                  onClick={() => alert('Attachment simulation: File selected for transmission.')}
+                  className="p-2.5 text-gray-label hover:text-primary hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                  title="Attach file"
                 >
                   <Paperclip size={20} />
                 </button>
                 <button
                   type="button"
-                  onClick={() => setInputMessage((prev) => prev + ' 😊')}
-                  className="p-2 text-gray-label hover:text-primary transition-colors rounded-lg hover:bg-gray-100"
+                  onClick={() => setShowEmojiPicker((prev) => !prev)}
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    showEmojiPicker ? 'text-primary bg-primary-50' : 'text-gray-label hover:text-primary hover:bg-gray-100'
+                  }`}
+                  title="Add Emoji"
                 >
                   <Smile size={20} />
                 </button>
+                
                 <input
                   type="text"
-                  placeholder="Type your message and press Enter..."
+                  placeholder={`Message ${activeConv.contactName}...`}
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  className="flex-1 px-4 py-2.5 border border-gray-border rounded-xl text-sm bg-gray-bg focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                  className="flex-1 px-4 py-2.5 bg-gray-bg border border-gray-border rounded-xl text-sm text-text-primary placeholder-gray-label focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                 />
+
                 <button
                   type="submit"
                   disabled={!inputMessage.trim()}
-                  className="p-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all disabled:opacity-50 shadow-xs"
+                  className="p-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-xs cursor-pointer flex items-center justify-center shrink-0"
+                  title="Send message"
                 >
                   <Send size={18} />
                 </button>
-              </div>
-            </form>
+              </form>
+            </div>
+
           </div>
+
         </div>
       </div>
     </div>

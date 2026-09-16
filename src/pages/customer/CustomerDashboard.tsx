@@ -3,10 +3,16 @@ import { Link } from 'react-router-dom';
 import { Users, Clock, Calendar, MessageSquare, MessageCircle, CalendarDays, ShoppingBag, ArrowRight, Sparkles } from 'lucide-react';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { customerStats, recentActivity } from '../../data/mockData';
+import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
 
 export const CustomerDashboard: React.FC = () => {
   const { products, brokers } = useApp();
+  const { user } = useAuth();
+
+  const displayName = resolveUserDisplayName(user?.fullName, user?.email);
+  const initials = getUserInitials(displayName);
 
   const statIcons = [
     <Users size={20} />,
@@ -31,11 +37,11 @@ export const CustomerDashboard: React.FC = () => {
       {/* Welcome Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white text-xl font-bold">
-            SJ
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white text-xl font-bold shadow-sm">
+            {initials}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-text-primary">Welcome back, Sarah Jenkins</h1>
+            <h1 className="text-2xl font-bold text-text-primary">Welcome back, {displayName}</h1>
             <p className="text-sm text-gray-text">Here's what's happening with your broker connections</p>
           </div>
         </div>

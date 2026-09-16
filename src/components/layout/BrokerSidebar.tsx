@@ -9,6 +9,8 @@ import {
   Settings,
 } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
+import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/broker/dashboard' },
@@ -22,6 +24,10 @@ const navItems = [
 export const BrokerSidebar: React.FC = () => {
   const location = useLocation();
   const { unreadCount } = useNotifications();
+  const { user } = useAuth();
+
+  const displayName = resolveUserDisplayName(user?.fullName, user?.email);
+  const initials = getUserInitials(displayName);
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-border flex flex-col z-40">
@@ -73,15 +79,16 @@ export const BrokerSidebar: React.FC = () => {
       {/* User Profile Card */}
       <div className="p-4 border-t border-gray-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-semibold text-sm">
-            AM
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-semibold text-sm shadow-xs">
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-text-primary truncate">Alex Mercer</p>
-            <p className="text-xs text-gray-label truncate">Prime Brokerage</p>
+            <p className="text-sm font-semibold text-text-primary truncate">{displayName}</p>
+            <p className="text-xs text-gray-label truncate">{user?.email || 'Broker Account'}</p>
           </div>
         </div>
       </div>
     </aside>
   );
 };
+

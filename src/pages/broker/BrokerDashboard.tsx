@@ -5,9 +5,15 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { brokerStats, sellingTrendsData } from '../../data/mockData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
 
 export const BrokerDashboard: React.FC = () => {
   const { orders } = useApp();
+  const { user } = useAuth();
+
+  const displayName = resolveUserDisplayName(user?.fullName, user?.email);
+  const initials = getUserInitials(displayName);
 
   const statIcons = [
     <DollarSign size={20} />,
@@ -18,7 +24,16 @@ export const BrokerDashboard: React.FC = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-text-primary mb-6">Dashboard Overview</h1>
+      {/* Welcome Banner */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white text-xl font-bold shadow-sm">
+          {initials}
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Welcome back, {displayName}</h1>
+          <p className="text-sm text-gray-text">Here is your brokerage performance overview and live inquiry metrics</p>
+        </div>
+      </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

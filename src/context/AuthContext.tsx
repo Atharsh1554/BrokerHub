@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { User } from '../types';
+import { resolveUserDisplayName } from '../lib/userUtils';
 
 interface AuthContextType {
   user: User | null;
@@ -35,11 +36,8 @@ async function provisionProfile(authUser: SupabaseUser, role: 'customer' | 'brok
 
   if (existing) return; // Already provisioned
 
-  const fullName =
-    authUser.user_metadata?.full_name ||
-    authUser.user_metadata?.name ||
-    authUser.email?.split('@')[0] ||
-    'User';
+  const rawName = authUser.user_metadata?.full_name || authUser.user_metadata?.name;
+  const fullName = resolveUserDisplayName(rawName, authUser.email);
 
   const avatar =
     authUser.user_metadata?.avatar_url ||
@@ -82,19 +80,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', authUser.id)
         .single();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('Error fetching user profile:', error);
-        return;
       }
 
       if (data) {
+        const resolvedName = resolveUserDisplayName(data.full_name, data.email || authUser.email);
         setUser({
           id: data.id,
-          fullName: data.full_name,
-          email: data.email,
+          fullName: resolvedName,
+          email: data.email || authUser.email || '',
           phone: data.phone || '',
           avatar: data.avatar,
-          role: data.role,
+          role: data.role || 'customer',
+        });
+      } else if (authUser) {
+        // Fallback profile if row doesn't exist yet
+        const resolvedName = resolveUserDisplayName(
+          authUser.user_metadata?.full_name || authUser.user_metadata?.name,
+          authUser.email
+        );
+        setUser({
+          id: authUser.id,
+          fullName: resolvedName,
+          email: authUser.email || '',
+          phone: authUser.user_metadata?.phone || '',
+          avatar: authUser.user_metadata?.avatar_url || null,
+          role: 'customer',
         });
       }
     } catch (err) {

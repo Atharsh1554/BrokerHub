@@ -2,10 +2,16 @@ import React, { useState } from 'react';
 import { User, Building, CreditCard, Bell, Save, Check } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { useAuth } from '../../context/AuthContext';
+import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
 
 export const BrokerSettings: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'payouts' | 'notifications'>('profile');
   const [saved, setSaved] = useState(false);
+
+  const displayName = resolveUserDisplayName(user?.fullName, user?.email);
+  const initials = getUserInitials(displayName);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +97,7 @@ export const BrokerSettings: React.FC = () => {
 
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 rounded-2xl bg-indigo-600 text-white font-bold text-2xl flex items-center justify-center shadow-md">
-                    AS
+                    {initials}
                   </div>
                   <div>
                     <Button type="button" variant="outline" size="sm">Change Avatar</Button>
@@ -100,12 +106,12 @@ export const BrokerSettings: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input label="Full Name" defaultValue="Apex Solutions Brokerage" />
+                  <Input label="Full Name" defaultValue={displayName} />
                   <Input label="License Number" defaultValue="BRK-2024-9981" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input label="Email Address" defaultValue="contact@apexbrokerage.com" />
-                  <Input label="Phone Number" defaultValue="+1 (555) 234-5678" />
+                  <Input label="Email Address" defaultValue={user?.email || 'contact@apexbrokerage.com'} />
+                  <Input label="Phone Number" defaultValue={user?.phone || '+1 (555) 234-5678'} />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">

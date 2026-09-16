@@ -9,6 +9,8 @@ import {
   Settings,
   LogOut,
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/customer/dashboard' },
@@ -21,6 +23,10 @@ const navItems = [
 
 export const CustomerSidebar: React.FC = () => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
+
+  const displayName = resolveUserDisplayName(user?.fullName, user?.email);
+  const initials = getUserInitials(displayName);
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-border flex flex-col z-40">
@@ -60,16 +66,27 @@ export const CustomerSidebar: React.FC = () => {
         </ul>
       </nav>
 
-      {/* Logout */}
-      <div className="p-3 border-t border-gray-border">
-        <Link
-          to="/"
-          className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-status-red hover:bg-red-50 transition-all duration-200"
+      {/* User Profile & Logout */}
+      <div className="p-3 border-t border-gray-border space-y-2">
+        <div className="flex items-center gap-3 px-2 py-1.5">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-semibold text-xs shadow-xs shrink-0">
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-text-primary truncate">{displayName}</p>
+            <p className="text-[10px] text-gray-label truncate">{user?.email || 'Customer Account'}</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => signOut()}
+          className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-status-red hover:bg-red-50 transition-all duration-200 cursor-pointer"
         >
-          <LogOut size={20} />
+          <LogOut size={18} />
           <span>Logout</span>
-        </Link>
+        </button>
       </div>
     </aside>
   );
 };
+

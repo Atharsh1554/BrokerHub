@@ -1,7 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Smile, Search } from 'lucide-react';
+import { Send, Paperclip, Smile, Search, ArrowLeft, MessageSquare, Sparkles, ShieldCheck } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
+
+const BROKER_QUICK_PROMPTS = [
+  'I can provide a custom bulk price quote',
+  'We have units available for immediate dispatch',
+  'Let me send over the spec sheet and contract',
+  'Could you confirm your target quantity?',
+];
+
+const EMOJI_LIST = ['😊', '👍', '🚀', '📦', '💼', '💰', '🙏', '✅', '⚡', '🤝', '📈', '🔥'];
 
 export const BrokerMessages: React.FC = () => {
   const { user } = useAuth();
@@ -9,6 +19,8 @@ export const BrokerMessages: React.FC = () => {
   const [activeConvId, setActiveConvId] = useState(conversations[0]?.id || 'conv1');
   const [inputMessage, setInputMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeConv = conversations.find((c) => c.id === activeConvId) || conversations[0] || {
@@ -19,6 +31,7 @@ export const BrokerMessages: React.FC = () => {
     unread: 0,
     online: true,
   };
+
   const messages = messagesMap[activeConvId] || [];
 
   const filteredConversations = conversations.filter((c) =>
@@ -39,143 +52,281 @@ export const BrokerMessages: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
+  const handleSelectConv = (convId: string) => {
+    setActiveConvId(convId);
+    setShowMobileChat(true);
+  };
+
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    sendMessage(activeConvId, inputMessage, true);
+    sendMessage(activeConvId, inputMessage.trim(), true);
     setInputMessage('');
+    setShowEmojiPicker(false);
   };
 
+  const handleQuickPrompt = (prompt: string) => {
+    setInputMessage(prompt);
+  };
+
+  const addEmoji = (emoji: string) => {
+    setInputMessage((prev) => prev + emoji);
+  };
+
+  const currentUserName = resolveUserDisplayName(user?.fullName, user?.email);
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-5 rounded-2xl border border-gray-border shadow-xs">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Broker Messaging Desk</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Direct real-time client communications and deal inquiries
+          <h1 className="text-2xl font-bold text-text-primary tracking-tight">Broker Communication Desk</h1>
+          <p className="text-xs sm:text-sm text-gray-text mt-0.5">
+            Manage live buyer inquiries, order negotiations, and client deal messages
           </p>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 self-start sm:self-auto">
+          <ShieldCheck size={14} />
+          Encrypted Broker Channel
         </div>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-xs" style={{ height: 'calc(100vh - 220px)' }}>
-        <div className="flex h-full">
-          {/* Conversations List */}
-          <div className="w-80 border-r border-zinc-200 dark:border-zinc-800 flex flex-col">
-            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 relative">
-              <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-              <input
-                type="text"
-                placeholder="Search clients..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
-              />
+      {/* Main Container */}
+      <div className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs h-[calc(100vh-210px)] min-h-[520px] flex flex-col">
+        <div className="flex flex-1 h-full overflow-hidden relative">
+
+          {/* Conversations Sidebar */}
+          <div
+            className={`w-full md:w-80 lg:w-96 border-r border-gray-border flex flex-col bg-white shrink-0 ${
+              showMobileChat ? 'hidden md:flex' : 'flex'
+            }`}
+          >
+            {/* Search */}
+            <div className="p-4 border-b border-gray-border bg-gray-50/50">
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-label" />
+                <input
+                  type="text"
+                  placeholder="Search clients & inquiries..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 border border-gray-border rounded-xl text-sm bg-white text-text-primary placeholder-gray-label focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                />
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto">
-              {filteredConversations.map((conv) => (
-                <button
-                  key={conv.id}
-                  onClick={() => setActiveConvId(conv.id)}
-                  className={`w-full flex items-center gap-3 p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors border-b border-zinc-100 dark:border-zinc-800 ${
-                    activeConvId === conv.id ? 'bg-indigo-50/60 dark:bg-indigo-950/30 border-l-4 border-l-indigo-600' : ''
-                  }`}
-                >
-                  <div className="relative shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm shadow-xs">
-                      {conv.contactName.split(' ').map((n) => n[0]).join('')}
-                    </div>
-                    {conv.online && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-zinc-900 dark:text-white truncate">{conv.contactName}</p>
-                      <span className="text-xs text-zinc-400 shrink-0">{conv.timestamp}</span>
-                    </div>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">{conv.lastMessage}</p>
-                  </div>
-                </button>
-              ))}
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+              {filteredConversations.length === 0 ? (
+                <div className="p-8 text-center text-gray-text">
+                  <MessageSquare className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm font-medium">No client conversations</p>
+                  <p className="text-xs text-gray-label mt-1">Try another search filter</p>
+                </div>
+              ) : (
+                filteredConversations.map((conv) => {
+                  const isSelected = activeConvId === conv.id;
+                  const initials = getUserInitials(conv.contactName);
+                  return (
+                    <button
+                      key={conv.id}
+                      onClick={() => handleSelectConv(conv.id)}
+                      className={`w-full flex items-center gap-3 p-4 text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-primary-50/80 border-l-4 border-l-primary'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="relative shrink-0">
+                        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-500 to-teal-500 flex items-center justify-center text-white font-bold text-sm shadow-xs">
+                          {initials}
+                        </div>
+                        {conv.online && (
+                          <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-status-green rounded-full border-2 border-white" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-sm font-semibold text-text-primary truncate">{conv.contactName}</p>
+                          <span className="text-[11px] text-gray-label shrink-0 font-medium">{conv.timestamp}</span>
+                        </div>
+                        <p className="text-xs text-gray-text truncate">{conv.lastMessage || 'New inquiry received'}</p>
+                      </div>
+
+                      {conv.unread > 0 && (
+                        <span className="min-w-[20px] h-[20px] px-1.5 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center shrink-0 shadow-xs">
+                          {conv.unread}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
 
           {/* Chat Panel */}
-          <div className="flex-1 flex flex-col">
+          <div
+            className={`flex-1 flex flex-col bg-gray-bg/40 ${
+              !showMobileChat ? 'hidden md:flex' : 'flex'
+            }`}
+          >
             {/* Header */}
-            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-zinc-900">
+            <div className="flex items-center justify-between p-4 bg-white border-b border-gray-border shadow-xs">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm shadow-xs">
-                  {activeConv.contactName.split(' ').map((n) => n[0]).join('')}
+                <button
+                  onClick={() => setShowMobileChat(false)}
+                  className="md:hidden p-2 text-gray-text hover:text-text-primary hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                  title="Back to clients"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-teal-500 flex items-center justify-center text-white font-bold text-sm shadow-xs">
+                    {getUserInitials(activeConv.contactName)}
+                  </div>
+                  {activeConv.online && (
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-status-green rounded-full border-2 border-white" />
+                  )}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-white">{activeConv.contactName}</p>
-                  <p className="text-xs text-emerald-500 font-medium">Verified Buyer Client</p>
+                  <h2 className="text-sm font-bold text-text-primary">{activeConv.contactName}</h2>
+                  <p className="text-[11px] text-emerald-600 font-semibold">
+                    Verified Customer Inquiry
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-50/50 dark:bg-zinc-950/40">
-              {messages.map((msg) => {
-                const isOwn = user
-                  ? msg.senderId === user.id
-                  : (msg.senderId !== activeConv.id && msg.senderId !== 'c1' && msg.senderId !== 'cust');
-                return (
-                  <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                    <div
-                      className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-xs ${
-                        isOwn
-                          ? 'bg-indigo-600 text-white rounded-br-none'
-                          : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-bl-none'
-                      }`}
-                    >
-                      <p className="text-sm leading-relaxed">{msg.content}</p>
-                      <p className={`text-[10px] mt-1 text-right ${isOwn ? 'text-white/80' : 'text-zinc-400'}`}>
-                        {msg.timestamp}
-                      </p>
-                    </div>
+            {/* Messages Display */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+              {messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
+                    <Sparkles size={28} />
                   </div>
-                );
-              })}
+                  <h3 className="text-base font-bold text-text-primary">No Messages Yet</h3>
+                  <p className="text-xs text-gray-text max-w-sm mt-1">
+                    Send a response or pricing breakdown to open dialogue with this buyer.
+                  </p>
+                </div>
+              ) : (
+                messages.map((msg) => {
+                  const isOwn = user
+                    ? msg.senderId === user.id
+                    : (msg.senderId !== activeConv.id && msg.senderId !== 'c1' && msg.senderId !== 'cust');
+
+                  const senderDisplayName = isOwn ? currentUserName : (msg.senderName || activeConv.contactName);
+                  const senderInitials = getUserInitials(senderDisplayName);
+
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-100 to-teal-100 text-primary flex items-center justify-center text-xs font-bold shrink-0 mt-1 shadow-xs">
+                        {senderInitials}
+                      </div>
+
+                      <div className="max-w-[80%] sm:max-w-[70%] space-y-1">
+                        <div className={`flex items-center gap-2 text-[10px] text-gray-label ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                          <span className="font-semibold text-text-primary">{senderDisplayName}</span>
+                          <span>•</span>
+                          <span>{msg.timestamp}</span>
+                        </div>
+
+                        <div
+                          className={`rounded-2xl px-4 py-3 shadow-xs text-sm leading-relaxed ${
+                            isOwn
+                              ? 'bg-primary text-white rounded-tr-none'
+                              : 'bg-white border border-gray-border text-text-primary rounded-tl-none'
+                          }`}
+                        >
+                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
-            <form onSubmit={handleSend} className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-              <div className="flex items-center gap-2">
+            {/* Broker Quick Prompts */}
+            <div className="px-4 py-2 bg-white border-t border-gray-100 flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <span className="text-[11px] font-semibold text-gray-label shrink-0">Templates:</span>
+              {BROKER_QUICK_PROMPTS.map((prompt, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleQuickPrompt(prompt)}
+                  className="px-2.5 py-1 rounded-full text-xs bg-gray-100 text-gray-text hover:bg-primary-50 hover:text-primary transition-all shrink-0 cursor-pointer border border-gray-border/60"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+
+            {/* Input Bar */}
+            <div className="p-4 bg-white border-t border-gray-border relative">
+              {showEmojiPicker && (
+                <div className="absolute bottom-full left-4 mb-2 p-3 bg-white rounded-xl border border-gray-border shadow-xl grid grid-cols-6 gap-2 z-20">
+                  {EMOJI_LIST.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => addEmoji(emoji)}
+                      className="p-2 text-xl hover:bg-gray-100 rounded-lg transition-transform hover:scale-115 cursor-pointer"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <form onSubmit={handleSend} className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => alert('Proposal attachment ready.')}
-                  className="p-2 text-zinc-400 hover:text-indigo-600 transition-colors"
+                  onClick={() => alert('Proposal document attached.')}
+                  className="p-2.5 text-gray-label hover:text-primary hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                  title="Attach file / quote"
                 >
                   <Paperclip size={20} />
                 </button>
                 <button
                   type="button"
-                  onClick={() => setInputMessage((prev) => prev + ' 👍')}
-                  className="p-2 text-zinc-400 hover:text-indigo-600 transition-colors"
+                  onClick={() => setShowEmojiPicker((prev) => !prev)}
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    showEmojiPicker ? 'text-primary bg-primary-50' : 'text-gray-label hover:text-primary hover:bg-gray-100'
+                  }`}
+                  title="Add Emoji"
                 >
                   <Smile size={20} />
                 </button>
+
                 <input
                   type="text"
-                  placeholder="Reply to client..."
+                  placeholder={`Reply to ${activeConv.contactName}...`}
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
+                  className="flex-1 px-4 py-2.5 bg-gray-bg border border-gray-border rounded-xl text-sm text-text-primary placeholder-gray-label focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                 />
+
                 <button
                   type="submit"
                   disabled={!inputMessage.trim()}
-                  className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-xs"
+                  className="p-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-xs cursor-pointer flex items-center justify-center shrink-0"
+                  title="Send response"
                 >
                   <Send size={18} />
                 </button>
-              </div>
-            </form>
+              </form>
+            </div>
+
           </div>
+
         </div>
       </div>
     </div>
