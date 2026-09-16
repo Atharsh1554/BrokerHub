@@ -95,7 +95,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: data.role || 'customer',
         });
       } else if (authUser) {
-        // Fallback profile if row doesn't exist yet
+        // No users row yet — check if they exist in the brokers table
+        const { data: brokerRow } = await supabase
+          .from('brokers')
+          .select('id')
+          .eq('id', authUser.id)
+          .single();
+
+        const detectedRole: 'customer' | 'broker' = brokerRow ? 'broker' : 'customer';
+
         const resolvedName = resolveUserDisplayName(
           authUser.user_metadata?.full_name || authUser.user_metadata?.name,
           authUser.email
@@ -106,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: authUser.email || '',
           phone: authUser.user_metadata?.phone || '',
           avatar: authUser.user_metadata?.avatar_url || null,
-          role: 'customer',
+          role: detectedRole,
         });
       }
     } catch (err) {

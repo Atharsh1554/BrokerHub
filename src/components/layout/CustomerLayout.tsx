@@ -1,9 +1,34 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { CustomerSidebar } from './CustomerSidebar';
 import { TopHeader } from './TopHeader';
+import { useAuth } from '../../context/AuthContext';
 
 export const CustomerLayout: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  // Still loading auth session — show nothing yet
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-gray-500 font-medium">Loading your workspace…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not logged in → send to login
+  if (!user) {
+    return <Navigate to="/login?role=customer" replace />;
+  }
+
+  // Logged in as broker → redirect to broker dashboard
+  if (user.role === 'broker') {
+    return <Navigate to="/broker/dashboard" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-bg">
       <CustomerSidebar />
@@ -21,4 +46,3 @@ export const CustomerLayout: React.FC = () => {
     </div>
   );
 };
-
