@@ -34,9 +34,9 @@ export const MessagesPage: React.FC = () => {
 
   const messages = messagesMap[activeConvId] || [];
 
-  const filteredConversations = conversations.filter((c) =>
-    c.contactName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredConversations = conversations
+    .filter((c) => c.contactName.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

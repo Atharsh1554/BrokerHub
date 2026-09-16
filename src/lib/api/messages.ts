@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import type { Message, Conversation } from '../../types';
+import { resolveUserDisplayName } from '../userUtils';
 
 export interface DBMessage {
   id: string;
@@ -62,9 +63,8 @@ export async function sendDBMessage(senderId: string, receiverId: string, conten
   };
 }
 
-// Fetch all conversation contacts for a given user
+// Fetch all conversation contacts for a given user, sorted strictly by most recent message timestamp (WhatsApp style)
 export async function getUserConversations(userId: string): Promise<Conversation[]> {
-  // Fetch distinct users interacted with or all registered users/brokers
   const { data: userMessages, error } = await supabase
     .from('messages')
     .select('*')
@@ -75,23 +75,25 @@ export async function getUserConversations(userId: string): Promise<Conversation
     console.error('Error fetching user messages:', error);
   }
 
-  // Get list of contact IDs
-  const contactMap = new Map<string, { lastMsg: string; time: string; unread: number }>();
+  // Get map of contact IDs -> { lastMsg, time, rawTimestamp, unread }
+  const contactMap = new Map<string, { lastMsg: string; time: string; rawTimestamp: number; unread: number }>();
 
   if (userMessages) {
     userMessages.forEach((msg: DBMessage) => {
       const contactId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
       if (!contactMap.has(contactId)) {
+        const dateObj = new Date(msg.timestamp);
         contactMap.set(contactId, {
           lastMsg: msg.content,
-          time: new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          rawTimestamp: dateObj.getTime(),
           unread: 0,
         });
       }
     });
   }
 
-  // Fetch profiles for these contact IDs
+  // Fetch user profiles
   const { data: usersData } = await supabase.from('users').select('*');
 
   const conversations: Conversation[] = [];
@@ -101,17 +103,23 @@ export async function getUserConversations(userId: string): Promise<Conversation
       .filter((u: any) => u.id !== userId)
       .forEach((u: any) => {
         const meta = contactMap.get(u.id);
+        const resolvedName = resolveUserDisplayName(u.full_name, u.email);
         conversations.push({
           id: u.id,
-          contactName: u.full_name || u.email || 'User',
+          contactName: resolvedName,
           contactAvatar: u.avatar || '',
           lastMessage: meta?.lastMsg || 'Tap to start conversation',
           timestamp: meta?.time || '',
           unread: meta?.unread || 0,
           online: true,
+          lastUpdated: meta?.rawTimestamp || 0,
         });
       });
   }
 
+  // Strictly sort conversations: contacts with newest messages ALWAYS come FIRST (#1 position)
+  conversations.sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
+
   return conversations;
 }
+

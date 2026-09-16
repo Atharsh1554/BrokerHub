@@ -302,6 +302,7 @@ export const conversations: Conversation[] = [
     timestamp: '2:30 PM',
     unread: 2,
     online: true,
+    lastUpdated: 5000,
   },
   {
     id: 'conv2',
@@ -310,6 +311,7 @@ export const conversations: Conversation[] = [
     timestamp: '1:45 PM',
     unread: 0,
     online: false,
+    lastUpdated: 4000,
   },
   {
     id: 'conv3',
@@ -318,6 +320,7 @@ export const conversations: Conversation[] = [
     timestamp: '12:00 PM',
     unread: 1,
     online: true,
+    lastUpdated: 3000,
   },
   {
     id: 'conv4',
@@ -326,6 +329,7 @@ export const conversations: Conversation[] = [
     timestamp: '11:30 AM',
     unread: 0,
     online: false,
+    lastUpdated: 2000,
   },
   {
     id: 'conv5',
@@ -334,6 +338,7 @@ export const conversations: Conversation[] = [
     timestamp: 'Yesterday',
     unread: 0,
     online: false,
+    lastUpdated: 1000,
   },
 ];
 
