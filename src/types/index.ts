@@ -120,6 +120,7 @@ export interface Conversation {
   timestamp: string;
   unread: number;
   online: boolean;
+  lastUpdated?: number;
 }
 
 export interface Appointment {

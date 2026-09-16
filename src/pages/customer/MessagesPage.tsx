@@ -215,7 +215,9 @@ export const MessagesPage: React.FC = () => {
                     ? msg.senderId === user.id
                     : (msg.senderId === 'cust' || msg.senderId === 'user' || msg.isOwn);
                   
-                  const senderDisplayName = isOwn ? currentUserName : (msg.senderName || activeConv.contactName);
+                  const senderDisplayName = isOwn
+                    ? currentUserName
+                    : (!msg.senderName || msg.senderName === 'Contact' || msg.senderName === 'You' ? activeConv.contactName : msg.senderName);
                   const senderInitials = getUserInitials(senderDisplayName);
 
                   return (

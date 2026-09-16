@@ -109,6 +109,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadData();
   }, [user]);
 
+  // Reorders conversation list to place the active/newly messaged contact at top (Position #1 - WhatsApp style)
+  const bumpConversationToTop = (targetConvId: string, lastMsgText: string, timeStr: string, incrementUnread: boolean = false) => {
+    setConversations((prev) => {
+      const existingIdx = prev.findIndex((c) => c.id === targetConvId);
+      const now = Date.now();
+
+      if (existingIdx >= 0) {
+        const target = prev[existingIdx];
+        const updatedItem: Conversation = {
+          ...target,
+          lastMessage: lastMsgText,
+          timestamp: timeStr,
+          unread: incrementUnread ? (target.unread || 0) + 1 : 0,
+          lastUpdated: now,
+        };
+        const rest = prev.filter((_, idx) => idx !== existingIdx);
+        return [updatedItem, ...rest];
+      } else {
+        const newItem: Conversation = {
+          id: targetConvId,
+          contactName: 'Contact',
+          lastMessage: lastMsgText,
+          timestamp: timeStr,
+          unread: incrementUnread ? 1 : 0,
+          online: true,
+          lastUpdated: now,
+        };
+        return [newItem, ...prev];
+      }
+    });
+  };
+
   // Real-time Supabase message subscription & Broadcast Channel
   useEffect(() => {
     // 1. Listen on BroadcastChannel for instant multi-tab sync
@@ -121,47 +153,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const timeStr = timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        setMessagesMap((prev) => {
-          let targetConvId = '';
-          let isOwn = false;
+        let targetConvId = '';
+        let isOwn = false;
 
-          if (user) {
-            if (user.id === senderId) {
-              targetConvId = receiverId;
-              isOwn = true;
-            } else if (user.id === receiverId) {
-              targetConvId = senderId;
-              isOwn = false;
-            } else {
-              return prev;
-            }
+        if (user) {
+          if (user.id === senderId) {
+            targetConvId = receiverId;
+            isOwn = true;
+          } else if (user.id === receiverId) {
+            targetConvId = senderId;
+            isOwn = false;
           } else {
-            targetConvId = receiverId === 'user' ? senderId : receiverId;
-            isOwn = senderId === 'user';
+            return;
           }
+        } else {
+          targetConvId = receiverId === 'user' ? senderId : receiverId;
+          isOwn = senderId === 'user';
+        }
 
-          const msgObj: Message = {
-            id: id || `msg_${Date.now()}`,
-            senderId,
-            senderName: isOwn ? 'You' : 'Contact',
-            content,
-            timestamp: timeStr,
-            isOwn,
-          };
+        const msgObj: Message = {
+          id: id || `msg_${Date.now()}`,
+          senderId,
+          senderName: isOwn ? 'You' : 'Contact',
+          content,
+          timestamp: timeStr,
+          isOwn,
+        };
 
+        setMessagesMap((prev) => {
           const list = prev[targetConvId] || [];
           if (list.some((m) => m.id === msgObj.id)) return prev;
           return { ...prev, [targetConvId]: [...list, msgObj] };
         });
 
-        setConversations((prev) =>
-          prev.map((c) => {
-            const isMatch = user
-              ? (c.id === (user.id === senderId ? receiverId : senderId))
-              : (c.id === senderId || c.id === receiverId);
-            return isMatch ? { ...c, lastMessage: content, timestamp: timeStr } : c;
-          })
-        );
+        bumpConversationToTop(targetConvId, content, timeStr, !isOwn);
       };
     } catch {
       // BroadcastChannel fallback
@@ -201,9 +226,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               return { ...prev, [targetConvId]: [...list, msgObj] };
             });
 
-            setConversations((prev) =>
-              prev.map((c) => (c.id === targetConvId ? { ...c, lastMessage: newMsg.content, timestamp: timeStr } : c))
-            );
+            bumpConversationToTop(targetConvId, newMsg.content, timeStr, !isOwn);
 
             if (!isOwn) {
               showToast(`New message: "${newMsg.content.substring(0, 30)}..."`, 'info');
@@ -256,9 +279,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       [receiverId]: [...(prev[receiverId] || []), localMsg],
     }));
 
-    setConversations((prev) =>
-      prev.map((c) => (c.id === receiverId ? { ...c, lastMessage: text, timestamp: timeStr, unread: 0 } : c))
-    );
+    // Move to top immediately like WhatsApp
+    bumpConversationToTop(receiverId, text, timeStr, false);
 
     // 2. Broadcast for Multi-Tab Sync
     try {
@@ -311,9 +333,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           [receiverId]: [...(prev[receiverId] || []), replyMsg],
         }));
 
-        setConversations((prev) =>
-          prev.map((c) => (c.id === receiverId ? { ...c, lastMessage: autoReplyText, timestamp: replyTime } : c))
-        );
+        bumpConversationToTop(receiverId, autoReplyText, replyTime, true);
 
         showToast(`New reply: "${autoReplyText.substring(0, 35)}..."`, 'info');
       }, 1200);
