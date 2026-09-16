@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Bell, MessageSquare, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Search, Bell, MessageSquare, LogOut, Settings, ChevronDown, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
@@ -7,9 +7,10 @@ import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
 
 interface TopHeaderProps {
   title?: string;
+  onMenuClick?: () => void;
 }
 
-export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
+export const TopHeader: React.FC<TopHeaderProps> = ({ title, onMenuClick }) => {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
   const { user, signOut } = useAuth();
@@ -62,18 +63,30 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-gray-border flex items-center justify-between px-6 sticky top-0 z-30">
-      {title && (
-        <h1 className="text-xl font-bold text-text-primary">{title}</h1>
-      )}
-      <div className="flex items-center gap-3 sm:gap-4 ml-auto">
-        {/* Search */}
+    <header className="h-16 bg-white border-b border-gray-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
+      <div className="flex items-center gap-3">
+        {onMenuClick && (
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+            aria-label="Open Navigation Menu"
+          >
+            <Menu size={22} />
+          </button>
+        )}
+        {title && (
+          <h1 className="text-lg sm:text-xl font-bold text-text-primary truncate">{title}</h1>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 sm:gap-4 ml-auto">
+        {/* Search - hidden on mobile screens */}
         <div className="relative hidden md:block">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-label" />
           <input
             type="text"
             placeholder="Search transactions, products..."
-            className="w-64 lg:w-72 pl-10 pr-4 py-2 border border-gray-border rounded-lg text-sm text-text-primary placeholder-gray-label bg-gray-bg focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+            className="w-48 lg:w-72 pl-10 pr-4 py-2 border border-gray-border rounded-lg text-sm text-text-primary placeholder-gray-label bg-gray-bg focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
           />
         </div>
 
@@ -106,11 +119,11 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowDropdown((prev) => !prev)}
-            className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-full hover:bg-gray-100 transition-colors border border-gray-border cursor-pointer group"
+            className="flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 rounded-full hover:bg-gray-100 transition-colors border border-gray-border cursor-pointer group"
             title="Account Menu"
             aria-expanded={showDropdown}
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-bold text-xs shadow-xs">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-bold text-xs shadow-xs shrink-0">
               {initials}
             </div>
             <div className="hidden sm:flex flex-col text-left">
@@ -170,5 +183,3 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title }) => {
     </header>
   );
 };
-
-
