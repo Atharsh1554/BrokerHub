@@ -139,7 +139,7 @@ export const BrokerSettings: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input label="Standard Commission Rate (%)" defaultValue="4.5%" />
-                  <Input label="Minimum Deal Threshold ($)" defaultValue="$5,000" />
+                  <Input label="Minimum Deal Threshold (₹)" defaultValue="₹5,00,000" />
                 </div>
               </div>
             )}

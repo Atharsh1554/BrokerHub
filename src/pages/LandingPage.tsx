@@ -112,7 +112,7 @@ export const LandingPage: React.FC = () => {
                   <CheckCircle size={24} className="text-primary" />
                   <div>
                     <p className="text-sm font-bold text-text-primary">500+ Verified Brokers</p>
-                    <p className="text-xs text-gray-text">Over $12M in deals powered</p>
+                    <p className="text-xs text-gray-text">Over ₹100 Cr in deals powered</p>
                   </div>
                 </div>
               </div>

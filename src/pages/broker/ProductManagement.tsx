@@ -169,7 +169,7 @@ export const ProductManagement: React.FC = () => {
               <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-zinc-400 font-medium">Unit Price</p>
-                  <p className="text-lg font-bold text-zinc-900">${product.price}</p>
+                  <p className="text-lg font-bold text-zinc-900">₹{product.price.toLocaleString('en-IN')}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-zinc-400 font-medium">Available Stock</p>
@@ -283,12 +283,12 @@ export const ProductManagement: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Price ($)</label>
+                  <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Price (₹)</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
                     required
-                    placeholder="299.99"
+                    placeholder="24900"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     className="w-full px-3 py-2 border border-zinc-200 rounded-xl bg-zinc-50 text-sm text-zinc-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"

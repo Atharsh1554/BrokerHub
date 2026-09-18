@@ -115,7 +115,7 @@ export const OrderTracking: React.FC = () => {
                           {order.date}
                         </td>
                         <td className="p-4 font-semibold text-zinc-900">
-                          ${orderTotal.toLocaleString()}
+                          ₹{orderTotal.toLocaleString('en-IN')}
                         </td>
                         <td className="p-4">
                           <StatusBadge status={order.status} />
@@ -166,10 +166,10 @@ export const OrderTracking: React.FC = () => {
                       <div key={idx} className="flex items-center justify-between p-2.5 bg-zinc-50 rounded-xl text-xs border border-zinc-100">
                         <div>
                           <p className="font-medium text-zinc-900">{item.productName}</p>
-                          <p className="text-zinc-400">Qty: {item.quantity} x ${item.unitPrice}</p>
+                          <p className="text-zinc-400">Qty: {item.quantity} × ₹{item.unitPrice.toLocaleString('en-IN')}</p>
                         </div>
                         <span className="font-semibold text-zinc-900">
-                          ${(item.quantity * item.unitPrice).toLocaleString()}
+                          ₹{(item.quantity * item.unitPrice).toLocaleString('en-IN')}
                         </span>
                       </div>
                     ))
@@ -180,7 +180,7 @@ export const OrderTracking: React.FC = () => {
                         <p className="text-zinc-400">Qty: {selectedOrder.quantity || 1}</p>
                       </div>
                       <span className="font-semibold text-zinc-900">
-                        ${(selectedOrder.amount || 0).toLocaleString()}
+                        ₹{(selectedOrder.amount || 0).toLocaleString('en-IN')}
                       </span>
                     </div>
                   )}
@@ -194,15 +194,15 @@ export const OrderTracking: React.FC = () => {
                   <div className="border-t border-zinc-100 pt-4 space-y-2 text-sm">
                     <div className="flex justify-between text-zinc-500">
                       <span>Subtotal</span>
-                      <span>${total.toLocaleString()}</span>
+                      <span>₹{total.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between text-zinc-500">
                       <span>Commission Fee</span>
-                      <span className="text-emerald-600 font-medium">-${(total * 0.05).toFixed(2)}</span>
+                      <span className="text-emerald-600 font-medium">-₹{(total * 0.05).toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between font-bold text-zinc-900 text-base pt-2 border-t border-zinc-100">
                       <span>Net Payout</span>
-                      <span className="text-primary">${(total * 0.95).toFixed(2)}</span>
+                      <span className="text-primary">₹{(total * 0.95).toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 );

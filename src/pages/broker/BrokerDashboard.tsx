@@ -125,7 +125,9 @@ export const BrokerDashboard: React.FC = () => {
                   <td className="py-3 px-4 text-sm font-medium text-primary">{order.id}</td>
                   <td className="py-3 px-4 text-sm text-text-primary">{order.customerName}</td>
                   <td className="py-3 px-4 text-sm text-gray-text">{order.product}</td>
-                  <td className="py-3 px-4 text-sm font-medium text-text-primary">${(order.amount ?? order.totalAmount ?? 0).toFixed(2)}</td>
+                  <td className="py-3 px-4 text-sm font-medium text-text-primary">
+                    ₹{(order.amount ?? order.totalAmount ?? 0).toLocaleString('en-IN')}
+                  </td>
                   <td className="py-3 px-4"><StatusBadge status={order.status} size="sm" /></td>
                 </tr>
               ))}
