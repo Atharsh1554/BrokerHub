@@ -54,6 +54,17 @@ export const getProducts = async (): Promise<Product[]> => {
     }
   }
 
+  // Apply stored product overrides (such as stock reductions)
+  let overrides: Record<string, Partial<Product>> = {};
+  try {
+    const savedOverrides = localStorage.getItem('brokerhub_product_overrides');
+    if (savedOverrides) {
+      overrides = JSON.parse(savedOverrides);
+    }
+  } catch {
+    // ignore
+  }
+
   // Exclude deleted product IDs stored in localStorage
   let deletedIds: string[] = [];
   try {
@@ -65,7 +76,9 @@ export const getProducts = async (): Promise<Product[]> => {
     // ignore
   }
 
-  return combined.filter((p) => !deletedIds.includes(p.id));
+  return combined
+    .filter((p) => !deletedIds.includes(p.id))
+    .map((p) => (overrides[p.id] ? { ...p, ...overrides[p.id] } : p));
 };
 
 export const getProductById = async (id: string): Promise<Product | null> => {

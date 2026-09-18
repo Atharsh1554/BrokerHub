@@ -13,7 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { cart, clearCart } = useApp();
+  const { cart, clearCart, products, updateProduct, addOrder } = useApp();
 
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
@@ -34,8 +34,46 @@ export const CheckoutPage: React.FC = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate order placement
     setTimeout(() => {
+      // 1. Properly reduce product inventory stock & status for each item bought
+      cart.forEach((item) => {
+        const targetProd = products.find((p) => p.id === item.productId);
+        if (targetProd) {
+          const currentStock = targetProd.stock ?? 0;
+          const newStock = Math.max(0, currentStock - item.quantity);
+          const newStatus =
+            newStock === 0
+              ? 'Out of Stock'
+              : newStock <= 10
+              ? 'Low Stock'
+              : 'In Stock';
+
+          updateProduct(item.productId, {
+            stock: newStock,
+            status: newStatus,
+          });
+        }
+      });
+
+      // 2. Add Order record for tracking
+      const newOrderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+      addOrder({
+        id: newOrderId,
+        customerId: user?.id || 'c1',
+        customerName: formData.fullName || user?.fullName || 'Customer',
+        product: cart.map((i) => `${i.productName} (x${i.quantity})`).join(', '),
+        quantity: cart.reduce((sum, i) => sum + i.quantity, 0),
+        amount: totalAmount,
+        totalAmount: totalAmount,
+        items: cart.map((i) => ({
+          productName: i.productName,
+          quantity: i.quantity,
+          unitPrice: i.price,
+        })),
+        date: new Date().toISOString().split('T')[0],
+        status: 'Pending Broker Approval',
+      });
+
       setIsSubmitting(false);
       setOrderPlaced(true);
       clearCart();

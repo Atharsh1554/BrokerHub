@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ShoppingBag, Star, Package, Sparkles, ShoppingCart, MapPin, Plus, Check } from 'lucide-react';
+import { Search, ShoppingBag, Star, Package, Sparkles, ShoppingCart, MapPin, Plus, Check, MessageSquare } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 
@@ -25,8 +25,8 @@ export const ProductsPage: React.FC = () => {
   const isNew = (id: string) => id.startsWith('p_');
 
   const getBrokerInfo = (brokerId?: string) => {
-    if (!brokerId) return brokers[0] || { name: 'Verified Broker', location: 'Mumbai' };
-    return brokers.find((b) => b.id === brokerId) || brokers[0] || { name: 'Verified Broker', location: 'Mumbai' };
+    if (!brokerId) return brokers[0] || { id: 'b1', name: 'Marcus Chen', company: 'Apex Realty Group', location: 'Mumbai' };
+    return brokers.find((b) => b.id === brokerId) || brokers[0] || { id: 'b1', name: 'Marcus Chen', company: 'Apex Realty Group', location: 'Mumbai' };
   };
 
   const handleQuickAdd = (e: React.MouseEvent, product: any) => {
@@ -45,6 +45,11 @@ export const ProductsPage: React.FC = () => {
     setTimeout(() => {
       setAddedIds((prev) => ({ ...prev, [product.id]: false }));
     }, 1500);
+  };
+
+  const handleContactBroker = (e: React.MouseEvent, brokerId: string) => {
+    e.stopPropagation();
+    navigate(`/customer/messages?brokerId=${brokerId}`);
   };
 
   return (
@@ -178,24 +183,52 @@ export const ProductsPage: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="pt-2 border-t border-gray-100 dark:border-slate-700/80 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs text-gray-400 block">Price</span>
-                      <span className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
-                        ₹{product.price.toLocaleString('en-IN')}
-                      </span>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Star size={14} className="fill-amber-400 text-amber-400" />
-                        <span className="text-xs font-bold text-gray-900 dark:text-white">
-                          {product.rating || 4.8}
+                  <div className="pt-2 border-t border-gray-100 dark:border-slate-700/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs text-gray-400 block">Price</span>
+                        <span className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
+                          ₹{product.price.toLocaleString('en-IN')}
                         </span>
                       </div>
-                      <span className="text-[11px] text-gray-400 font-medium">
-                        Broker: {broker.name}
-                      </span>
+
+                      <div className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Star size={14} className="fill-amber-400 text-amber-400" />
+                          <span className="text-xs font-bold text-gray-900 dark:text-white">
+                            {product.rating || 4.8}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-gray-400 font-medium">
+                          Stock: {product.stock} units
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Uploaded Broker Info & Contact Broker Action */}
+                    <div className="flex items-center justify-between bg-gray-50 dark:bg-slate-900/60 p-2.5 rounded-lg border border-gray-100 dark:border-slate-700/60">
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
+                          {broker.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                        </div>
+                        <div className="truncate">
+                          <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                            Broker: {broker.name}
+                          </p>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                            {broker.company || 'Verified Broker'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={(e) => handleContactBroker(e, broker.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-xs font-semibold shadow-xs transition-colors shrink-0"
+                        title={`Chat with ${broker.name}`}
+                      >
+                        <MessageSquare size={13} />
+                        Contact
+                      </button>
                     </div>
                   </div>
                 </div>

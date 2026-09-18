@@ -271,12 +271,20 @@ export const ProductDetailPage: React.FC = () => {
 
         {/* Right — Product Info */}
         <div className="space-y-5">
-          {/* Category + Name */}
+          {/* Category + Name + Uploaded by Broker */}
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary-50 px-3 py-1 rounded-full">
-              {product.category}
-            </span>
-            <h1 className="text-2xl lg:text-3xl font-bold text-text-primary mt-3 leading-tight">{product.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary-50 px-3 py-1 rounded-full">
+                {product.category}
+              </span>
+              {broker && (
+                <span className="text-xs font-medium text-gray-600 bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full flex items-center gap-1 border border-gray-200 dark:border-slate-700">
+                  <User size={12} className="text-primary" />
+                  Uploaded by: <strong className="text-gray-900 dark:text-white">{broker.name}</strong> ({broker.company || 'Verified Broker'})
+                </span>
+              )}
+            </div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-text-primary leading-tight">{product.name}</h1>
 
             {/* Rating */}
             <div className="flex items-center gap-3 mt-2">
@@ -354,12 +362,12 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           )}
 
-          {/* CTA Buttons */}
+          {/* CTA Buttons - Add to Cart, Buy Now & Contact Broker */}
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={handleAddToCart}
               disabled={isOutOfStock || addingToCart}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-semibold text-sm transition-all duration-200 cursor-pointer ${
+              className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-semibold text-sm transition-all duration-200 cursor-pointer ${
                 isOutOfStock
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-white border-2 border-primary text-primary hover:bg-primary-50 hover:shadow-md active:scale-98'
@@ -371,7 +379,7 @@ export const ProductDetailPage: React.FC = () => {
             <button
               onClick={handleBuyNow}
               disabled={isOutOfStock}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer shadow-md ${
+              className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer shadow-md ${
                 isOutOfStock
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-primary text-white hover:bg-primary-dark hover:shadow-lg active:scale-98'
@@ -379,6 +387,13 @@ export const ProductDetailPage: React.FC = () => {
             >
               <Zap size={18} />
               Buy Now
+            </button>
+            <button
+              onClick={handleConnectBroker}
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg active:scale-98"
+            >
+              <MessageSquare size={18} />
+              Contact Broker
             </button>
           </div>
 

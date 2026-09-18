@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Users, Clock, Calendar, MessageSquare, MessageCircle, CalendarDays, ShoppingBag, ArrowRight, Sparkles } from 'lucide-react';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useApp } from '../../context/AppContext';
@@ -8,6 +8,7 @@ import { customerStats, recentActivity } from '../../data/mockData';
 import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
 
 export const CustomerDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { products, brokers } = useApp();
   const { user } = useAuth();
 
@@ -31,6 +32,11 @@ export const CustomerDashboard: React.FC = () => {
   // Newest products first (broker-added ones have p_ prefix from context)
   const latestProducts = [...products].slice(0, 4);
   const hasNewProducts = products.some((p) => p.id.startsWith('p_'));
+
+  const getBrokerInfo = (brokerId?: string) => {
+    if (!brokerId) return brokers[0] || { id: 'b1', name: 'Marcus Chen' };
+    return brokers.find((b) => b.id === brokerId) || brokers[0] || { id: 'b1', name: 'Marcus Chen' };
+  };
 
   return (
     <div>
@@ -92,38 +98,60 @@ export const CustomerDashboard: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {latestProducts.map((product) => (
-              <div
-                key={product.id}
-                className="bg-white rounded-xl border border-gray-border overflow-hidden hover:shadow-md transition-all duration-200 group relative"
-              >
-                {/* NEW badge for broker-added products */}
-                {product.id.startsWith('p_') && (
-                  <div className="absolute top-2 left-2 z-10 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
-                    NEW
-                  </div>
-                )}
-                <div className="h-32 bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center overflow-hidden">
-                  {product.image ? (
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <ShoppingBag size={36} className="text-gray-300 group-hover:scale-110 transition-transform duration-300" />
+            {latestProducts.map((product) => {
+              const broker = getBrokerInfo(product.brokerId);
+              return (
+                <div
+                  key={product.id}
+                  onClick={() => navigate(`/customer/products/${product.id}`)}
+                  className="bg-white rounded-xl border border-gray-border overflow-hidden hover:shadow-md transition-all duration-200 group relative cursor-pointer flex flex-col justify-between"
+                >
+                  {/* NEW badge for broker-added products */}
+                  {product.id.startsWith('p_') && (
+                    <div className="absolute top-2 left-2 z-10 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+                      NEW
+                    </div>
                   )}
-                </div>
-                <div className="p-3">
-                  <p className="text-[10px] text-gray-label uppercase tracking-wider mb-0.5">{product.category}</p>
-                  <h3 className="text-xs font-semibold text-text-primary line-clamp-1 mb-1">{product.name}</h3>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-bold text-primary">${product.price.toFixed(2)}</p>
-                    <StatusBadge status={product.status} size="sm" />
+                  <div className="h-32 bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center overflow-hidden">
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <ShoppingBag size={36} className="text-gray-300 group-hover:scale-110 transition-transform duration-300" />
+                    )}
+                  </div>
+                  <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
+                    <div>
+                      <p className="text-[10px] text-gray-label uppercase tracking-wider mb-0.5">{product.category}</p>
+                      <h3 className="text-xs font-semibold text-text-primary line-clamp-1 mb-1">{product.name}</h3>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-bold text-primary">₹{product.price.toLocaleString('en-IN')}</p>
+                        <StatusBadge status={product.status} size="sm" />
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+                      <span className="text-gray-600 truncate font-medium">
+                        Broker: <strong>{broker.name}</strong>
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/customer/messages?brokerId=${broker.id}`);
+                        }}
+                        className="text-teal-600 hover:text-teal-700 font-bold flex items-center gap-1 hover:underline"
+                      >
+                        <MessageSquare size={12} />
+                        Contact
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

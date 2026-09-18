@@ -36,6 +36,7 @@ interface AppContextType {
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
+  addOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: string) => void;
   addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
   cancelAppointment: (id: string) => void;
@@ -427,6 +428,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateProduct = async (id: string, updatedFields: Partial<Product>) => {
+    // Save override to localStorage so it persists for mock and custom products across refreshes
+    try {
+      const overrides: Record<string, Partial<Product>> = JSON.parse(localStorage.getItem('brokerhub_product_overrides') || '{}');
+      overrides[id] = { ...(overrides[id] || {}), ...updatedFields };
+      localStorage.setItem('brokerhub_product_overrides', JSON.stringify(overrides));
+    } catch {}
+
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     if (isUuid) {
       await supabase.from('products').update({
@@ -447,7 +455,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)));
-    showToast('Product updated successfully!');
+    showToast('Product inventory updated successfully!');
   };
 
   const deleteProduct = async (id: string) => {
@@ -478,6 +486,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Order Actions
+  const addOrder = (newOrder: Order) => {
+    setOrders((prev) => [newOrder, ...prev]);
+    showToast(`Order ${newOrder.id} placed successfully!`, 'success');
+  };
+
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
     if (!error) {
@@ -609,6 +622,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addProduct,
         updateProduct,
         deleteProduct,
+        addOrder,
         updateOrderStatus,
         addAppointment,
         cancelAppointment,

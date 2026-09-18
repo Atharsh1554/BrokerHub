@@ -27,29 +27,35 @@ export const MessagesPage: React.FC = () => {
   const [showMobileChat, setShowMobileChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Handle URL param brokerId on load
+  // Handle URL param brokerId on load & open specific broker chat box
   useEffect(() => {
     if (brokerIdParam) {
       const targetBroker = brokers.find((b) => b.id === brokerIdParam);
-      if (targetBroker) {
-        const existingConv = conversations.find(
-          (c) => c.contactName.toLowerCase().includes(targetBroker.name.toLowerCase()) || c.id === `conv_${brokerIdParam}`
-        );
-        if (existingConv) {
-          setActiveConvId(existingConv.id);
-        } else {
-          setActiveConvId('conv1'); // Fallback to first chat if no active direct chat yet
-        }
-        setShowMobileChat(true);
+
+      const existingConv = conversations.find(
+        (c) =>
+          c.id === brokerIdParam ||
+          c.id === `conv_${brokerIdParam}` ||
+          (targetBroker && c.contactName.toLowerCase().includes(targetBroker.name.toLowerCase()))
+      );
+
+      if (existingConv) {
+        setActiveConvId(existingConv.id);
+      } else {
+        const newConvId = brokerIdParam;
+        setActiveConvId(newConvId);
       }
+      setShowMobileChat(true);
     }
   }, [brokerIdParam, brokers, conversations]);
 
-  const activeConv = conversations.find((c) => c.id === activeConvId) || conversations[0] || {
-    id: 'conv1',
-    contactName: 'Broker Contact',
-    lastMessage: '',
-    timestamp: '',
+  const selectedBroker = brokers.find((b) => b.id === activeConvId || b.id === brokerIdParam);
+
+  const activeConv = conversations.find((c) => c.id === activeConvId) || {
+    id: activeConvId,
+    contactName: selectedBroker ? selectedBroker.name : 'Broker Contact',
+    lastMessage: 'Started inquiry with broker',
+    timestamp: 'Just now',
     unread: 0,
     online: true,
   };
