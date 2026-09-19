@@ -9,7 +9,8 @@ import { getAppointments } from '../lib/api/appointments';
 import { sendDBMessage, getUserConversations, getMessagesBetweenUsers } from '../lib/api/messages';
 import { 
   conversations as initialConversations, 
-  chatMessages as initialChatMessages 
+  chatMessages as initialChatMessages,
+  orders as initialMockOrders
 } from '../data/mockData';
 
 interface Toast {
@@ -57,12 +58,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   const [brokers, setBrokers] = useState<Broker[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+
+  // Orders state — initialize from localStorage or initialMockOrders
+  const [orders, setOrders] = useState<Order[]>(() => {
+    try {
+      const saved = localStorage.getItem('brokerhub_orders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return initialMockOrders;
+  });
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [messagesMap, setMessagesMap] = useState<Record<string, Message[]>>({ conv1: initialChatMessages });
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
+
+  // Persist orders to localStorage whenever changed
+  useEffect(() => {
+    try {
+      localStorage.setItem('brokerhub_orders', JSON.stringify(orders));
+    } catch {}
+  }, [orders]);
 
   // Cart state — load from localStorage on init
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -96,7 +116,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       if (user) {
         const fetchedOrders = await getOrders(user.id, user.role);
-        setOrders(fetchedOrders);
+        if (fetchedOrders.length > 0) {
+          setOrders((prev) => {
+            const dbIds = new Set(fetchedOrders.map((o) => o.id));
+            const localOnly = prev.filter((o) => !dbIds.has(o.id));
+            return [...fetchedOrders, ...localOnly];
+          });
+        }
         
         const fetchedAppointments = await getAppointments(user.id, user.role);
         setAppointments(fetchedAppointments);
@@ -488,14 +514,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Order Actions
   const addOrder = (newOrder: Order) => {
     setOrders((prev) => [newOrder, ...prev]);
-    showToast(`Order ${newOrder.id} placed successfully!`, 'success');
+    showToast(`✨ New order ${newOrder.id} placed! (₹${(newOrder.amount || newOrder.totalAmount || 0).toLocaleString('en-IN')})`, 'success');
+
+    // Broadcast live order to other open tabs (e.g. Broker Portal tab)
+    try {
+      const bc = new BroadcastChannel('brokerhub_orders_live');
+      bc.postMessage({ type: 'NEW_ORDER', order: newOrder });
+      bc.close();
+    } catch {}
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
-    if (!error) {
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus as any } : o)));
-      showToast(`Order ${orderId} status changed to ${newStatus}`);
+    // 1. Optimistic UI update immediately
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus as any } : o)));
+    showToast(`Order ${orderId} status changed to "${newStatus}"`, 'info');
+
+    // 2. Broadcast status change across tabs
+    try {
+      const bc = new BroadcastChannel('brokerhub_orders_live');
+      bc.postMessage({ type: 'ORDER_STATUS_UPDATE', orderId, newStatus });
+      bc.close();
+    } catch {}
+
+    // 3. Supabase update if valid UUID
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+    if (isUuid) {
+      await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
     }
   };
 
