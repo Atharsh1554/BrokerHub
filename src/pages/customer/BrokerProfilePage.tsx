@@ -146,9 +146,9 @@ export const BrokerProfilePage: React.FC = () => {
       </div>
 
       {/* Hero Card */}
-      <div className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs">
+      <div className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs relative">
         {/* Cover Banner */}
-        <div className="h-40 bg-gradient-to-r from-primary via-teal-500 to-emerald-400 relative overflow-hidden">
+        <div className="h-36 sm:h-40 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 relative">
           <div className="absolute inset-0">
             <div className="absolute top-3 right-16 w-28 h-28 rounded-full bg-white/10 blur-2xl" />
             <div className="absolute -bottom-4 left-24 w-36 h-36 rounded-full bg-white/10 blur-3xl" />
@@ -156,8 +156,8 @@ export const BrokerProfilePage: React.FC = () => {
           </div>
 
           {/* Verified badge on banner */}
-          <div className="absolute top-4 right-4 flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-xs font-bold bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full border border-white/30">
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <span className="flex items-center gap-1.5 text-xs font-bold bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-full border border-white/30 shadow-xs">
               <CheckCircle size={11} />
               Verified Broker
             </span>
@@ -169,79 +169,76 @@ export const BrokerProfilePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="px-6 pb-6">
-          {/* Avatar + Core Info */}
-          <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-end -mt-12">
-            <div className="shrink-0">
-              {broker.avatar ? (
-                <img
-                  src={broker.avatar}
-                  alt={broker.name}
-                  className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-xl"
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-black text-3xl shadow-xl border-4 border-white">
-                  {initials(broker.name)}
-                </div>
-              )}
-            </div>
-
-            <div className="flex-1 pt-2 sm:pt-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-black text-text-primary">
-                    {broker.company || broker.name}
-                  </h1>
-                  <p className="text-sm text-gray-text mt-0.5">
-                    {broker.name} · {broker.specialty}
-                  </p>
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    {broker.location && (
-                      <span className="flex items-center gap-1 text-xs text-gray-text bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
-                        <MapPin size={11} className="text-primary" />
-                        {broker.location}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1 text-xs text-gray-text bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
-                      <Package size={11} className="text-primary" />
-                      {brokerProducts.length} Products
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs font-medium bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full border border-amber-100">
-                      <Star size={11} className="fill-amber-500 text-amber-500" />
-                      {broker.rating.toFixed(1)} · {broker.reviewCount} reviews
-                    </span>
+        <div className="px-6 pb-6 pt-3 relative">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            {/* Avatar + Info */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="shrink-0 -mt-14 sm:-mt-16 z-10">
+                {broker.avatar ? (
+                  <img
+                    src={broker.avatar}
+                    alt={broker.name}
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-4 border-white shadow-lg"
+                  />
+                ) : (
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-black text-2xl sm:text-3xl shadow-lg border-4 border-white">
+                    {initials(broker.name)}
                   </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={handleCopyShopLink}
-                    className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                      copied
-                        ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
-                        : 'border-gray-border bg-white text-text-primary hover:bg-gray-50'
-                    }`}
-                  >
-                    {copied ? <Check size={14} /> : <Share2 size={14} />}
-                    {copied ? 'Copied!' : 'Share'}
-                  </button>
-                  <Link
-                    to={`/customer/appointments`}
-                    className="flex items-center gap-2 px-4 py-2.5 border border-gray-border bg-white text-text-primary rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all cursor-pointer"
-                  >
-                    <Calendar size={14} />
-                    Book
-                  </Link>
-                  <button
-                    onClick={handleConnect}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-dark transition-all shadow-md cursor-pointer"
-                  >
-                    <MessageSquare size={14} />
-                    Message
-                  </button>
+                )}
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-black text-text-primary">
+                  {broker.company || broker.name}
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-text mt-0.5">
+                  {broker.name} · {broker.specialty}
+                </p>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  {broker.location && (
+                    <span className="flex items-center gap-1 text-xs text-gray-text bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
+                      <MapPin size={11} className="text-primary" />
+                      {broker.location}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1 text-xs text-gray-text bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
+                    <Package size={11} className="text-primary" />
+                    {brokerProducts.length} Products
+                  </span>
+                  <span className="flex items-center gap-1.5 text-xs font-medium bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full border border-amber-100">
+                    <Star size={11} className="fill-amber-500 text-amber-500" />
+                    {broker.rating.toFixed(1)} · {broker.reviewCount} reviews
+                  </span>
                 </div>
               </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 flex-wrap shrink-0 self-stretch sm:self-auto justify-end mt-2 md:mt-0">
+              <button
+                onClick={handleCopyShopLink}
+                className={`flex items-center gap-2 px-3.5 py-2 border rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  copied
+                    ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                    : 'border-gray-border bg-white text-text-primary hover:bg-gray-50'
+                }`}
+              >
+                {copied ? <Check size={14} /> : <Share2 size={14} />}
+                {copied ? 'Copied!' : 'Share'}
+              </button>
+              <Link
+                to={`/customer/appointments`}
+                className="flex items-center gap-2 px-3.5 py-2 border border-gray-border bg-white text-text-primary rounded-xl text-xs sm:text-sm font-semibold hover:bg-gray-50 transition-all cursor-pointer"
+              >
+                <Calendar size={14} />
+                Book
+              </Link>
+              <button
+                onClick={handleConnect}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-primary-dark transition-all shadow-md cursor-pointer"
+              >
+                <MessageSquare size={14} />
+                Message
+              </button>
             </div>
           </div>
         </div>

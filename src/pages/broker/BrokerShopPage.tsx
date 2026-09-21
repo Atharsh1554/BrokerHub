@@ -121,70 +121,68 @@ export const BrokerShopPage: React.FC = () => {
       </div>
 
       {/* Hero Card */}
-      <div className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs">
+      <div className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs relative">
         {/* Cover Banner */}
-        <div className="h-36 bg-gradient-to-r from-primary via-teal-500 to-emerald-400 relative overflow-hidden">
+        <div className="h-32 sm:h-36 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 relative">
           <div className="absolute inset-0 opacity-20">
             <div className="absolute top-2 right-10 w-24 h-24 rounded-full bg-white/30 blur-2xl" />
             <div className="absolute bottom-0 left-20 w-32 h-32 rounded-full bg-white/20 blur-3xl" />
           </div>
-          <div className="absolute top-4 right-4 flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-xs font-bold bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full border border-white/30">
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <span className="flex items-center gap-1.5 text-xs font-bold bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-full border border-white/30 shadow-xs">
               <Eye size={12} />
               Public Shop • Live
             </span>
           </div>
         </div>
 
-        <div className="px-6 pb-6">
-          {/* Avatar + Info */}
-          <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-end -mt-12">
-            <div className="shrink-0">
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-black text-3xl shadow-xl border-4 border-white">
-                {initials}
+        <div className="px-6 pb-6 pt-3 relative">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            {/* Avatar + Info */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="shrink-0 -mt-14 sm:-mt-16 z-10">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-black text-2xl sm:text-3xl shadow-lg border-4 border-white">
+                  {initials}
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-black text-text-primary">{displayName}</h1>
+                  <span className="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    <CheckCircle size={10} />
+                    Verified Broker
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-gray-text mt-0.5">
+                  {user?.email || 'broker@brokerhub.com'}
+                </p>
+                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                  <StarRating rating={avgRating} size={14} />
+                  <span className="text-xs text-gray-text font-medium">{avgRating} · {totalOrders} reviews</span>
+                  <span className="text-gray-300">·</span>
+                  <span className="text-xs text-primary font-semibold">{myProducts.length} Active Listings</span>
+                </div>
               </div>
             </div>
 
-            <div className="flex-1 pt-2 sm:pt-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="text-2xl font-black text-text-primary">{displayName}</h1>
-                    <span className="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-200">
-                      <CheckCircle size={10} />
-                      Verified Broker
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-text mt-0.5">
-                    {user?.email || 'broker@brokerhub.com'}
-                  </p>
-                  <div className="flex items-center gap-3 mt-2 flex-wrap">
-                    <StarRating rating={avgRating} size={15} />
-                    <span className="text-xs text-gray-text font-medium">{avgRating} · {totalOrders} reviews</span>
-                    <span className="text-gray-300">·</span>
-                    <span className="text-xs text-primary font-semibold">{myProducts.length} Active Listings</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => navigate('/broker/settings')}
-                    className="flex items-center gap-2 px-4 py-2.5 border border-gray-border bg-white text-text-primary rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all cursor-pointer"
-                  >
-                    <Edit3 size={14} />
-                    Edit Profile
-                  </button>
-                  <a
-                    href={shopUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-dark transition-all shadow-md cursor-pointer"
-                  >
-                    <ExternalLink size={14} />
-                    Preview Shop
-                  </a>
-                </div>
-              </div>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto justify-end mt-2 md:mt-0">
+              <button
+                onClick={() => navigate('/broker/settings')}
+                className="flex items-center gap-2 px-3.5 py-2 border border-gray-border bg-white text-text-primary rounded-xl text-xs sm:text-sm font-semibold hover:bg-gray-50 transition-all cursor-pointer shadow-2xs"
+              >
+                <Edit3 size={14} />
+                Edit Profile
+              </button>
+              <a
+                href={shopUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-primary-dark transition-all shadow-md cursor-pointer"
+              >
+                <ExternalLink size={14} />
+                Preview Shop
+              </a>
             </div>
           </div>
         </div>
