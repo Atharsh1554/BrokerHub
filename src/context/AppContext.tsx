@@ -115,7 +115,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setProducts(fetchedProducts);
       
       if (user) {
-        const fetchedOrders = await getOrders(user.id, user.role);
+        const userRole = user.role === 'broker' ? 'broker' : 'customer';
+        const fetchedOrders = await getOrders(user.id, userRole);
         if (fetchedOrders.length > 0) {
           setOrders((prev) => {
             const dbIds = new Set(fetchedOrders.map((o) => o.id));
@@ -124,7 +125,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
         }
         
-        const fetchedAppointments = await getAppointments(user.id, user.role);
+        const fetchedAppointments = await getAppointments(user.id, userRole);
         setAppointments(fetchedAppointments);
 
         // Fetch conversations

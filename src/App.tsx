@@ -4,6 +4,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 // Layouts
 import { CustomerLayout } from './components/layout/CustomerLayout';
 import { BrokerLayout } from './components/layout/BrokerLayout';
+import { AdminLayout } from './components/layout/AdminLayout';
+
+// Guard
+import { AdminProtectedRoute } from './components/admin/AdminProtectedRoute';
 
 // Public & Auth Pages
 import { LandingPage } from './pages/LandingPage';
@@ -11,6 +15,9 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { SignUpPage } from './pages/auth/SignUpPage';
 import { BrokerAuthPage } from './pages/auth/BrokerAuthPage';
 import { AuthCallbackPage } from './pages/auth/AuthCallbackPage';
+
+// Admin Auth Page
+import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 
 // MYSTRIO Initiative Sub-Pages
 import { AboutMystrioPage } from './pages/mytrio/AboutMystrioPage';
@@ -38,6 +45,23 @@ import { NotificationCenter } from './pages/broker/NotificationCenter';
 import { OrderTracking } from './pages/broker/OrderTracking';
 import { BrokerSettings } from './pages/broker/BrokerSettings';
 
+// Admin Pages
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { AdminAnalytics } from './pages/admin/AdminAnalytics';
+import { AdminCustomers } from './pages/admin/AdminCustomers';
+import { AdminBrokers } from './pages/admin/AdminBrokers';
+import { AdminProducts } from './pages/admin/AdminProducts';
+import { AdminOrders } from './pages/admin/AdminOrders';
+import { AdminPayments } from './pages/admin/AdminPayments';
+import { AdminConnections } from './pages/admin/AdminConnections';
+import { AdminNotifications } from './pages/admin/AdminNotifications';
+import { AdminMeetings } from './pages/admin/AdminMeetings';
+import { AdminReviews } from './pages/admin/AdminReviews';
+import { AdminReports } from './pages/admin/AdminReports';
+import { AdminActivityLogs } from './pages/admin/AdminActivityLogs';
+import { AdminSearch } from './pages/admin/AdminSearch';
+import { AdminSettings } from './pages/admin/AdminSettings';
+
 export const App: React.FC = () => {
   return (
     <Router>
@@ -48,6 +72,9 @@ export const App: React.FC = () => {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/broker/auth" element={<BrokerAuthPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
+        {/* Admin Login Route */}
+        <Route path="/admin/login" element={<AdminLoginPage />} />
 
         {/* MYSTRIO Sub-Pages */}
         <Route path="/about-mystrio" element={<AboutMystrioPage />} />
@@ -81,6 +108,33 @@ export const App: React.FC = () => {
           <Route path="settings" element={<BrokerSettings />} />
         </Route>
 
+        {/* Admin Portal (Protected) */}
+        <Route
+          path="/admin"
+          element={
+            <AdminProtectedRoute>
+              <AdminLayout />
+            </AdminProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="customers" element={<AdminCustomers />} />
+          <Route path="brokers" element={<AdminBrokers />} />
+          <Route path="products" element={<AdminProducts />} />
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="payments" element={<AdminPayments />} />
+          <Route path="connections" element={<AdminConnections />} />
+          <Route path="notifications" element={<AdminNotifications />} />
+          <Route path="meetings" element={<AdminMeetings />} />
+          <Route path="reviews" element={<AdminReviews />} />
+          <Route path="reports" element={<AdminReports />} />
+          <Route path="activity-logs" element={<AdminActivityLogs />} />
+          <Route path="search" element={<AdminSearch />} />
+          <Route path="settings" element={<AdminSettings />} />
+        </Route>
+
         {/* Catch-all Redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -89,3 +143,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+
