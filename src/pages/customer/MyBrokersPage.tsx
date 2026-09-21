@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, MessageSquare, Calendar, Search } from 'lucide-react';
+import { Star, MessageSquare, Calendar, Search, ExternalLink } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useApp } from '../../context/AppContext';
 
 export const MyBrokersPage: React.FC = () => {
-  const { brokers, toggleConnectBroker } = useApp();
+  const { brokers } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('All');
 
@@ -94,14 +94,12 @@ export const MyBrokersPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-border">
-              <Button
-                variant={broker.status === 'Connected' ? 'outline' : 'primary'}
-                size="sm"
-                className="text-xs"
-                onClick={() => toggleConnectBroker(broker.id)}
-              >
-                {broker.status === 'Connected' ? 'Connected' : 'Connect'}
-              </Button>
+              <Link to={`/customer/brokers/${broker.id}`} className="w-full">
+                <Button variant="primary" size="sm" className="w-full text-xs gap-1">
+                  <ExternalLink size={14} />
+                  View Profile
+                </Button>
+              </Link>
               <Link to="/customer/messages" className="w-full">
                 <Button variant="secondary" size="sm" className="w-full text-xs gap-1">
                   <MessageSquare size={14} />

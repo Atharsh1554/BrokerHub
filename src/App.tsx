@@ -44,6 +44,7 @@ import { BrokerMessages } from './pages/broker/BrokerMessages';
 import { NotificationCenter } from './pages/broker/NotificationCenter';
 import { OrderTracking } from './pages/broker/OrderTracking';
 import { BrokerSettings } from './pages/broker/BrokerSettings';
+import { BrokerShopPage } from './pages/broker/BrokerShopPage';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -102,11 +103,39 @@ export const App: React.FC = () => {
           <Route index element={<Navigate to="/broker/dashboard" replace />} />
           <Route path="dashboard" element={<BrokerDashboard />} />
           <Route path="products" element={<ProductManagement />} />
+          <Route path="my-shop" element={<BrokerShopPage />} />
           <Route path="messages" element={<BrokerMessages />} />
           <Route path="notifications" element={<NotificationCenter />} />
           <Route path="orders" element={<OrderTracking />} />
           <Route path="settings" element={<BrokerSettings />} />
         </Route>
+
+        {/* Public Broker Shop — shareable link, no auth required */}
+        <Route
+          path="/shop/:brokerId"
+          element={
+            <div className="min-h-screen bg-gray-bg flex flex-col">
+              <header className="bg-white border-b border-gray-border px-6 py-3 flex items-center gap-3 shadow-xs sticky top-0 z-40">
+                <img src="/logo.png" alt="BrokerHub" className="h-8 w-auto object-contain" />
+                <div>
+                  <span className="font-bold text-sm text-text-primary">BROKER HUB</span>
+                  <span className="text-[10px] font-semibold text-primary italic ml-1.5">A MYSTRIO Product</span>
+                </div>
+                <div className="ml-auto flex items-center gap-3">
+                  <a href="/login" className="text-sm font-semibold text-gray-text hover:text-primary transition-colors">Sign In</a>
+                  <a href="/signup" className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-dark transition-all">Get Started</a>
+                </div>
+              </header>
+              <main className="flex-1 p-4 sm:p-6 w-full max-w-7xl mx-auto">
+                <BrokerProfilePage />
+              </main>
+              <footer className="px-6 py-4 border-t border-gray-border text-center text-xs text-gray-text">
+                <p className="font-semibold text-text-primary">BROKER HUB</p>
+                <p className="italic text-gray-label">A MYSTRIO Product · © 2026 MYSTRIO. All rights reserved.</p>
+              </footer>
+            </div>
+          }
+        />
 
         {/* Admin Portal (Protected) */}
         <Route

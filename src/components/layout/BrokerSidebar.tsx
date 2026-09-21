@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
+  Store,
   MessageSquare,
   Bell,
   ClipboardList,
@@ -17,6 +18,7 @@ import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/broker/dashboard' },
   { label: 'My Products', icon: Package, path: '/broker/products' },
+  { label: 'My Shop', icon: Store, path: '/broker/my-shop' },
   { label: 'Messages', icon: MessageSquare, path: '/broker/messages' },
   { label: 'Notifications', icon: Bell, path: '/broker/notifications' },
   { label: 'Orders', icon: ClipboardList, path: '/broker/orders' },
