@@ -78,9 +78,15 @@ export const getProducts = async (): Promise<Product[]> => {
   }
 
   const demoIds = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+  const testNames = ['haveeshva', 'dsfb', 'bus', 'essdrfghjkl;', 'essdrtghjkt;'];
 
   return combined
-    .filter((p) => !deletedIds.includes(p.id) && !demoIds.includes(p.id))
+    .filter(
+      (p) =>
+        !deletedIds.includes(p.id) &&
+        !demoIds.includes(p.id) &&
+        !testNames.includes(p.name?.trim().toLowerCase())
+    )
     .map((p) => (overrides[p.id] ? { ...p, ...overrides[p.id] } : p));
 };
 
