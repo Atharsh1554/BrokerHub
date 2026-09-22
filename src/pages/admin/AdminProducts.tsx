@@ -11,7 +11,6 @@ import {
   Plus,
   Edit,
   ImagePlus,
-  CheckCircle2,
 } from 'lucide-react';
 import { getAdminProducts, toggleProductActive, deleteAdminProduct } from '../../lib/api/admin';
 import type { Product } from '../../types';
