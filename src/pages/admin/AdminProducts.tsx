@@ -55,13 +55,44 @@ export const AdminProducts: React.FC = () => {
     setLoading(false);
   };
 
+  const notifyProductBroadcast = () => {
+    try {
+      const bc = new BroadcastChannel('brokerhub_products_live');
+      bc.postMessage({ type: 'REFRESH_PRODUCTS' });
+      bc.close();
+    } catch {}
+    window.dispatchEvent(new CustomEvent('brokerhub_products_updated'));
+  };
+
   useEffect(() => {
     fetchProducts();
+
+    const handleReload = () => {
+      fetchProducts();
+    };
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('brokerhub_products_live');
+      bc.onmessage = () => {
+        handleReload();
+      };
+    } catch {}
+
+    window.addEventListener('brokerhub_products_updated', handleReload);
+    window.addEventListener('storage', handleReload);
+
+    return () => {
+      bc?.close();
+      window.removeEventListener('brokerhub_products_updated', handleReload);
+      window.removeEventListener('storage', handleReload);
+    };
   }, []);
 
   const handleToggleActive = async (product: Product) => {
     await toggleProductActive(product.id, !!product.isActive);
     fetchProducts();
+    notifyProductBroadcast();
   };
 
   const handleDeleteConfirm = async () => {
@@ -69,6 +100,7 @@ export const AdminProducts: React.FC = () => {
       await deleteAdminProduct(deleteModal.product.id);
       setDeleteModal({ show: false, product: null });
       fetchProducts();
+      notifyProductBroadcast();
     }
   };
 
@@ -139,8 +171,8 @@ export const AdminProducts: React.FC = () => {
 
       // Store in localStorage overrides
       try {
-        const overrides = JSON.parse(localStorage.getItem('brokerhub_product_admin_overrides') || '{}');
-        overrides[editingProduct.id] = {
+        const adminOverrides = JSON.parse(localStorage.getItem('brokerhub_product_admin_overrides') || '{}');
+        adminOverrides[editingProduct.id] = {
           name: formData.name,
           price: priceNum,
           category: formData.category,
@@ -150,7 +182,20 @@ export const AdminProducts: React.FC = () => {
           image: formData.image,
           brokerName: formData.brokerName,
         };
-        localStorage.setItem('brokerhub_product_admin_overrides', JSON.stringify(overrides));
+        localStorage.setItem('brokerhub_product_admin_overrides', JSON.stringify(adminOverrides));
+
+        const brokerOverrides = JSON.parse(localStorage.getItem('brokerhub_product_overrides') || '{}');
+        brokerOverrides[editingProduct.id] = {
+          name: formData.name,
+          price: priceNum,
+          category: formData.category,
+          stock: stockNum,
+          status: statusVal,
+          description: formData.description,
+          image: formData.image,
+          brokerName: formData.brokerName,
+        };
+        localStorage.setItem('brokerhub_product_overrides', JSON.stringify(brokerOverrides));
       } catch {}
     } else {
       // Add new product
@@ -182,6 +227,7 @@ export const AdminProducts: React.FC = () => {
 
     setIsAddEditModalOpen(false);
     setEditingProduct(null);
+    notifyProductBroadcast();
   };
 
   const categories = Array.from(new Set(products.map((p) => p.category)));

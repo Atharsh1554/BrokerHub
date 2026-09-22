@@ -47,20 +47,21 @@ export const getProducts = async (): Promise<Product[]> => {
   }
 
   // Combine DB products, custom products, and mock products
-  const combined = [...dbProducts, ...customProducts];
+  const combined = [...customProducts, ...dbProducts];
   for (const mp of mockProducts) {
     if (!combined.some((p) => p.id === mp.id)) {
       combined.push(mp);
     }
   }
 
-  // Apply stored product overrides (such as stock reductions)
+  // Apply stored product overrides (combining broker & admin overrides)
   let overrides: Record<string, Partial<Product>> = {};
   try {
     const savedOverrides = localStorage.getItem('brokerhub_product_overrides');
-    if (savedOverrides) {
-      overrides = JSON.parse(savedOverrides);
-    }
+    const savedAdminOverrides = localStorage.getItem('brokerhub_product_admin_overrides');
+    const o1 = savedOverrides ? JSON.parse(savedOverrides) : {};
+    const o2 = savedAdminOverrides ? JSON.parse(savedAdminOverrides) : {};
+    overrides = { ...o1, ...o2 };
   } catch {
     // ignore
   }

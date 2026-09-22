@@ -11,6 +11,7 @@ import type {
   AdminActivityLog,
 } from '../../types';
 import { brokers as mockBrokers, products as mockProducts, orders as mockOrders } from '../../data/mockData';
+import { getProducts } from './products';
 
 // Fallback initial data for smooth standalone dev experience
 const initialCustomers: CustomerProfile[] = [
@@ -446,36 +447,14 @@ export const updateBrokerStatus = async (brokerId: string, status: Broker['statu
 
 // 4. Products API
 export const getAdminProducts = async (): Promise<Product[]> => {
-  try {
-    const { data } = await supabase.from('products').select('*');
-    if (data && data.length > 0) {
-      return data.map(p => ({
-        id: p.id,
-        name: p.name,
-        price: p.price,
-        image: p.image || '',
-        category: p.category || 'General',
-        stock: p.stock || 0,
-        status: p.status || 'In Stock',
-        description: p.description || '',
-        brokerId: p.broker_id || 'b1',
-        brokerName: 'Apex Brokerage',
-        rating: p.rating || 4.5,
-        reviewCount: p.review_count || 10,
-        isActive: p.is_active !== false,
-        createdAt: p.created_at || '2026-01-10',
-      }));
-    }
-  } catch {
-    // Fallback
-  }
+  const allProducts = await getProducts();
+  const savedAdminOverrides = JSON.parse(localStorage.getItem('brokerhub_product_admin_overrides') || '{}');
 
-  const savedOverrides = JSON.parse(localStorage.getItem('brokerhub_product_admin_overrides') || '{}');
-  return mockProducts.map(p => ({
+  return allProducts.map((p) => ({
     ...p,
-    brokerName: p.brokerId === 'b1' ? 'Marcus Chen' : p.brokerId === 'b2' ? 'Sarah Williams' : 'David Park',
-    isActive: savedOverrides[p.id]?.isActive !== undefined ? savedOverrides[p.id].isActive : true,
-    ...savedOverrides[p.id],
+    brokerName: p.brokerName || (p.brokerId === 'b1' ? 'Marcus Chen' : p.brokerId === 'b2' ? 'Sarah Williams' : 'David Park'),
+    isActive: savedAdminOverrides[p.id]?.isActive !== undefined ? savedAdminOverrides[p.id].isActive : (p.isActive ?? true),
+    ...savedAdminOverrides[p.id],
   }));
 };
 

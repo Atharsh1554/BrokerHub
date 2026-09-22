@@ -164,6 +164,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadData();
   }, [user]);
 
+  // Helper to notify other tabs and local components of product updates
+  const notifyProductChange = () => {
+    try {
+      const bc = new BroadcastChannel('brokerhub_products_live');
+      bc.postMessage({ type: 'REFRESH_PRODUCTS' });
+      bc.close();
+    } catch {}
+    window.dispatchEvent(new CustomEvent('brokerhub_products_updated'));
+  };
+
+  // Listen for real-time product updates (BroadcastChannel, storage event, custom window event)
+  useEffect(() => {
+    const handleProductsReload = async () => {
+      const freshProducts = await getProducts();
+      setProducts(freshProducts);
+    };
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('brokerhub_products_live');
+      bc.onmessage = () => {
+        handleProductsReload();
+      };
+    } catch {}
+
+    window.addEventListener('brokerhub_products_updated', handleProductsReload);
+    window.addEventListener('storage', handleProductsReload);
+
+    return () => {
+      bc?.close();
+      window.removeEventListener('brokerhub_products_updated', handleProductsReload);
+      window.removeEventListener('storage', handleProductsReload);
+    };
+  }, []);
+
   // Reorders conversation list to place the active/newly messaged contact at top (Position #1 - WhatsApp style)
   const bumpConversationToTop = (targetConvId: string, lastMsgText: string, timeStr: string, incrementUnread: boolean = false) => {
     setConversations((prev) => {
@@ -450,8 +485,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch {}
     }
 
-    setProducts((prev) => [newProd!, ...prev]);
+    setProducts((prev) => [newProd!, ...prev.filter((p) => p.id !== newProd!.id)]);
     showToast(`Product "${newProd.name}" added successfully!`);
+    notifyProductChange();
   };
 
   const updateProduct = async (id: string, updatedFields: Partial<Product>) => {
@@ -460,6 +496,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const overrides: Record<string, Partial<Product>> = JSON.parse(localStorage.getItem('brokerhub_product_overrides') || '{}');
       overrides[id] = { ...(overrides[id] || {}), ...updatedFields };
       localStorage.setItem('brokerhub_product_overrides', JSON.stringify(overrides));
+
+      const adminOverrides: Record<string, Partial<Product>> = JSON.parse(localStorage.getItem('brokerhub_product_admin_overrides') || '{}');
+      adminOverrides[id] = { ...(adminOverrides[id] || {}), ...updatedFields };
+      localStorage.setItem('brokerhub_product_admin_overrides', JSON.stringify(adminOverrides));
     } catch {}
 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -483,6 +523,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)));
     showToast('Product inventory updated successfully!');
+    notifyProductChange();
   };
 
   const deleteProduct = async (id: string) => {
@@ -510,6 +551,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error('Error deleting product from Supabase:', error);
       }
     }
+
+    notifyProductChange();
   };
 
   // Order Actions
