@@ -479,11 +479,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: `p_${Date.now()}`,
         brokerId: brokerId,
       };
-      try {
-        const customProds = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
-        localStorage.setItem('brokerhub_custom_products', JSON.stringify([newProd, ...customProds]));
-      } catch {}
     }
+
+    try {
+      const customProds: Product[] = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
+      const filtered = customProds.filter((p) => p.id !== newProd!.id);
+      localStorage.setItem('brokerhub_custom_products', JSON.stringify([newProd, ...filtered]));
+    } catch {}
 
     setProducts((prev) => [newProd!, ...prev.filter((p) => p.id !== newProd!.id)]);
     showToast(`Product "${newProd.name}" added successfully!`);
