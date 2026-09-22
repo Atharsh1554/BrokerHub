@@ -77,8 +77,10 @@ export const getProducts = async (): Promise<Product[]> => {
     // ignore
   }
 
+  const demoIds = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+
   return combined
-    .filter((p) => !deletedIds.includes(p.id))
+    .filter((p) => !deletedIds.includes(p.id) && !demoIds.includes(p.id))
     .map((p) => (overrides[p.id] ? { ...p, ...overrides[p.id] } : p));
 };
 
