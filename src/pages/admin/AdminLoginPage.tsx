@@ -49,42 +49,42 @@ export const AdminLoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
       {/* Background Glow Overlay */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-emerald-500/10 via-indigo-500/5 to-transparent blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-emerald-500/10 via-teal-500/5 to-transparent blur-3xl pointer-events-none" />
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="flex justify-center items-center space-x-3 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
             <ShieldCheck className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            BROKER<span className="text-emerald-400">HUB</span> <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ADMIN</span>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+            BROKER<span className="text-emerald-600">HUB</span> <span className="text-xs font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">ADMIN</span>
           </h1>
         </div>
-        <h2 className="text-center text-xl font-medium text-slate-300">
+        <h2 className="text-center text-xl font-bold text-slate-800">
           Admin Portal Authentication
         </h2>
-        <p className="mt-1 text-center text-xs text-slate-400">
+        <p className="mt-1 text-center text-xs text-slate-500 font-medium">
           Restricted access for platform administrators only
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4">
-        <div className="bg-slate-900/90 backdrop-blur-xl py-8 px-6 shadow-2xl rounded-2xl border border-slate-800 sm:px-10">
+        <div className="bg-white backdrop-blur-xl py-8 px-6 shadow-xl rounded-3xl border border-slate-200 sm:px-10">
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-red-300 font-medium">{error}</p>
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-red-700 font-semibold">{error}</p>
             </div>
           )}
 
           <form className="space-y-5" onSubmit={handleLogin}>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Admin Email Address
               </label>
-              <div className="relative rounded-xl shadow-sm">
+              <div className="relative rounded-xl shadow-xs">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                   <Mail className="h-4 w-4 text-slate-400" />
                 </div>
@@ -94,16 +94,16 @@ export const AdminLoginPage: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@brokerhub.com"
-                  className="block w-full pl-10 pr-4 py-3 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                  className="block w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Password
               </label>
-              <div className="relative rounded-xl shadow-sm">
+              <div className="relative rounded-xl shadow-xs">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                   <Lock className="h-4 w-4 text-slate-400" />
                 </div>
@@ -113,26 +113,26 @@ export const AdminLoginPage: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="block w-full pl-10 pr-4 py-3 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                  className="block w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 focus:bg-white transition-all"
                 />
               </div>
             </div>
 
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400 flex items-center space-x-1">
+              <span className="text-slate-500 flex items-center space-x-1.5 font-medium">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>256-bit SSL Encrypted</span>
               </span>
-              <span className="text-slate-500 hover:text-slate-400 transition-colors">Role-based Access</span>
+              <span className="text-slate-500 font-medium">Role-based Access</span>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center items-center py-3.5 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50"
+              className="w-full flex justify-center items-center py-3.5 px-4 rounded-xl text-sm font-bold text-slate-950 bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 shadow-md shadow-emerald-500/25 transition-all disabled:opacity-50"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 <span className="flex items-center space-x-2">
                   <span>Sign In to Admin Dashboard</span>
@@ -142,11 +142,11 @@ export const AdminLoginPage: React.FC = () => {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-800">
-            <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/50">
+          <div className="mt-6 pt-6 border-t border-slate-100">
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   <span>Demo Admin Access</span>
                 </span>
                 <button
@@ -155,13 +155,13 @@ export const AdminLoginPage: React.FC = () => {
                     setEmail('admin@brokerhub.com');
                     setPassword('admin123');
                   }}
-                  className="text-[11px] font-medium text-emerald-400 hover:underline"
+                  className="text-[11px] font-bold text-emerald-600 hover:underline"
                 >
                   Auto-fill Demo
                 </button>
               </div>
-              <p className="text-[11px] text-slate-400">
-                Email: <code className="text-emerald-300">admin@brokerhub.com</code> | Pass: <code className="text-emerald-300">admin123</code>
+              <p className="text-[11px] text-slate-600">
+                Email: <code className="text-emerald-700 font-bold">admin@brokerhub.com</code> | Pass: <code className="text-emerald-700 font-bold">admin123</code>
               </p>
             </div>
           </div>

@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Search, User, Briefcase, Layers } from 'lucide-react';
 import { getAdminCustomers, getAdminBrokers, getAdminProducts, getAdminOrders, getAdminPayments } from '../../lib/api/admin';
 import type { CustomerProfile, Broker, Product, Order, PaymentRecord } from '../../types';
+import { useAdminTheme } from '../../context/AdminThemeContext';
 
 export const AdminSearch: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,6 +16,9 @@ export const AdminSearch: React.FC = () => {
   const [matchedProducts, setMatchedProducts] = useState<Product[]>([]);
   const [matchedOrders, setMatchedOrders] = useState<Order[]>([]);
   const [matchedPayments, setMatchedPayments] = useState<PaymentRecord[]>([]);
+
+  const { theme } = useAdminTheme();
+  const isLight = theme === 'light';
 
   const performSearch = async (searchTerm: string) => {
     if (!searchTerm.trim()) return;
@@ -51,13 +55,15 @@ export const AdminSearch: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Title Header & Big Input */}
-      <div className="p-8 rounded-3xl bg-slate-900 border border-slate-800 space-y-6">
+      <div className={`p-8 rounded-3xl border space-y-6 transition-all ${
+        isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800 text-white'
+      }`}>
         <div>
-          <h1 className="text-xl font-bold text-white flex items-center space-x-2">
-            <Search className="w-5 h-5 text-emerald-400" />
+          <h1 className={`text-xl font-bold flex items-center space-x-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            <Search className="w-5 h-5 text-emerald-500" />
             <span>Deep Cross-Entity Platform Search</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className={`text-xs mt-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
             Search any ID, name, transaction reference or keyword to view the complete relational chain (Customer → Broker → Product → Payment → Status).
           </p>
         </div>
@@ -69,11 +75,15 @@ export const AdminSearch: React.FC = () => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type Order ID (e.g. ORD-7841), Customer name, Transaction ID..."
-            className="w-full bg-slate-950 border border-slate-700/80 rounded-2xl pl-12 pr-28 py-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            className={`w-full rounded-2xl pl-12 pr-28 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 border transition-all ${
+              isLight
+                ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white'
+                : 'bg-slate-950 border-slate-700/80 text-white placeholder-slate-500'
+            }`}
           />
           <button
             type="submit"
-            className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold transition-all"
+            className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold transition-all shadow-md shadow-emerald-500/20"
           >
             Search
           </button>
@@ -86,35 +96,45 @@ export const AdminSearch: React.FC = () => {
           {/* Linked Chain Visualizer for Orders */}
           {matchedOrders.length > 0 && (
             <div className="space-y-4">
-              <h2 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center space-x-2">
+              <h2 className="text-xs font-bold text-emerald-600 uppercase tracking-wider flex items-center space-x-2">
                 <Layers className="w-4 h-4" />
                 <span>Connected Entity Chains</span>
               </h2>
 
               <div className="space-y-4">
                 {matchedOrders.map((order) => (
-                  <div key={order.id} className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                      <span className="font-mono text-sm font-bold text-white">Order: {order.id}</span>
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 uppercase">
+                  <div key={order.id} className={`p-5 rounded-3xl border space-y-4 transition-all ${
+                    isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800 shadow-xl'
+                  }`}>
+                    <div className={`flex justify-between items-center border-b pb-3 ${isLight ? 'border-slate-100' : 'border-slate-800'}`}>
+                      <span className={`font-mono text-sm font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>Order: {order.id}</span>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase ${
+                        isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                      }`}>
                         {order.status}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs items-center">
-                      <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800">
-                        <span className="text-[10px] text-slate-500 font-semibold uppercase block">1. Customer</span>
-                        <p className="font-bold text-white truncate">{order.customerName}</p>
+                      <div className={`p-3 rounded-2xl border ${
+                        isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
+                      }`}>
+                        <span className={`text-[10px] font-bold uppercase block ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>1. Customer</span>
+                        <p className={`font-bold truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>{order.customerName}</p>
                       </div>
-                      <div className="hidden md:flex justify-center text-slate-600">→</div>
-                      <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800">
-                        <span className="text-[10px] text-slate-500 font-semibold uppercase block">2. Broker</span>
-                        <p className="font-bold text-indigo-400 truncate">{order.brokerName || 'Marcus Chen'}</p>
+                      <div className={`hidden md:flex justify-center font-bold ${isLight ? 'text-slate-400' : 'text-slate-600'}`}>→</div>
+                      <div className={`p-3 rounded-2xl border ${
+                        isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
+                      }`}>
+                        <span className={`text-[10px] font-bold uppercase block ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>2. Broker</span>
+                        <p className="font-bold text-indigo-600 truncate">{order.brokerName || 'Marcus Chen'}</p>
                       </div>
-                      <div className="hidden md:flex justify-center text-slate-600">→</div>
-                      <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800">
-                        <span className="text-[10px] text-slate-500 font-semibold uppercase block">3. Payment & Amount</span>
-                        <p className="font-bold text-emerald-400 truncate">₹{(order.amount || order.totalAmount || 0).toLocaleString('en-IN')}</p>
+                      <div className={`hidden md:flex justify-center font-bold ${isLight ? 'text-slate-400' : 'text-slate-600'}`}>→</div>
+                      <div className={`p-3 rounded-2xl border ${
+                        isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
+                      }`}>
+                        <span className={`text-[10px] font-bold uppercase block ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>3. Payment & Amount</span>
+                        <p className="font-bold text-emerald-600 truncate">₹{(order.amount || order.totalAmount || 0).toLocaleString('en-IN')}</p>
                       </div>
                     </div>
                   </div>
@@ -126,69 +146,85 @@ export const AdminSearch: React.FC = () => {
           {/* Individual Entity Lists */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Customers */}
-            <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
-              <h3 className="text-xs font-bold text-slate-300 uppercase flex items-center space-x-2">
-                <User className="w-4 h-4 text-emerald-400" />
+            <div className={`p-5 rounded-3xl border space-y-3 transition-all ${
+              isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+            }`}>
+              <h3 className={`text-xs font-bold uppercase flex items-center space-x-2 ${isLight ? 'text-slate-800' : 'text-slate-300'}`}>
+                <User className="w-4 h-4 text-emerald-500" />
                 <span>Customers ({matchedCustomers.length})</span>
               </h3>
               {matchedCustomers.map((c) => (
-                <div key={c.id} className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 flex justify-between items-center text-xs">
+                <div key={c.id} className={`p-3 rounded-2xl border flex justify-between items-center text-xs ${
+                  isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
+                }`}>
                   <div>
-                    <p className="font-semibold text-white">{c.fullName}</p>
-                    <p className="text-[10px] text-slate-500">{c.email}</p>
+                    <p className={`font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{c.fullName}</p>
+                    <p className={`text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>{c.email}</p>
                   </div>
-                  <Link to="/admin/customers" className="text-emerald-400 hover:underline font-semibold">View</Link>
+                  <Link to="/admin/customers" className="text-emerald-600 hover:underline font-bold">View</Link>
                 </div>
               ))}
             </div>
 
             {/* Brokers */}
-            <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
-              <h3 className="text-xs font-bold text-slate-300 uppercase flex items-center space-x-2">
-                <Briefcase className="w-4 h-4 text-indigo-400" />
+            <div className={`p-5 rounded-3xl border space-y-3 transition-all ${
+              isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+            }`}>
+              <h3 className={`text-xs font-bold uppercase flex items-center space-x-2 ${isLight ? 'text-slate-800' : 'text-slate-300'}`}>
+                <Briefcase className="w-4 h-4 text-indigo-500" />
                 <span>Brokers ({matchedBrokers.length})</span>
               </h3>
               {matchedBrokers.map((b) => (
-                <div key={b.id} className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 flex justify-between items-center text-xs">
+                <div key={b.id} className={`p-3 rounded-2xl border flex justify-between items-center text-xs ${
+                  isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
+                }`}>
                   <div>
-                    <p className="font-semibold text-white">{b.name}</p>
-                    <p className="text-[10px] text-slate-500">{b.company}</p>
+                    <p className={`font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{b.name}</p>
+                    <p className={`text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>{b.company}</p>
                   </div>
-                  <Link to="/admin/brokers" className="text-indigo-400 hover:underline font-semibold">View</Link>
+                  <Link to="/admin/brokers" className="text-indigo-600 hover:underline font-bold">View</Link>
                 </div>
               ))}
             </div>
 
             {/* Products */}
-            <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
-              <h3 className="text-xs font-bold text-slate-300 uppercase flex items-center space-x-2">
-                <User className="w-4 h-4 text-violet-400" />
+            <div className={`p-5 rounded-3xl border space-y-3 transition-all ${
+              isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+            }`}>
+              <h3 className={`text-xs font-bold uppercase flex items-center space-x-2 ${isLight ? 'text-slate-800' : 'text-slate-300'}`}>
+                <User className="w-4 h-4 text-violet-500" />
                 <span>Products ({matchedProducts.length})</span>
               </h3>
               {matchedProducts.map((p) => (
-                <div key={p.id} className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 flex justify-between items-center text-xs">
+                <div key={p.id} className={`p-3 rounded-2xl border flex justify-between items-center text-xs ${
+                  isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
+                }`}>
                   <div>
-                    <p className="font-semibold text-white">{p.name}</p>
-                    <p className="text-[10px] text-slate-500">₹{p.price.toLocaleString('en-IN')} • {p.category}</p>
+                    <p className={`font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{p.name}</p>
+                    <p className={`text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>₹{p.price.toLocaleString('en-IN')} • {p.category}</p>
                   </div>
-                  <Link to="/admin/products" className="text-violet-400 hover:underline font-semibold">View</Link>
+                  <Link to="/admin/products" className="text-violet-600 hover:underline font-bold">View</Link>
                 </div>
               ))}
             </div>
 
             {/* Payments */}
-            <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
-              <h3 className="text-xs font-bold text-slate-300 uppercase flex items-center space-x-2">
-                <User className="w-4 h-4 text-teal-400" />
+            <div className={`p-5 rounded-3xl border space-y-3 transition-all ${
+              isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+            }`}>
+              <h3 className={`text-xs font-bold uppercase flex items-center space-x-2 ${isLight ? 'text-slate-800' : 'text-slate-300'}`}>
+                <User className="w-4 h-4 text-teal-500" />
                 <span>Payments ({matchedPayments.length})</span>
               </h3>
               {matchedPayments.map((p) => (
-                <div key={p.id} className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 flex justify-between items-center text-xs">
+                <div key={p.id} className={`p-3 rounded-2xl border flex justify-between items-center text-xs ${
+                  isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
+                }`}>
                   <div>
-                    <p className="font-semibold text-white">{p.transactionId}</p>
-                    <p className="text-[10px] text-slate-500">₹{p.amount.toLocaleString('en-IN')} • {p.status}</p>
+                    <p className={`font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{p.transactionId}</p>
+                    <p className={`text-[10px] ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>₹{p.amount.toLocaleString('en-IN')} • {p.status}</p>
                   </div>
-                  <Link to="/admin/payments" className="text-teal-400 hover:underline font-semibold">View</Link>
+                  <Link to="/admin/payments" className="text-teal-600 hover:underline font-bold">View</Link>
                 </div>
               ))}
             </div>
