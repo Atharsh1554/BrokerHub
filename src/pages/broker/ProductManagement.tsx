@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useApp } from '../../context/AppContext';
 import type { Product } from '../../types';
+import { compressImage } from '../../lib/utils/imageCompressor';
 
 export const ProductManagement: React.FC = () => {
   const { products, addProduct, updateProduct, deleteProduct } = useApp();
@@ -28,15 +29,21 @@ export const ProductManagement: React.FC = () => {
     (p) => selectedCategory === 'All' || p.category === selectedCategory
   );
 
-  // Handle image file upload → convert to base64
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle image file upload → compress image to ~30KB before saving
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, image: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImage(file, 600, 0.7);
+      setFormData((prev) => ({ ...prev, image: compressed }));
+    } catch {
+      // fallback if compression fails
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSaveProduct = (e: React.FormEvent) => {

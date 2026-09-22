@@ -15,6 +15,7 @@ import {
 import { getAdminProducts, toggleProductActive, deleteAdminProduct } from '../../lib/api/admin';
 import type { Product } from '../../types';
 import { useAdminTheme } from '../../context/AdminThemeContext';
+import { compressImage } from '../../lib/utils/imageCompressor';
 
 export const AdminProducts: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -103,14 +104,19 @@ export const AdminProducts: React.FC = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, image: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImage(file, 600, 0.7);
+      setFormData((prev) => ({ ...prev, image: compressed }));
+    } catch {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleOpenAddModal = () => {
