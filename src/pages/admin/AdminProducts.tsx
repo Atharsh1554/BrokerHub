@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Package,
   Search,
@@ -8,6 +8,10 @@ import {
   Power,
   X,
   ShieldAlert,
+  Plus,
+  Edit,
+  ImagePlus,
+  CheckCircle2,
 } from 'lucide-react';
 import { getAdminProducts, toggleProductActive, deleteAdminProduct } from '../../lib/api/admin';
 import type { Product } from '../../types';
@@ -21,9 +25,24 @@ export const AdminProducts: React.FC = () => {
   const [stockFilter, setStockFilter] = useState<string>('all');
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; product: Product | null }>({
     show: false,
     product: null,
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Form State for Add / Edit Modal
+  const [formData, setFormData] = useState({
+    name: '',
+    price: '',
+    category: 'Electronics',
+    stock: '',
+    description: '',
+    image: '',
+    brokerName: 'Apex Brokerage',
   });
 
   const { theme } = useAdminTheme();
@@ -53,6 +72,118 @@ export const AdminProducts: React.FC = () => {
     }
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData((prev) => ({ ...prev, image: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleOpenAddModal = () => {
+    setEditingProduct(null);
+    setFormData({
+      name: '',
+      price: '',
+      category: 'Electronics',
+      stock: '',
+      description: '',
+      image: '',
+      brokerName: 'Apex Brokerage',
+    });
+    setIsAddEditModalOpen(true);
+  };
+
+  const handleOpenEditModal = (product: Product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      price: product.price.toString(),
+      category: product.category,
+      stock: product.stock.toString(),
+      description: product.description || '',
+      image: product.image || '',
+      brokerName: product.brokerName || 'Apex Brokerage',
+    });
+    setIsAddEditModalOpen(true);
+  };
+
+  const handleSaveProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.price) return;
+
+    const stockNum = parseInt(formData.stock) || 0;
+    const priceNum = parseFloat(formData.price) || 0;
+    const statusVal = stockNum === 0 ? 'Out of Stock' : stockNum < 10 ? 'Low Stock' : 'In Stock';
+
+    if (editingProduct) {
+      // Update existing product
+      const updatedList = products.map((p) =>
+        p.id === editingProduct.id
+          ? {
+              ...p,
+              name: formData.name,
+              price: priceNum,
+              category: formData.category,
+              stock: stockNum,
+              status: statusVal as any,
+              description: formData.description,
+              image: formData.image,
+              brokerName: formData.brokerName,
+            }
+          : p
+      );
+      setProducts(updatedList);
+
+      // Store in localStorage overrides
+      try {
+        const overrides = JSON.parse(localStorage.getItem('brokerhub_product_admin_overrides') || '{}');
+        overrides[editingProduct.id] = {
+          name: formData.name,
+          price: priceNum,
+          category: formData.category,
+          stock: stockNum,
+          status: statusVal,
+          description: formData.description,
+          image: formData.image,
+          brokerName: formData.brokerName,
+        };
+        localStorage.setItem('brokerhub_product_admin_overrides', JSON.stringify(overrides));
+      } catch {}
+    } else {
+      // Add new product
+      const newId = `p_adm_${Date.now()}`;
+      const newProd: Product = {
+        id: newId,
+        name: formData.name,
+        price: priceNum,
+        category: formData.category,
+        stock: stockNum,
+        status: statusVal as any,
+        description: formData.description,
+        image: formData.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=400',
+        brokerId: 'b1',
+        brokerName: formData.brokerName,
+        rating: 4.8,
+        reviewCount: 1,
+        isActive: true,
+      };
+
+      setProducts([newProd, ...products]);
+
+      // Save to custom products
+      try {
+        const customProds = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
+        localStorage.setItem('brokerhub_custom_products', JSON.stringify([newProd, ...customProds]));
+      } catch {}
+    }
+
+    setIsAddEditModalOpen(false);
+    setEditingProduct(null);
+  };
+
   const categories = Array.from(new Set(products.map((p) => p.category)));
 
   const filteredProducts = products.filter((p) => {
@@ -79,14 +210,23 @@ export const AdminProducts: React.FC = () => {
             <span>Product Catalog Governance</span>
           </h1>
           <p className={`text-xs mt-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-            Monitor, moderate, edit, and control product listings published by brokers.
+            Add, update, moderate, and control product listings across BROKER HUB.
           </p>
         </div>
-        <span className={`px-3 py-1.5 rounded-xl border text-xs font-bold ${
-          isLight ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-violet-500/10 border-violet-500/30 text-violet-400'
-        }`}>
-          Total Products: {products.length}
-        </span>
+        <div className="flex items-center space-x-3 flex-wrap">
+          <span className={`px-3 py-1.5 rounded-xl border text-xs font-bold ${
+            isLight ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-violet-500/10 border-violet-500/30 text-violet-400'
+          }`}>
+            Total Products: {products.length}
+          </span>
+          <button
+            onClick={handleOpenAddModal}
+            className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Product</span>
+          </button>
+        </div>
       </div>
 
       {/* Toolbar Filters */}
@@ -221,7 +361,7 @@ export const AdminProducts: React.FC = () => {
                         {p.isActive !== false ? 'Active' : 'Deactivated'}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right space-x-2">
+                    <td className="py-3.5 px-4 text-right space-x-1.5">
                       <button
                         onClick={() => setSelectedProduct(p)}
                         className={`p-1.5 rounded-lg border transition-colors ${
@@ -232,6 +372,18 @@ export const AdminProducts: React.FC = () => {
                         title="Inspect Product Details"
                       >
                         <Eye className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => handleOpenEditModal(p)}
+                        className={`p-1.5 rounded-lg border transition-colors ${
+                          isLight
+                            ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200'
+                            : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400'
+                        }`}
+                        title="Edit Product"
+                      >
+                        <Edit className="w-4 h-4" />
                       </button>
 
                       <button
@@ -265,6 +417,221 @@ export const AdminProducts: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Add / Edit Product Modal */}
+      {isAddEditModalOpen && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm ${
+          isLight ? 'bg-slate-900/40' : 'bg-slate-950/80'
+        }`}>
+          <div className={`border rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto ${
+            isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-white'
+          }`}>
+            <button
+              onClick={() => setIsAddEditModalOpen(false)}
+              className={`absolute right-4 top-4 p-1 rounded-lg ${
+                isLight ? 'text-slate-400 hover:text-slate-700 hover:bg-slate-100' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <h2 className={`text-lg font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                {editingProduct ? 'Edit Product Details' : 'Add New Product Listing'}
+              </h2>
+              <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                {editingProduct
+                  ? 'Update price, stock, category, or product information.'
+                  : 'Add a new product listing directly to the platform catalog.'}
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
+              {/* Image Upload */}
+              <div>
+                <label className={`block font-semibold uppercase mb-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                  Product Image
+                </label>
+                <div
+                  className={`w-full h-36 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors relative overflow-hidden ${
+                    isLight
+                      ? 'border-slate-300 bg-slate-50 hover:border-emerald-500'
+                      : 'border-slate-700 bg-slate-950/60 hover:border-emerald-500'
+                  }`}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {formData.image ? (
+                    <>
+                      <img
+                        src={formData.image}
+                        alt="Preview"
+                        className="w-full h-full object-cover rounded-xl"
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFormData((prev) => ({ ...prev, image: '' }));
+                        }}
+                        className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1 hover:bg-black"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus className="w-8 h-8 text-slate-400 mb-2" />
+                      <p className={`font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                        Click to upload product image
+                      </p>
+                      <p className={`text-[10px] ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                        PNG, JPG, WEBP formats supported
+                      </p>
+                    </>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+              </div>
+
+              <div>
+                <label className={`block font-semibold uppercase mb-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                  Product Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Industrial Quantum Processor"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className={`w-full rounded-xl p-3 border focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
+                    isLight
+                      ? 'bg-slate-50 border-slate-300 text-slate-900 focus:bg-white'
+                      : 'bg-slate-800 border-slate-700 text-white'
+                  }`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={`block font-semibold uppercase mb-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                    Price (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    required
+                    placeholder="24900"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    className={`w-full rounded-xl p-3 border focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
+                      isLight
+                        ? 'bg-slate-50 border-slate-300 text-slate-900 focus:bg-white'
+                        : 'bg-slate-800 border-slate-700 text-white'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block font-semibold uppercase mb-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                    Stock Quantity
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="50"
+                    value={formData.stock}
+                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                    className={`w-full rounded-xl p-3 border focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
+                      isLight
+                        ? 'bg-slate-50 border-slate-300 text-slate-900 focus:bg-white'
+                        : 'bg-slate-800 border-slate-700 text-white'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={`block font-semibold uppercase mb-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                    Category
+                  </label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className={`w-full rounded-xl p-3 border font-semibold ${
+                      isLight
+                        ? 'bg-slate-50 border-slate-300 text-slate-900 focus:bg-white'
+                        : 'bg-slate-800 border-slate-700 text-white'
+                    }`}
+                  >
+                    <option>Electronics</option>
+                    <option>Audio</option>
+                    <option>Furniture</option>
+                    <option>Fashion</option>
+                    <option>Accessories</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`block font-semibold uppercase mb-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                    Broker Vendor
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.brokerName}
+                    onChange={(e) => setFormData({ ...formData, brokerName: e.target.value })}
+                    className={`w-full rounded-xl p-3 border focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
+                      isLight
+                        ? 'bg-slate-50 border-slate-300 text-slate-900 focus:bg-white'
+                        : 'bg-slate-800 border-slate-700 text-white'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={`block font-semibold uppercase mb-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                  Description
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Enter product features and deal specifications..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className={`w-full rounded-xl p-3 border focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
+                    isLight
+                      ? 'bg-slate-50 border-slate-300 text-slate-900 focus:bg-white'
+                      : 'bg-slate-800 border-slate-700 text-white'
+                  }`}
+                />
+              </div>
+
+              <div className={`flex justify-end gap-3 pt-3 border-t ${isLight ? 'border-slate-100' : 'border-slate-800'}`}>
+                <button
+                  type="button"
+                  onClick={() => setIsAddEditModalOpen(false)}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold ${
+                    isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20"
+                >
+                  {editingProduct ? 'Save Product Changes' : '🚀 Publish Product Listing'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Product Inspector Modal */}
       {selectedProduct && (
