@@ -15,11 +15,15 @@ import {
 } from 'recharts';
 import { Calendar, TrendingUp, Users, Package, DollarSign } from 'lucide-react';
 import type { AnalyticsDateFilter } from '../../types';
+import { useAdminTheme } from '../../context/AdminThemeContext';
 
 export const AdminAnalytics: React.FC = () => {
   const [dateFilter, setDateFilter] = useState<AnalyticsDateFilter>('30days');
   const [customStart, setCustomStart] = useState('2026-01-01');
   const [customEnd, setCustomEnd] = useState('2026-09-21');
+  const { theme } = useAdminTheme();
+
+  const isLight = theme === 'light';
 
   // Interactive Recharts mock dataset adjusted per filter
   const userGrowthData = [
@@ -64,16 +68,27 @@ export const AdminAnalytics: React.FC = () => {
     { name: 'Fashion', value: 5, color: '#EC4899' },
   ];
 
+  const tooltipStyle = {
+    backgroundColor: isLight ? '#FFFFFF' : '#0F172A',
+    borderColor: isLight ? '#E2E8F0' : '#334155',
+    borderRadius: '12px',
+    fontSize: '12px',
+    color: isLight ? '#0F172A' : '#F8FAFC',
+    boxShadow: isLight ? '0 10px 15px -3px rgba(0, 0, 0, 0.1)' : 'none',
+  };
+
   return (
     <div className="space-y-8">
       {/* Header & Date Range Selector */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-3xl bg-slate-900 border border-slate-800">
+      <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-3xl border transition-all ${
+        isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+      }`}>
         <div>
-          <h1 className="text-xl font-bold text-white flex items-center space-x-2">
-            <TrendingUp className="w-5 h-5 text-emerald-400" />
+          <h1 className={`text-xl font-bold flex items-center space-x-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            <TrendingUp className="w-5 h-5 text-emerald-500" />
             <span>Platform Analytics & Performance</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className={`text-xs mt-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
             Real-time interactive intelligence on user acquisition, products, orders, and revenue streams.
           </p>
         </div>
@@ -86,7 +101,9 @@ export const AdminAnalytics: React.FC = () => {
               onClick={() => setDateFilter(filter)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all ${
                 dateFilter === filter
-                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                  ? 'bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20'
+                  : isLight
+                  ? 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                   : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
               }`}
             >
@@ -97,21 +114,27 @@ export const AdminAnalytics: React.FC = () => {
       </div>
 
       {dateFilter === 'custom' && (
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center space-x-4">
-          <Calendar className="w-4 h-4 text-emerald-400" />
-          <span className="text-xs font-semibold text-slate-300">Custom Date Range:</span>
+        <div className={`p-4 rounded-2xl border flex items-center space-x-4 ${
+          isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-white'
+        }`}>
+          <Calendar className="w-4 h-4 text-emerald-500" />
+          <span className="text-xs font-semibold">Custom Date Range:</span>
           <input
             type="date"
             value={customStart}
             onChange={(e) => setCustomStart(e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs text-white"
+            className={`border rounded-lg px-3 py-1 text-xs ${
+              isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-800 border-slate-700 text-white'
+            }`}
           />
-          <span className="text-xs text-slate-500">to</span>
+          <span className={`text-xs ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>to</span>
           <input
             type="date"
             value={customEnd}
             onChange={(e) => setCustomEnd(e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-xs text-white"
+            className={`border rounded-lg px-3 py-1 text-xs ${
+              isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-800 border-slate-700 text-white'
+            }`}
           />
         </div>
       )}
@@ -119,16 +142,20 @@ export const AdminAnalytics: React.FC = () => {
       {/* Grid 1: Revenue & User Acquisition Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Revenue Analytics Chart */}
-        <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className={`p-6 rounded-3xl border space-y-4 ${
+          isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+        }`}>
+          <div className={`flex items-center justify-between border-b pb-3 ${
+            isLight ? 'border-slate-100' : 'border-slate-800'
+          }`}>
             <div>
-              <h2 className="text-sm font-bold text-white flex items-center space-x-2">
-                <DollarSign className="w-4 h-4 text-emerald-400" />
+              <h2 className={`text-sm font-bold flex items-center space-x-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                <DollarSign className="w-4 h-4 text-emerald-500" />
                 <span>Revenue Growth (₹)</span>
               </h2>
-              <p className="text-xs text-slate-400">Total gross transaction volume</p>
+              <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Total gross transaction volume</p>
             </div>
-            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
               +34.2% YoY
             </span>
           </div>
@@ -141,11 +168,11 @@ export const AdminAnalytics: React.FC = () => {
                     <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-                <XAxis dataKey="month" stroke="#64748B" fontSize={11} />
-                <YAxis stroke="#64748B" fontSize={11} tickFormatter={(val) => `₹${val / 1000}k`} />
+                <CartesianGrid strokeDasharray="3 3" stroke={isLight ? '#E2E8F0' : '#1E293B'} />
+                <XAxis dataKey="month" stroke={isLight ? '#64748B' : '#64748B'} fontSize={11} />
+                <YAxis stroke={isLight ? '#64748B' : '#64748B'} fontSize={11} tickFormatter={(val) => `₹${val / 1000}k`} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
+                  contentStyle={tooltipStyle}
                   formatter={(val: any) => [`₹${val.toLocaleString('en-IN')}`, 'Revenue']}
                 />
                 <Area type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
@@ -155,25 +182,27 @@ export const AdminAnalytics: React.FC = () => {
         </div>
 
         {/* User Growth Chart */}
-        <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className={`p-6 rounded-3xl border space-y-4 ${
+          isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+        }`}>
+          <div className={`flex items-center justify-between border-b pb-3 ${
+            isLight ? 'border-slate-100' : 'border-slate-800'
+          }`}>
             <div>
-              <h2 className="text-sm font-bold text-white flex items-center space-x-2">
-                <Users className="w-4 h-4 text-indigo-400" />
+              <h2 className={`text-sm font-bold flex items-center space-x-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                <Users className="w-4 h-4 text-indigo-500" />
                 <span>User Registrations (Customers vs Brokers)</span>
               </h2>
-              <p className="text-xs text-slate-400">Platform user onboarding trajectory</p>
+              <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Platform user onboarding trajectory</p>
             </div>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={userGrowthData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-                <XAxis dataKey="period" stroke="#64748B" fontSize={11} />
-                <YAxis stroke="#64748B" fontSize={11} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke={isLight ? '#E2E8F0' : '#1E293B'} />
+                <XAxis dataKey="period" stroke={isLight ? '#64748B' : '#64748B'} fontSize={11} />
+                <YAxis stroke={isLight ? '#64748B' : '#64748B'} fontSize={11} />
+                <Tooltip contentStyle={tooltipStyle} />
                 <Bar dataKey="customers" name="Customers" fill="#6366F1" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="brokers" name="Brokers" fill="#10B981" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -185,20 +214,22 @@ export const AdminAnalytics: React.FC = () => {
       {/* Grid 2: Order Status & Category Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Order Status Breakdown */}
-        <div className="lg:col-span-2 p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h2 className="text-sm font-bold text-white">Weekly Order Fulfillment Trends</h2>
-            <span className="text-xs text-slate-400">Completed vs Pending vs Cancelled</span>
+        <div className={`lg:col-span-2 p-6 rounded-3xl border space-y-4 ${
+          isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+        }`}>
+          <div className={`flex items-center justify-between border-b pb-3 ${
+            isLight ? 'border-slate-100' : 'border-slate-800'
+          }`}>
+            <h2 className={`text-sm font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>Weekly Order Fulfillment Trends</h2>
+            <span className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Completed vs Pending vs Cancelled</span>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={orderTrendsData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-                <XAxis dataKey="day" stroke="#64748B" fontSize={11} />
-                <YAxis stroke="#64748B" fontSize={11} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke={isLight ? '#E2E8F0' : '#1E293B'} />
+                <XAxis dataKey="day" stroke={isLight ? '#64748B' : '#64748B'} fontSize={11} />
+                <YAxis stroke={isLight ? '#64748B' : '#64748B'} fontSize={11} />
+                <Tooltip contentStyle={tooltipStyle} />
                 <Bar dataKey="completed" name="Completed" stackId="a" fill="#10B981" />
                 <Bar dataKey="pending" name="Pending" stackId="a" fill="#F59E0B" />
                 <Bar dataKey="cancelled" name="Cancelled" stackId="a" fill="#EF4444" radius={[4, 4, 0, 0]} />
@@ -208,13 +239,15 @@ export const AdminAnalytics: React.FC = () => {
         </div>
 
         {/* Category Pie Chart */}
-        <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 flex flex-col justify-between">
-          <div className="border-b border-slate-800 pb-3">
-            <h2 className="text-sm font-bold text-white flex items-center space-x-2">
-              <Package className="w-4 h-4 text-violet-400" />
+        <div className={`p-6 rounded-3xl border space-y-4 flex flex-col justify-between ${
+          isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+        }`}>
+          <div className={`border-b pb-3 ${isLight ? 'border-slate-100' : 'border-slate-800'}`}>
+            <h2 className={`text-sm font-bold flex items-center space-x-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+              <Package className="w-4 h-4 text-violet-500" />
               <span>Product Category Share</span>
             </h2>
-            <p className="text-xs text-slate-400">Active listings distribution</p>
+            <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Active listings distribution</p>
           </div>
           <div className="h-48 w-full flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
@@ -232,13 +265,13 @@ export const AdminAnalytics: React.FC = () => {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }} />
+                <Tooltip contentStyle={tooltipStyle} />
               </PieChart>
             </ResponsiveContainer>
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs pt-2">
             {categoryDistribution.map((item, idx) => (
-              <div key={idx} className="flex items-center space-x-2 text-slate-300">
+              <div key={idx} className={`flex items-center space-x-2 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }}></span>
                 <span className="truncate">{item.name} ({item.value}%)</span>
               </div>

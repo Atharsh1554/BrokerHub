@@ -8,6 +8,7 @@ import { AdminLayout } from './components/layout/AdminLayout';
 
 // Guard
 import { AdminProtectedRoute } from './components/admin/AdminProtectedRoute';
+import { AdminThemeProvider } from './context/AdminThemeContext';
 
 // Public & Auth Pages
 import { LandingPage } from './pages/LandingPage';
@@ -142,7 +143,9 @@ export const App: React.FC = () => {
           path="/admin"
           element={
             <AdminProtectedRoute>
-              <AdminLayout />
+              <AdminThemeProvider>
+                <AdminLayout />
+              </AdminThemeProvider>
             </AdminProtectedRoute>
           }
         >
