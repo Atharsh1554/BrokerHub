@@ -457,7 +457,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Product Actions
   const addProduct = async (prodData: Omit<Product, 'id'>) => {
     const isUuid = (str?: string) => Boolean(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str));
-    const brokerId = user?.id || user?.brokerId || 'b1';
+    const brokerId = user?.id || (user as any)?.brokerId || 'b1';
     const brokerName = user?.fullName || 'Marcus Chen';
 
     let newProd: Product = {

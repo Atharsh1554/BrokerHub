@@ -10,7 +10,7 @@ import type {
   AdminReviewItem,
   AdminActivityLog,
 } from '../../types';
-import { brokers as mockBrokers, products as mockProducts, orders as mockOrders } from '../../data/mockData';
+import { brokers as mockBrokers, orders as mockOrders } from '../../data/mockData';
 import { getProducts } from './products';
 
 // Fallback initial data for smooth standalone dev experience
