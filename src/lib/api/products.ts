@@ -20,7 +20,7 @@ const mapProduct = (p: any): Product => ({
   updatedAt: p.updated_at,
 });
 
-export const getProducts = async (): Promise<Product[]> => {
+export const getProducts = async (includeInactive: boolean = false): Promise<Product[]> => {
   let dbProducts: Product[] = [];
   try {
     const { data, error } = await supabase
@@ -77,17 +77,16 @@ export const getProducts = async (): Promise<Product[]> => {
     // ignore
   }
 
-  const demoIds = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
   const testNames = ['haveeshva', 'dsfb', 'bus', 'essdrfghjkl;', 'essdrtghjkt;'];
 
   return combined
+    .map((p) => (overrides[p.id] ? { ...p, ...overrides[p.id] } : p))
     .filter(
       (p) =>
         !deletedIds.includes(p.id) &&
-        !demoIds.includes(p.id) &&
-        !testNames.includes(p.name?.trim().toLowerCase())
-    )
-    .map((p) => (overrides[p.id] ? { ...p, ...overrides[p.id] } : p));
+        !testNames.includes(p.name?.trim().toLowerCase()) &&
+        (includeInactive || p.isActive !== false)
+    );
 };
 
 export const getProductById = async (id: string): Promise<Product | null> => {

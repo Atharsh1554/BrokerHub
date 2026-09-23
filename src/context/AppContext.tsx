@@ -171,10 +171,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       bc.postMessage({ type: 'REFRESH_PRODUCTS' });
       bc.close();
     } catch {}
-    window.dispatchEvent(new CustomEvent('brokerhub_products_updated'));
   };
 
-  // Listen for real-time product updates (BroadcastChannel, storage event, custom window event)
+  // Listen for real-time product updates (BroadcastChannel, storage event)
   useEffect(() => {
     const handleProductsReload = async () => {
       const freshProducts = await getProducts();
@@ -189,13 +188,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
     } catch {}
 
-    window.addEventListener('brokerhub_products_updated', handleProductsReload);
     window.addEventListener('storage', handleProductsReload);
+
+    // Supabase Realtime subscription for products table across devices
+    const productsRealtime = supabase
+      .channel('public_products_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        () => {
+          handleProductsReload();
+        }
+      )
+      .subscribe();
 
     return () => {
       bc?.close();
-      window.removeEventListener('brokerhub_products_updated', handleProductsReload);
       window.removeEventListener('storage', handleProductsReload);
+      supabase.removeChannel(productsRealtime);
     };
   }, []);
 
@@ -446,9 +456,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Product Actions
   const addProduct = async (prodData: Omit<Product, 'id'>) => {
-    let newProd: Product | null = null;
     const isUuid = (str?: string) => Boolean(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str));
-    const brokerId = isUuid(user?.id) ? user?.id : 'b1';
+    const brokerId = user?.id || user?.brokerId || 'b1';
+    const brokerName = user?.fullName || 'Marcus Chen';
+
+    let newProd: Product = {
+      ...prodData,
+      id: `p_${Date.now()}`,
+      brokerId: brokerId,
+      brokerName: brokerName,
+      rating: 4.8,
+      reviewCount: 1,
+      isActive: true,
+    };
 
     try {
       const { data, error } = await supabase.from('products').insert([{
@@ -463,31 +483,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }]).select().single();
 
       if (!error && data) {
-        newProd = {
-          ...prodData,
-          id: data.id,
-          brokerId: data.broker_id || brokerId,
-        };
+        newProd.id = data.id;
+        if (data.broker_id) newProd.brokerId = data.broker_id;
       }
     } catch {
       // ignore
     }
 
-    if (!newProd) {
-      newProd = {
-        ...prodData,
-        id: `p_${Date.now()}`,
-        brokerId: brokerId,
-      };
-    }
-
     try {
       const customProds: Product[] = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
-      const filtered = customProds.filter((p) => p.id !== newProd!.id);
+      const filtered = customProds.filter((p) => p.id !== newProd.id);
       localStorage.setItem('brokerhub_custom_products', JSON.stringify([newProd, ...filtered]));
     } catch {}
 
-    setProducts((prev) => [newProd!, ...prev.filter((p) => p.id !== newProd!.id)]);
+    setProducts((prev) => [newProd, ...prev.filter((p) => p.id !== newProd.id)]);
     showToast(`Product "${newProd.name}" added successfully!`);
     notifyProductChange();
   };
@@ -502,6 +511,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const adminOverrides: Record<string, Partial<Product>> = JSON.parse(localStorage.getItem('brokerhub_product_admin_overrides') || '{}');
       adminOverrides[id] = { ...(adminOverrides[id] || {}), ...updatedFields };
       localStorage.setItem('brokerhub_product_admin_overrides', JSON.stringify(adminOverrides));
+
+      const customProds: Product[] = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
+      const updatedCustom = customProds.map((p) => (p.id === id ? { ...p, ...updatedFields } : p));
+      localStorage.setItem('brokerhub_custom_products', JSON.stringify(updatedCustom));
     } catch {}
 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -515,12 +528,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ...(updatedFields.status ? { status: updatedFields.status } : {}),
         ...(updatedFields.description !== undefined ? { description: updatedFields.description } : {}),
       }).eq('id', id);
-    } else {
-      try {
-        const customProds: Product[] = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
-        const updatedCustom = customProds.map((p) => (p.id === id ? { ...p, ...updatedFields } : p));
-        localStorage.setItem('brokerhub_custom_products', JSON.stringify(updatedCustom));
-      } catch {}
     }
 
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)));

@@ -291,7 +291,7 @@ export const logAdminActivity = async (action: string, target: string) => {
 export const getAdminKpis = async (): Promise<AdminKpis> => {
   let customersCount = initialCustomers.length;
   let brokersList = [...mockBrokers];
-  let productsList = [...mockProducts];
+  let productsList = await getAdminProducts();
   let ordersList = [...mockOrders];
 
   // Try DB counts if available
@@ -447,7 +447,7 @@ export const updateBrokerStatus = async (brokerId: string, status: Broker['statu
 
 // 4. Products API
 export const getAdminProducts = async (): Promise<Product[]> => {
-  const allProducts = await getProducts();
+  const allProducts = await getProducts(true);
   const savedAdminOverrides = JSON.parse(localStorage.getItem('brokerhub_product_admin_overrides') || '{}');
 
   return allProducts.map((p) => ({
@@ -482,6 +482,12 @@ export const deleteAdminProduct = async (productId: string) => {
     savedDeleted.push(productId);
     localStorage.setItem('brokerhub_deleted_products', JSON.stringify(savedDeleted));
   }
+  try {
+    const customProds: Product[] = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
+    const updatedCustom = customProds.filter((p) => p.id !== productId);
+    localStorage.setItem('brokerhub_custom_products', JSON.stringify(updatedCustom));
+  } catch {}
+
   await logAdminActivity('Product Delete', `Product ID: ${productId}`);
 };
 

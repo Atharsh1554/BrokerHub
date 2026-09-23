@@ -16,6 +16,7 @@ import { getAdminProducts, toggleProductActive, deleteAdminProduct } from '../..
 import type { Product } from '../../types';
 import { useAdminTheme } from '../../context/AdminThemeContext';
 import { compressImage } from '../../lib/utils/imageCompressor';
+import { supabase } from '../../lib/supabase';
 
 export const AdminProducts: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -174,7 +175,7 @@ export const AdminProducts: React.FC = () => {
       );
       setProducts(updatedList);
 
-      // Store in localStorage overrides
+      // Store in localStorage overrides & custom products
       try {
         const adminOverrides = JSON.parse(localStorage.getItem('brokerhub_product_admin_overrides') || '{}');
         adminOverrides[editingProduct.id] = {
@@ -201,7 +202,42 @@ export const AdminProducts: React.FC = () => {
           brokerName: formData.brokerName,
         };
         localStorage.setItem('brokerhub_product_overrides', JSON.stringify(brokerOverrides));
+
+        const customProds: Product[] = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
+        const updatedCustom = customProds.map((p) =>
+          p.id === editingProduct.id
+            ? {
+                ...p,
+                name: formData.name,
+                price: priceNum,
+                category: formData.category,
+                stock: stockNum,
+                status: statusVal as any,
+                description: formData.description,
+                image: formData.image,
+                brokerName: formData.brokerName,
+              }
+            : p
+        );
+        localStorage.setItem('brokerhub_custom_products', JSON.stringify(updatedCustom));
       } catch {}
+
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(editingProduct.id);
+      if (isUuid) {
+        supabase
+          .from('products')
+          .update({
+            name: formData.name,
+            price: priceNum,
+            category: formData.category,
+            stock: stockNum,
+            status: statusVal,
+            description: formData.description,
+            ...(formData.image ? { image: formData.image } : {}),
+          })
+          .eq('id', editingProduct.id)
+          .then();
+      }
     } else {
       // Add new product
       const newId = `p_adm_${Date.now()}`;
@@ -228,6 +264,21 @@ export const AdminProducts: React.FC = () => {
         const customProds = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
         localStorage.setItem('brokerhub_custom_products', JSON.stringify([newProd, ...customProds]));
       } catch {}
+
+      supabase
+        .from('products')
+        .insert([
+          {
+            name: formData.name,
+            price: priceNum,
+            category: formData.category,
+            stock: stockNum,
+            status: statusVal,
+            description: formData.description,
+            image: formData.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=400',
+          },
+        ])
+        .then();
     }
 
     setIsAddEditModalOpen(false);
