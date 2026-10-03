@@ -3,15 +3,16 @@ import type { Broker, Product, Order, Notification, Conversation, Message, Appoi
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { getBrokers } from '../lib/api/brokers';
-import { getProducts } from '../lib/api/products';
+import { 
+  getProducts, 
+  getBrokerProducts, 
+  createBrokerProduct, 
+  updateBrokerProduct, 
+  deleteBrokerProduct 
+} from '../lib/api/products';
 import { getOrders } from '../lib/api/orders';
 import { getAppointments } from '../lib/api/appointments';
 import { sendDBMessage, getUserConversations, getMessagesBetweenUsers } from '../lib/api/messages';
-import { 
-  conversations as initialConversations, 
-  chatMessages as initialChatMessages,
-  orders as initialMockOrders
-} from '../data/mockData';
 
 interface Toast {
   id: string;
@@ -22,6 +23,8 @@ interface Toast {
 interface AppContextType {
   brokers: Broker[];
   products: Product[];
+  brokerProducts: Product[];
+  brokerProductsLoading: boolean;
   orders: Order[];
   notifications: Notification[];
   conversations: Conversation[];
@@ -32,13 +35,16 @@ interface AppContextType {
   cartCount: number;
 
   // Actions
+  refreshBrokers: () => Promise<void>;
+  loadBrokerProducts: (brokerId?: string) => Promise<void>;
   sendMessage: (convId: string, text: string, isOwn?: boolean) => void;
   fetchConversationMessages: (convId: string) => Promise<void>;
-  addProduct: (product: Omit<Product, 'id'>) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   addOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: string) => void;
+  resetOrders: () => Promise<void>;
   addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
   cancelAppointment: (id: string) => void;
   toggleConnectBroker: (brokerId: string) => void;
@@ -49,6 +55,7 @@ interface AppContextType {
   removeFromCart: (productId: string) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
+  clearConversationUnread: (convId: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -58,22 +65,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   const [brokers, setBrokers] = useState<Broker[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [brokerProducts, setBrokerProducts] = useState<Product[]>([]);
+  const [brokerProductsLoading, setBrokerProductsLoading] = useState<boolean>(false);
 
-  // Orders state — initialize from localStorage or initialMockOrders
+  // Orders state — initialize from localStorage
   const [orders, setOrders] = useState<Order[]>(() => {
     try {
       const saved = localStorage.getItem('brokerhub_orders');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return initialMockOrders;
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
-  const [messagesMap, setMessagesMap] = useState<Record<string, Message[]>>({ conv1: initialChatMessages });
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messagesMap, setMessagesMap] = useState<Record<string, Message[]>>({});
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -105,25 +112,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const loadBrokersList = async () => {
+    const fetchedBrokers = await getBrokers();
+    let overrides: Record<string, Partial<Broker>> = {};
+    try {
+      const raw = localStorage.getItem('brokerhub_broker_overrides');
+      if (raw) overrides = JSON.parse(raw);
+    } catch {}
+
+    const mapWithOverrides = (b: Broker): Broker => {
+      const ov = overrides[b.id];
+      if (!ov) return b;
+      return {
+        ...b,
+        ...ov,
+      };
+    };
+
+    setBrokers(fetchedBrokers.map(mapWithOverrides));
+  };
+
+  const refreshBrokers = async () => {
+    await loadBrokersList();
+  };
+
+  const loadBrokerProducts = async (bId?: string) => {
+    const targetId = bId || user?.id;
+    if (!targetId) {
+      setBrokerProducts([]);
+      return;
+    }
+    setBrokerProductsLoading(true);
+    try {
+      const bProds = await getBrokerProducts(targetId);
+      setBrokerProducts(bProds);
+    } catch (err) {
+      console.error('Error loading broker products:', err);
+    } finally {
+      setBrokerProductsLoading(false);
+    }
+  };
+
   // Fetch real data on mount or when user changes
   useEffect(() => {
     const loadData = async () => {
-      const fetchedBrokers = await getBrokers();
-      setBrokers(fetchedBrokers);
+      await loadBrokersList();
       
       const fetchedProducts = await getProducts();
       setProducts(fetchedProducts);
       
       if (user) {
+        // Load broker-specific products if user is a broker
+        if (user.role === 'broker') {
+          await loadBrokerProducts(user.id);
+        } else {
+          setBrokerProducts([]);
+        }
+
         const userRole = user.role === 'broker' ? 'broker' : 'customer';
         const fetchedOrders = await getOrders(user.id, userRole);
-        if (fetchedOrders.length > 0) {
-          setOrders((prev) => {
-            const dbIds = new Set(fetchedOrders.map((o) => o.id));
-            const localOnly = prev.filter((o) => !dbIds.has(o.id));
-            return [...fetchedOrders, ...localOnly];
-          });
-        }
+        setOrders(fetchedOrders);
         
         const fetchedAppointments = await getAppointments(user.id, userRole);
         setAppointments(fetchedAppointments);
@@ -158,37 +206,162 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             read: n.is_read
           })));
         }
+      } else {
+        // Reset broker-specific state when logged out
+        setBrokerProducts([]);
       }
     };
     
     loadData();
   }, [user]);
 
+  // Listen for real-time broker profile updates
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('brokerhub_brokers_live');
+      bc.onmessage = () => {
+        loadBrokersList();
+      };
+    } catch {}
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'brokerhub_broker_overrides') {
+        loadBrokersList();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    const brokersRealtime = supabase
+      .channel('public_brokers_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'brokers' },
+        () => {
+          loadBrokersList();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      bc?.close();
+      window.removeEventListener('storage', handleStorage);
+      supabase.removeChannel(brokersRealtime);
+    };
+  }, []);
+
+  // Listen for BroadcastChannel orders live updates across tabs/pages
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('brokerhub_orders_live');
+      bc.onmessage = (event) => {
+        if (event.data?.type === 'NEW_ORDER' && event.data?.order) {
+          setOrders((prev) => {
+            if (prev.some((o) => o.id === event.data.order.id)) return prev;
+            return [event.data.order, ...prev];
+          });
+        } else if (event.data?.type === 'ORDER_STATUS_UPDATE' && event.data?.orderId) {
+          setOrders((prev) =>
+            prev.map((o) => (o.id === event.data.orderId ? { ...o, status: event.data.newStatus } : o))
+          );
+        }
+      };
+    } catch {}
+
+    return () => {
+      bc?.close();
+    };
+  }, []);
+
+  // Listen for Supabase Realtime orders, payments & notifications changes
+  useEffect(() => {
+    if (!user) return;
+
+    const userRole = user.role === 'broker' ? 'broker' : 'customer';
+
+    const handleOrdersReload = async () => {
+      const freshOrders = await getOrders(user.id, userRole);
+      setOrders(freshOrders);
+    };
+
+    const ordersChannel = supabase
+      .channel(`public_orders_realtime_${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        (payload) => {
+          handleOrdersReload();
+          if (payload.eventType === 'INSERT') {
+            showToast('🔔 New order activity detected!', 'info');
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'broker_notifications' },
+        async () => {
+          const { data: notifs } = await supabase
+            .from('broker_notifications')
+            .select('*')
+            .or(`broker_id.eq.${user.id},customer_id.eq.${user.id}`)
+            .order('created_at', { ascending: false });
+
+          if (notifs) {
+            setNotifications(
+              notifs.map((n) => ({
+                id: n.id,
+                type: n.type as any,
+                title: n.title,
+                description: n.description || '',
+                timestamp: n.created_at,
+                read: n.is_read,
+              }))
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ordersChannel);
+    };
+  }, [user]);
+
   // Helper to notify other tabs and local components of product updates
-  const notifyProductChange = () => {
+  const notifyProductChange = (brokerId?: string) => {
     try {
       const bc = new BroadcastChannel('brokerhub_products_live');
-      bc.postMessage({ type: 'REFRESH_PRODUCTS' });
+      bc.postMessage({ type: 'REFRESH_PRODUCTS', brokerId });
       bc.close();
     } catch {}
   };
 
   // Listen for real-time product updates (BroadcastChannel, storage event)
   useEffect(() => {
-    const handleProductsReload = async () => {
+    const handleProductsReload = async (eventBrokerId?: string) => {
       const freshProducts = await getProducts();
       setProducts(freshProducts);
+
+      if (user?.id && (!eventBrokerId || eventBrokerId === user.id)) {
+        await loadBrokerProducts(user.id);
+      }
     };
 
     let bc: BroadcastChannel | null = null;
     try {
       bc = new BroadcastChannel('brokerhub_products_live');
-      bc.onmessage = () => {
-        handleProductsReload();
+      bc.onmessage = (event) => {
+        handleProductsReload(event.data?.brokerId);
       };
     } catch {}
 
-    window.addEventListener('storage', handleProductsReload);
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key && e.key.startsWith('brokerhub_custom_products_')) {
+        handleProductsReload();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
 
     // Supabase Realtime subscription for products table across devices
     const productsRealtime = supabase
@@ -196,18 +369,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'products' },
-        () => {
-          handleProductsReload();
+        (payload: any) => {
+          const changedBrokerId = payload.new?.broker_id || payload.old?.broker_id;
+          handleProductsReload(changedBrokerId);
         }
       )
       .subscribe();
 
     return () => {
       bc?.close();
-      window.removeEventListener('storage', handleProductsReload);
+      window.removeEventListener('storage', handleStorage);
       supabase.removeChannel(productsRealtime);
     };
-  }, []);
+  }, [user]);
 
   // Reorders conversation list to place the active/newly messaged contact at top (Position #1 - WhatsApp style)
   const bumpConversationToTop = (targetConvId: string, lastMsgText: string, timeStr: string, incrementUnread: boolean = false) => {
@@ -454,114 +628,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return "Thank you for your message! I've received your inquiry and will review the specifications immediately.";
   }
 
-  // Product Actions
+  // Product Actions: strictly bound to authenticated user.id
   const addProduct = async (prodData: Omit<Product, 'id'>) => {
-    const isUuid = (str?: string) => Boolean(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str));
-    const brokerId = user?.id || (user as any)?.brokerId || 'b1';
-    const brokerName = user?.fullName || 'Marcus Chen';
+    const brokerId = user?.id || 'broker';
+    const brokerName = user?.fullName || 'Broker';
 
-    let newProd: Product = {
-      ...prodData,
-      id: `p_${Date.now()}`,
-      brokerId: brokerId,
-      brokerName: brokerName,
-      rating: 4.8,
-      reviewCount: 1,
-      isActive: true,
-    };
+    const newProd = await createBrokerProduct(prodData, brokerId, brokerName);
 
-    try {
-      const { data, error } = await supabase.from('products').insert([{
-        name: prodData.name,
-        price: prodData.price,
-        image: prodData.image,
-        category: prodData.category,
-        stock: prodData.stock,
-        status: prodData.status,
-        description: prodData.description,
-        ...(isUuid(brokerId) ? { broker_id: brokerId } : {}),
-      }]).select().single();
-
-      if (!error && data) {
-        newProd.id = data.id;
-        if (data.broker_id) newProd.brokerId = data.broker_id;
-      }
-    } catch {
-      // ignore
-    }
-
-    try {
-      const customProds: Product[] = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
-      const filtered = customProds.filter((p) => p.id !== newProd.id);
-      localStorage.setItem('brokerhub_custom_products', JSON.stringify([newProd, ...filtered]));
-    } catch {}
-
+    setBrokerProducts((prev) => [newProd, ...prev.filter((p) => p.id !== newProd.id)]);
     setProducts((prev) => [newProd, ...prev.filter((p) => p.id !== newProd.id)]);
     showToast(`Product "${newProd.name}" added successfully!`);
-    notifyProductChange();
+    notifyProductChange(brokerId);
   };
 
   const updateProduct = async (id: string, updatedFields: Partial<Product>) => {
-    // Save override to localStorage so it persists for mock and custom products across refreshes
-    try {
-      const overrides: Record<string, Partial<Product>> = JSON.parse(localStorage.getItem('brokerhub_product_overrides') || '{}');
-      overrides[id] = { ...(overrides[id] || {}), ...updatedFields };
-      localStorage.setItem('brokerhub_product_overrides', JSON.stringify(overrides));
+    const brokerId = user?.id || 'broker';
+    await updateBrokerProduct(id, updatedFields, brokerId);
 
-      const adminOverrides: Record<string, Partial<Product>> = JSON.parse(localStorage.getItem('brokerhub_product_admin_overrides') || '{}');
-      adminOverrides[id] = { ...(adminOverrides[id] || {}), ...updatedFields };
-      localStorage.setItem('brokerhub_product_admin_overrides', JSON.stringify(adminOverrides));
-
-      const customProds: Product[] = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
-      const updatedCustom = customProds.map((p) => (p.id === id ? { ...p, ...updatedFields } : p));
-      localStorage.setItem('brokerhub_custom_products', JSON.stringify(updatedCustom));
-    } catch {}
-
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    if (isUuid) {
-      await supabase.from('products').update({
-        ...(updatedFields.name ? { name: updatedFields.name } : {}),
-        ...(updatedFields.price !== undefined ? { price: updatedFields.price } : {}),
-        ...(updatedFields.image !== undefined ? { image: updatedFields.image } : {}),
-        ...(updatedFields.category ? { category: updatedFields.category } : {}),
-        ...(updatedFields.stock !== undefined ? { stock: updatedFields.stock } : {}),
-        ...(updatedFields.status ? { status: updatedFields.status } : {}),
-        ...(updatedFields.description !== undefined ? { description: updatedFields.description } : {}),
-      }).eq('id', id);
-    }
-
+    setBrokerProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)));
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)));
     showToast('Product inventory updated successfully!');
-    notifyProductChange();
+    notifyProductChange(brokerId);
   };
 
   const deleteProduct = async (id: string) => {
-    // 1. Optimistic UI update
+    const brokerId = user?.id || 'broker';
+    setBrokerProducts((prev) => prev.filter((p) => p.id !== id));
     setProducts((prev) => prev.filter((p) => p.id !== id));
     showToast('Product deleted from inventory.', 'warning');
 
-    // 2. Persist deleted ID in localStorage so deleted mock & custom products NEVER reappear on refresh
-    try {
-      const deleted: string[] = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
-      if (!deleted.includes(id)) {
-        localStorage.setItem('brokerhub_deleted_products', JSON.stringify([...deleted, id]));
-      }
-
-      const customProds: Product[] = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
-      const updatedCustom = customProds.filter((p) => p.id !== id);
-      localStorage.setItem('brokerhub_custom_products', JSON.stringify(updatedCustom));
-    } catch {}
-
-    // 3. Delete from Supabase if valid UUID
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    if (isUuid) {
-      const { error } = await supabase.from('products').delete().eq('id', id);
-      if (error) {
-        console.error('Error deleting product from Supabase:', error);
-      }
-    }
-
-    notifyProductChange();
+    await deleteBrokerProduct(id, brokerId);
+    notifyProductChange(brokerId);
   };
 
   // Order Actions
@@ -593,6 +690,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
     if (isUuid) {
       await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+    }
+  };
+
+  const resetOrders = async () => {
+    try {
+      if (user?.id) {
+        await supabase.from('orders').delete().or(`broker_id.eq.${user.id},customer_id.eq.${user.id}`);
+      } else {
+        await supabase.from('orders').delete().neq('id', '');
+      }
+      localStorage.removeItem('brokerhub_orders');
+      setOrders([]);
+      showToast('Received orders reset successfully', 'info');
+    } catch (err) {
+      console.error('Error resetting orders:', err);
+      localStorage.removeItem('brokerhub_orders');
+      setOrders([]);
     }
   };
 
@@ -701,11 +815,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Clear unread badge for a specific conversation (called only after broker sends a reply)
+  const clearConversationUnread = (convId: string) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === convId ? { ...c, unread: 0 } : c))
+    );
+  };
+
   return (
     <AppContext.Provider
       value={{
         brokers,
         products,
+        brokerProducts,
+        brokerProductsLoading,
         orders,
         notifications,
         conversations,
@@ -714,6 +837,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toasts,
         cart,
         cartCount,
+        refreshBrokers,
+        loadBrokerProducts,
         sendMessage,
         fetchConversationMessages,
         addProduct,
@@ -721,6 +846,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteProduct,
         addOrder,
         updateOrderStatus,
+        resetOrders,
         addAppointment,
         cancelAppointment,
         toggleConnectBroker,
@@ -731,6 +857,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         removeFromCart,
         updateCartQuantity,
         clearCart,
+        clearConversationUnread,
       }}
     >
       {children}

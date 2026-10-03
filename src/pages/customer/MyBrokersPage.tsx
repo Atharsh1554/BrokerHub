@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, MessageSquare, Calendar, Search, ExternalLink } from 'lucide-react';
+import { Star, MessageSquare, Search, ExternalLink } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useApp } from '../../context/AppContext';
@@ -72,9 +72,17 @@ export const MyBrokersPage: React.FC = () => {
             <div>
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-teal-400 text-white font-bold flex items-center justify-center text-base shadow-xs">
-                    {broker.name.split(' ').map((n) => n[0]).join('')}
-                  </div>
+                  {broker.avatar ? (
+                    <img
+                      src={broker.avatar}
+                      alt={broker.name}
+                      className="w-12 h-12 rounded-2xl object-cover shadow-xs border border-gray-100"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-teal-400 text-white font-bold flex items-center justify-center text-base shadow-xs">
+                      {broker.name.split(' ').map((n) => n[0]).join('')}
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-bold text-text-primary text-lg">{broker.name}</h3>
                     <p className="text-xs font-medium text-primary">{broker.specialty}</p>
@@ -104,12 +112,6 @@ export const MyBrokersPage: React.FC = () => {
                 <Button variant="secondary" size="sm" className="w-full text-xs gap-1">
                   <MessageSquare size={14} />
                   Message
-                </Button>
-              </Link>
-              <Link to="/customer/appointments" className="w-full">
-                <Button variant="ghost" size="sm" className="w-full text-xs gap-1">
-                  <Calendar size={14} />
-                  Book
                 </Button>
               </Link>
             </div>

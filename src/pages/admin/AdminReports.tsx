@@ -128,9 +128,8 @@ export const AdminReports: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border transition-all ${
-        isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800 text-white'
-      }`}>
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border transition-all ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800 text-white'
+        }`}>
         <div>
           <h1 className={`text-xl font-bold flex items-center space-x-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
             <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
@@ -152,15 +151,14 @@ export const AdminReports: React.FC = () => {
               <div
                 key={item.id}
                 onClick={() => setReportType(item.id as any)}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-2 ${
-                  reportType === item.id
+                className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-2 ${reportType === item.id
                     ? isLight
                       ? 'bg-emerald-50 border-emerald-500 shadow-md text-slate-900'
                       : 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10 text-white'
                     : isLight
-                    ? 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
-                    : 'bg-slate-900 border-slate-800 hover:border-slate-700'
-                }`}
+                      ? 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
+                      : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <span className={`text-xs font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{item.label}</span>
@@ -173,9 +171,8 @@ export const AdminReports: React.FC = () => {
         </div>
 
         {/* Configurations Sidebar */}
-        <div className={`p-6 rounded-3xl border space-y-6 ${
-          isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
-        }`}>
+        <div className={`p-6 rounded-3xl border space-y-6 ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+          }`}>
           <h2 className={`text-xs font-bold uppercase tracking-wider ${isLight ? 'text-slate-800' : 'text-slate-300'}`}>2. Configure Date Range & Export</h2>
 
           <div className="space-y-4 text-xs">
@@ -185,9 +182,8 @@ export const AdminReports: React.FC = () => {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className={`w-full rounded-xl p-2.5 border ${
-                  isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-800 border-slate-700 text-white'
-                }`}
+                className={`w-full rounded-xl p-2.5 border ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-800 border-slate-700 text-white'
+                  }`}
               />
             </div>
             <div>
@@ -196,16 +192,14 @@ export const AdminReports: React.FC = () => {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className={`w-full rounded-xl p-2.5 border ${
-                  isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-800 border-slate-700 text-white'
-                }`}
+                className={`w-full rounded-xl p-2.5 border ${isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-800 border-slate-700 text-white'
+                  }`}
               />
             </div>
             <div>
               <label className={`block font-semibold mb-1 ${isLight ? 'text-slate-700' : 'text-slate-400'}`}>Export Format</label>
-              <div className={`p-3 rounded-xl border font-mono text-xs flex items-center justify-between ${
-                isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-slate-950 border-slate-800 text-white'
-              }`}>
+              <div className={`p-3 rounded-xl border font-mono text-xs flex items-center justify-between ${isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-slate-950 border-slate-800 text-white'
+                }`}>
                 <span>CSV Spreadsheet (.csv)</span>
                 <span className="text-[10px] text-emerald-600 font-bold uppercase">Supported</span>
               </div>

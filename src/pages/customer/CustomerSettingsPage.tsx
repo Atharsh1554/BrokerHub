@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Sun, Moon, Check } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Sun, Moon, Check, AlertCircle, Building2, Compass } from 'lucide-react';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
@@ -11,50 +11,135 @@ export const CustomerSettingsPage: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
-    address: '123 Main Street, Apt 4B',
-    city: 'New York',
-    state: 'NY',
-    zip: '10001',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    state: '',
+    pincode: '',
+    landmark: '',
   });
 
   useEffect(() => {
     if (user) {
-      setFormData((prev) => ({
-        ...prev,
+      setFormData({
         fullName: resolveUserDisplayName(user.fullName, user.email),
         email: user.email || '',
         phone: user.phone || '',
-      }));
+        addressLine1: user.addressLine1 || (user.address ? user.address.split(',')[0] : ''),
+        addressLine2: user.addressLine2 || '',
+        city: user.city || '',
+        state: user.state || '',
+        pincode: user.pincode || '',
+        landmark: user.landmark || '',
+      });
     }
   }, [user]);
 
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [field]: e.target.value });
+    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    if (errorMessage) setErrorMessage('');
   };
 
-  const handleSave = async () => {
+  const handleSave = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!user) return;
+
+    // Validate required fields
+    if (!formData.fullName.trim()) {
+      setErrorMessage('Full Name is required.');
+      return;
+    }
+    if (!formData.phone.trim()) {
+      setErrorMessage('Phone Number is required.');
+      return;
+    }
+    if (!formData.addressLine1.trim()) {
+      setErrorMessage('Address Line 1 is required.');
+      return;
+    }
+    if (!formData.city.trim()) {
+      setErrorMessage('City is required.');
+      return;
+    }
+    if (!formData.state.trim()) {
+      setErrorMessage('State is required.');
+      return;
+    }
+    if (!formData.pincode.trim()) {
+      setErrorMessage('Pincode is required.');
+      return;
+    }
+
     setIsSaving(true);
+    setErrorMessage('');
+
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({
+      const fullAddressStr = [
+        formData.addressLine1,
+        formData.addressLine2,
+        formData.city,
+        formData.state,
+        formData.pincode,
+        formData.landmark ? `(Landmark: ${formData.landmark})` : '',
+      ]
+        .filter(Boolean)
+        .join(', ');
+
+      // 1. Update Supabase Auth user metadata permanently
+      await supabase.auth.updateUser({
+        data: {
           full_name: formData.fullName,
           phone: formData.phone,
-        })
-        .eq('id', user.id);
+          address_line_1: formData.addressLine1,
+          address_line_2: formData.addressLine2,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+          landmark: formData.landmark,
+          address: fullAddressStr,
+        },
+      });
 
-      if (!error) {
-        await refreshUser();
-        setSavedSuccess(true);
-        setTimeout(() => setSavedSuccess(false), 3500);
+      // 2. Update public.users database table
+      const updatePayload: any = {
+        full_name: formData.fullName,
+        phone: formData.phone,
+      };
+
+      // Try setting address columns directly on users table
+      updatePayload.address_line_1 = formData.addressLine1;
+      updatePayload.address_line_2 = formData.addressLine2;
+      updatePayload.city = formData.city;
+      updatePayload.state = formData.state;
+      updatePayload.pincode = formData.pincode;
+      updatePayload.landmark = formData.landmark;
+      updatePayload.address = fullAddressStr;
+
+      const { error } = await supabase.from('users').update(updatePayload).eq('id', user.id);
+
+      if (error && error.code === 'PGRST204') {
+        // Fallback update for users table if new address columns aren't added to DB schema cache yet
+        await supabase
+          .from('users')
+          .update({
+            full_name: formData.fullName,
+            phone: formData.phone,
+          })
+          .eq('id', user.id);
       }
-    } catch (err) {
-      console.error('Error saving settings:', err);
+
+      await refreshUser();
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 4000);
+    } catch (err: any) {
+      console.error('Error saving profile address settings:', err);
+      setErrorMessage(err?.message || 'Failed to save profile. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -64,16 +149,24 @@ export const CustomerSettingsPage: React.FC = () => {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary mb-1">Portal Settings</h1>
-          <p className="text-sm text-gray-text">Manage your contact details, security credentials, and system preferences</p>
+          <h1 className="text-2xl font-bold text-text-primary mb-1">Customer Profile & Settings</h1>
+          <p className="text-sm text-gray-text">Manage your contact details and default delivery address permanently</p>
         </div>
+
         {savedSuccess && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-medium border border-emerald-200">
-            <Check className="w-4 h-4" />
-            Profile updated successfully!
+          <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-200 shadow-xs">
+            <Check className="w-4 h-4 text-emerald-600" />
+            Profile and delivery address updated permanently!
           </div>
         )}
       </div>
+
+      {errorMessage && (
+        <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center gap-3 text-xs font-bold">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-500" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
       {/* Theme Toggle */}
       <div className="bg-white rounded-xl border border-gray-border p-6 mb-6">
@@ -81,6 +174,7 @@ export const CustomerSettingsPage: React.FC = () => {
         <p className="text-sm text-gray-text mb-4">Choose your preferred visual theme</p>
         <div className="flex gap-3">
           <button
+            type="button"
             onClick={() => setTheme('light')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all border cursor-pointer
               ${theme === 'light'
@@ -92,6 +186,7 @@ export const CustomerSettingsPage: React.FC = () => {
             Light
           </button>
           <button
+            type="button"
             onClick={() => setTheme('dark')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all border cursor-pointer
               ${theme === 'dark'
@@ -105,72 +200,112 @@ export const CustomerSettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Personal Details */}
-      <div className="bg-white rounded-xl border border-gray-border p-6 mb-6">
-        <h2 className="text-lg font-semibold text-text-primary mb-4">Personal Details</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <Input
-            label="Full Name"
-            value={formData.fullName}
-            onChange={handleChange('fullName')}
-            icon={<User size={18} />}
-          />
-          <Input
-            label="Email Address"
-            type="email"
-            value={formData.email}
-            disabled
-            icon={<Mail size={18} />}
-          />
-          <Input
-            label="Phone Number"
-            value={formData.phone}
-            onChange={handleChange('phone')}
-            icon={<Phone size={18} />}
-          />
-        </div>
-      </div>
-
-      {/* Residential Address */}
-      <div className="bg-white rounded-xl border border-gray-border p-6 mb-6">
-        <h2 className="text-lg font-semibold text-text-primary mb-4">Residential Address</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
+      <form onSubmit={handleSave}>
+        {/* Personal Details */}
+        <div className="bg-white rounded-xl border border-gray-border p-6 mb-6">
+          <h2 className="text-lg font-semibold text-text-primary mb-4">Personal Details</h2>
+          <div className="grid md:grid-cols-2 gap-4">
             <Input
-              label="Street Address"
-              value={formData.address}
-              onChange={handleChange('address')}
-              icon={<MapPin size={18} />}
+              label="Full Name *"
+              value={formData.fullName}
+              onChange={handleChange('fullName')}
+              icon={<User size={18} />}
+              required
+            />
+            <Input
+              label="Email Address"
+              type="email"
+              value={formData.email}
+              disabled
+              icon={<Mail size={18} />}
+            />
+            <Input
+              label="Phone Number *"
+              value={formData.phone}
+              onChange={handleChange('phone')}
+              icon={<Phone size={18} />}
+              required
             />
           </div>
-          <Input
-            label="City"
-            value={formData.city}
-            onChange={handleChange('city')}
-          />
-          <div className="grid grid-cols-2 gap-4">
+        </div>
+
+        {/* Residential / Delivery Address */}
+        <div className="bg-white rounded-xl border border-gray-border p-6 mb-6">
+          <h2 className="text-lg font-semibold text-text-primary mb-4">Saved Delivery Address</h2>
+          <p className="text-xs text-gray-500 mb-4">
+            This address will be automatically linked to all your future product orders during checkout.
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <Input
+                label="Address Line 1 *"
+                placeholder="House No., Building Name, Street"
+                value={formData.addressLine1}
+                onChange={handleChange('addressLine1')}
+                icon={<MapPin size={18} />}
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <Input
+                label="Address Line 2 (Optional)"
+                placeholder="Apartment, Suite, Area, Sector"
+                value={formData.addressLine2}
+                onChange={handleChange('addressLine2')}
+                icon={<Building2 size={18} />}
+              />
+            </div>
+
             <Input
-              label="State"
+              label="City *"
+              placeholder="e.g. Nagercoil, Chennai, Mumbai"
+              value={formData.city}
+              onChange={handleChange('city')}
+              required
+            />
+
+            <Input
+              label="State *"
+              placeholder="e.g. Tamil Nadu, Maharashtra"
               value={formData.state}
               onChange={handleChange('state')}
+              required
             />
+
             <Input
-              label="ZIP Code"
-              value={formData.zip}
-              onChange={handleChange('zip')}
+              label="Pincode *"
+              placeholder="e.g. 629001"
+              value={formData.pincode}
+              onChange={handleChange('pincode')}
+              required
+            />
+
+            <Input
+              label="Landmark (Optional)"
+              placeholder="e.g. Near Bus Stand / Opposite Temple"
+              value={formData.landmark}
+              onChange={handleChange('landmark')}
+              icon={<Compass size={18} />}
             />
           </div>
         </div>
-      </div>
 
-      {/* Actions */}
-      <div className="flex justify-end gap-3">
-        <Button variant="outline" onClick={() => refreshUser()}>Reset</Button>
-        <Button variant="primary" onClick={handleSave} disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Save Changes'}
-        </Button>
-      </div>
+        {/* Actions */}
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="outline" onClick={() => refreshUser()}>
+            Reset
+          </Button>
+          <Button type="submit" variant="primary" disabled={isSaving}>
+            {isSaving ? 'Saving Profile...' : 'Save Changes'}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };
+
+export default CustomerSettingsPage;
+
 

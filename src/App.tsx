@@ -17,6 +17,10 @@ import { SignUpPage } from './pages/auth/SignUpPage';
 import { BrokerAuthPage } from './pages/auth/BrokerAuthPage';
 import { AuthCallbackPage } from './pages/auth/AuthCallbackPage';
 
+// Reverse Auction Pages
+import { ReverseAuctionWrapper } from './pages/reverse-auction/ReverseAuctionWrapper';
+import { ReverseAuctionPage } from './pages/reverse-auction/ReverseAuctionPage';
+
 // Admin Auth Page
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 
@@ -28,6 +32,7 @@ import { ContactPage } from './pages/mytrio/ContactPage';
 
 // Customer Pages
 import { CustomerDashboard } from './pages/customer/CustomerDashboard';
+import { MyOrdersPage } from './pages/customer/MyOrdersPage';
 import { MyBrokersPage } from './pages/customer/MyBrokersPage';
 import { ProductsPage } from './pages/customer/ProductsPage';
 import { ProductDetailPage } from './pages/customer/ProductDetailPage';
@@ -35,7 +40,6 @@ import { BrokerProfilePage } from './pages/customer/BrokerProfilePage';
 import { CartPage } from './pages/customer/CartPage';
 import { CheckoutPage } from './pages/customer/CheckoutPage';
 import { MessagesPage } from './pages/customer/MessagesPage';
-import { AppointmentsPage } from './pages/customer/AppointmentsPage';
 import { CustomerSettingsPage } from './pages/customer/CustomerSettingsPage';
 
 // Broker Pages
@@ -57,7 +61,7 @@ import { AdminOrders } from './pages/admin/AdminOrders';
 import { AdminPayments } from './pages/admin/AdminPayments';
 import { AdminConnections } from './pages/admin/AdminConnections';
 import { AdminNotifications } from './pages/admin/AdminNotifications';
-import { AdminMeetings } from './pages/admin/AdminMeetings';
+
 import { AdminReviews } from './pages/admin/AdminReviews';
 import { AdminReports } from './pages/admin/AdminReports';
 import { AdminActivityLogs } from './pages/admin/AdminActivityLogs';
@@ -84,10 +88,19 @@ export const App: React.FC = () => {
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/contact" element={<ContactPage />} />
 
+        {/* Direct /my-orders shortcut */}
+        <Route path="/my-orders" element={<Navigate to="/customer/my-orders" replace />} />
+
+        {/* Reverse Auction Dedicated Routes */}
+        <Route path="/reverse-auction" element={<ReverseAuctionWrapper />} />
+        <Route path="/reverse-auction/:auctionId" element={<ReverseAuctionWrapper />} />
+
         {/* Customer Portal */}
         <Route path="/customer" element={<CustomerLayout />}>
           <Route index element={<Navigate to="/customer/dashboard" replace />} />
           <Route path="dashboard" element={<CustomerDashboard />} />
+          <Route path="reverse-auction" element={<ReverseAuctionPage />} />
+          <Route path="my-orders" element={<MyOrdersPage />} />
           <Route path="my-brokers" element={<MyBrokersPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/:productId" element={<ProductDetailPage />} />
@@ -95,7 +108,6 @@ export const App: React.FC = () => {
           <Route path="cart" element={<CartPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
           <Route path="messages" element={<MessagesPage />} />
-          <Route path="appointments" element={<AppointmentsPage />} />
           <Route path="settings" element={<CustomerSettingsPage />} />
         </Route>
 
@@ -103,6 +115,7 @@ export const App: React.FC = () => {
         <Route path="/broker" element={<BrokerLayout />}>
           <Route index element={<Navigate to="/broker/dashboard" replace />} />
           <Route path="dashboard" element={<BrokerDashboard />} />
+          <Route path="reverse-auction" element={<ReverseAuctionPage />} />
           <Route path="products" element={<ProductManagement />} />
           <Route path="my-shop" element={<BrokerShopPage />} />
           <Route path="messages" element={<BrokerMessages />} />
@@ -159,7 +172,7 @@ export const App: React.FC = () => {
           <Route path="payments" element={<AdminPayments />} />
           <Route path="connections" element={<AdminConnections />} />
           <Route path="notifications" element={<AdminNotifications />} />
-          <Route path="meetings" element={<AdminMeetings />} />
+
           <Route path="reviews" element={<AdminReviews />} />
           <Route path="reports" element={<AdminReports />} />
           <Route path="activity-logs" element={<AdminActivityLogs />} />

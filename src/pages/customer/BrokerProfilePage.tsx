@@ -14,7 +14,6 @@ import {
   Copy,
   Check,
   Share2,
-  Calendar,
   Star,
   Store,
   ExternalLink,
@@ -24,7 +23,6 @@ import { useApp } from '../../context/AppContext';
 import { getBrokerById } from '../../lib/api/brokers';
 import { getProductsByBrokerId } from '../../lib/api/products';
 import type { Broker, Product } from '../../types';
-import { brokers as mockBrokers, products as mockProducts } from '../../data/mockData';
 
 const formatINR = (amount: number) =>
   '₹' + amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -48,10 +46,9 @@ export const BrokerProfilePage: React.FC = () => {
 
       let bk = brokers.find((b) => b.id === brokerId) || null;
       if (!bk) bk = await getBrokerById(brokerId);
-      if (!bk) bk = mockBrokers.find((b) => b.id === brokerId) || null;
       setBroker(bk);
 
-      let prods = (products.length > 0 ? products : mockProducts).filter(
+      let prods = products.filter(
         (p) => p.brokerId === brokerId
       );
       if (prods.length === 0) {
@@ -187,13 +184,20 @@ export const BrokerProfilePage: React.FC = () => {
                 )}
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-text-primary">
-                  {broker.company || broker.name}
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-text mt-0.5">
-                  {broker.name} · {broker.specialty}
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-black text-text-primary">
+                    {broker.name}
+                  </h1>
+                  {broker.company && (
+                    <span className="text-xs font-bold text-primary bg-primary-50 px-2.5 py-0.5 rounded-lg border border-primary/20">
+                      {broker.company}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs sm:text-sm text-gray-text mt-1">
+                  Brand: <span className="font-semibold text-text-primary">{broker.company || 'MYTRIO'}</span> · Product Focus: <span className="font-semibold text-primary">{broker.specialty || 'General Products'}</span>
                 </p>
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
                   {broker.location && (
                     <span className="flex items-center gap-1 text-xs text-gray-text bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
                       <MapPin size={11} className="text-primary" />
@@ -202,7 +206,7 @@ export const BrokerProfilePage: React.FC = () => {
                   )}
                   <span className="flex items-center gap-1 text-xs text-gray-text bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
                     <Package size={11} className="text-primary" />
-                    {brokerProducts.length} Products
+                    {brokerProducts.length} Products Listed
                   </span>
                   <span className="flex items-center gap-1.5 text-xs font-medium bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full border border-amber-100">
                     <Star size={11} className="fill-amber-500 text-amber-500" />
@@ -225,13 +229,6 @@ export const BrokerProfilePage: React.FC = () => {
                 {copied ? <Check size={14} /> : <Share2 size={14} />}
                 {copied ? 'Copied!' : 'Share'}
               </button>
-              <Link
-                to={`/customer/appointments`}
-                className="flex items-center gap-2 px-3.5 py-2 border border-gray-border bg-white text-text-primary rounded-xl text-xs sm:text-sm font-semibold hover:bg-gray-50 transition-all cursor-pointer"
-              >
-                <Calendar size={14} />
-                Book
-              </Link>
               <button
                 onClick={handleConnect}
                 className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-primary-dark transition-all shadow-md cursor-pointer"
@@ -374,9 +371,10 @@ export const BrokerProfilePage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-gray-border p-5 shadow-xs">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-label mb-3">Quick Stats</h3>
             {[
-              { label: 'Specialty', value: broker.specialty || '—' },
+              { label: 'Brand Name', value: broker.company || 'MYTRIO' },
+              { label: 'Product Focus', value: broker.specialty || 'General' },
               { label: 'In Stock', value: `${brokerProducts.filter(p => p.status === 'In Stock').length} products` },
-              { label: 'Verified', value: 'Yes' },
+              { label: 'Verification', value: 'Verified Partner' },
             ].map(({ label, value }) => (
               <div
                 key={label}

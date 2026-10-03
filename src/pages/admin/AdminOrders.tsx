@@ -10,10 +10,13 @@ import {
   X,
 } from 'lucide-react';
 import { getAdminOrders, updateOrderStatus } from '../../lib/api/admin';
+import { supabase } from '../../lib/supabase';
 import type { Order } from '../../types';
+import { useApp } from '../../context/AppContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
 
 export const AdminOrders: React.FC = () => {
+  const { orders: appOrders } = useApp();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -32,13 +35,42 @@ export const AdminOrders: React.FC = () => {
   const fetchOrders = async () => {
     setLoading(true);
     const data = await getAdminOrders();
-    setOrders(data);
+    const map = new Map<string, Order>();
+    (data || []).forEach((o) => map.set(o.id, o));
+    (appOrders || []).forEach((o) => map.set(o.id, o));
+    const combined = Array.from(map.values()).sort(
+      (a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()
+    );
+    setOrders(combined);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchOrders();
+
+    // Real-time subscription: auto-refresh when any order changes in DB
+    const channel = supabase
+      .channel('admin_orders_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchOrders();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
+
+  useEffect(() => {
+    if (appOrders && appOrders.length > 0) {
+      setOrders((prev) => {
+        const map = new Map<string, Order>();
+        prev.forEach((o) => map.set(o.id, o));
+        appOrders.forEach((o) => map.set(o.id, o));
+        return Array.from(map.values()).sort(
+          (a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()
+        );
+      });
+    }
+  }, [appOrders]);
 
   const handleConfirmStatusChange = async () => {
     if (editStatusModal.order) {
@@ -150,10 +182,12 @@ export const AdminOrders: React.FC = () => {
                 }`}>
                   <th className="py-4 px-4">Order ID</th>
                   <th className="py-4 px-4">Customer</th>
+                  <th className="py-4 px-4">Customer Phone</th>
                   <th className="py-4 px-4">Broker Vendor</th>
                   <th className="py-4 px-4">Total Amount</th>
                   <th className="py-4 px-4">Payment Status</th>
                   <th className="py-4 px-4">Fulfillment Status</th>
+                  <th className="py-4 px-4">Delivery Address</th>
                   <th className="py-4 px-4">Order Date</th>
                   <th className="py-4 px-4 text-right">Actions</th>
                 </tr>
@@ -165,6 +199,7 @@ export const AdminOrders: React.FC = () => {
                   }`}>
                     <td className={`py-3.5 px-4 font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{o.id}</td>
                     <td className={`py-3.5 px-4 font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>{o.customerName}</td>
+                    <td className={`py-3.5 px-4 font-mono ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>{o.shippingAddress?.phone || o.customerPhone || 'N/A'}</td>
                     <td className={`py-3.5 px-4 ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{o.brokerName || 'Marcus Chen'}</td>
                     <td className={`py-3.5 px-4 font-bold ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>
                       ₹{(o.amount || o.totalAmount || 0).toLocaleString('en-IN')}
@@ -196,6 +231,16 @@ export const AdminOrders: React.FC = () => {
                       >
                         {o.status}
                       </span>
+                    </td>
+                    <td className={`py-3.5 px-4 max-w-52 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                      {o.shippingAddress?.city ? (
+                        <div className="text-xs">
+                          <p className="font-semibold">{o.shippingAddress.addressLine1?.substring(0, 28)}{o.shippingAddress.addressLine1 && o.shippingAddress.addressLine1.length > 28 ? '...' : ''}</p>
+                          <p className="text-slate-400">{[o.shippingAddress.city, o.shippingAddress.state, o.shippingAddress.pincode].filter(Boolean).join(', ')}</p>
+                        </div>
+                      ) : (
+                        <span className="truncate block max-w-48">{o.deliveryAddress || 'Not provided'}</span>
+                      )}
                     </td>
                     <td className={`py-3.5 px-4 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{o.date}</td>
                     <td className="py-3.5 px-4 text-right space-x-2">
@@ -258,27 +303,68 @@ export const AdminOrders: React.FC = () => {
               <div className={`p-3.5 rounded-2xl border space-y-1 ${
                 isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
               }`}>
-                <span className={`font-medium ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Customer</span>
-                <p className={`font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>{selectedOrder.customerName}</p>
+                <span className={`font-medium ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Customer Name</span>
+                <p className={`font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  {selectedOrder.shippingAddress?.fullName || selectedOrder.customerName}
+                </p>
               </div>
               <div className={`p-3.5 rounded-2xl border space-y-1 ${
                 isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
               }`}>
-                <span className={`font-medium ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Broker</span>
-                <p className={`font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>{selectedOrder.brokerName || 'Marcus Chen'}</p>
+                <span className={`font-medium ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Customer Phone</span>
+                <p className={`font-semibold font-mono ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  {selectedOrder.shippingAddress?.phone || selectedOrder.customerPhone || 'Not provided'}
+                </p>
               </div>
               <div className={`p-3.5 rounded-2xl border space-y-1 ${
+                isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
+              }`}>
+                <span className={`font-medium ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Customer Email</span>
+                <p className={`font-semibold ${isLight ? 'text-slate-900' : 'text-white'} break-all`}>
+                  {selectedOrder.customerEmail || 'Not provided'}
+                </p>
+              </div>
+              <div className={`p-3.5 rounded-2xl border space-y-1 ${
+                isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
+              }`}>
+                <span className={`font-medium ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Broker Vendor</span>
+                <p className={`font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>{selectedOrder.brokerName || 'N/A'}</p>
+              </div>
+              <div className={`col-span-2 p-3.5 rounded-2xl border space-y-1 ${
                 isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
               }`}>
                 <span className={`font-medium ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Total Amount</span>
                 <p className="font-bold text-emerald-600">₹{(selectedOrder.amount || selectedOrder.totalAmount || 0).toLocaleString('en-IN')}</p>
               </div>
-              <div className={`p-3.5 rounded-2xl border space-y-1 ${
-                isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
-              }`}>
-                <span className={`font-medium ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Payment Status</span>
-                <p className="font-semibold text-sky-600">{selectedOrder.paymentStatus || 'Successful'}</p>
-              </div>
+            </div>
+
+            {/* Complete Customer Delivery Address */}
+            <div className="space-y-1.5 text-xs">
+              <span className={`font-semibold uppercase tracking-wider ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                Delivery Address Snapshot
+              </span>
+              {selectedOrder.shippingAddress && selectedOrder.shippingAddress.addressLine1 ? (
+                <div className={`p-3.5 rounded-2xl border space-y-1 ${
+                  isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-slate-950/40 border-slate-800 text-slate-200'
+                }`}>
+                  <p className="font-bold">{selectedOrder.shippingAddress.addressLine1}</p>
+                  {selectedOrder.shippingAddress.addressLine2 && <p>{selectedOrder.shippingAddress.addressLine2}</p>}
+                  <p>
+                    {selectedOrder.shippingAddress.city}{selectedOrder.shippingAddress.state ? `, ${selectedOrder.shippingAddress.state}` : ''}{selectedOrder.shippingAddress.pincode ? ` - ${selectedOrder.shippingAddress.pincode}` : ''}
+                  </p>
+                  {selectedOrder.shippingAddress.landmark && (
+                    <p className="text-amber-600 text-[11px] font-semibold pt-1 border-t border-slate-200/50">
+                      Landmark: {selectedOrder.shippingAddress.landmark}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className={`p-3.5 rounded-2xl border ${
+                  isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-slate-950/40 border-slate-800 text-slate-200'
+                }`}>
+                  {selectedOrder.deliveryAddress || 'Standard Site Address'}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2 text-xs">
@@ -288,14 +374,29 @@ export const AdminOrders: React.FC = () => {
               }`}>
                 {selectedOrder.items && selectedOrder.items.length > 0 ? (
                   selectedOrder.items.map((item, idx) => (
-                    <div key={idx} className={`flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                      <span>{item.productName} (x{item.quantity})</span>
-                      <span className={`font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>₹{(item.unitPrice * item.quantity).toLocaleString('en-IN')}</span>
+                    <div key={idx} className={`flex items-center justify-between gap-2 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        {item.productImage && (
+                          <img
+                            src={item.productImage}
+                            alt={item.productName}
+                            className="w-9 h-9 rounded-lg object-cover shrink-0 border border-slate-200"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <span className="block truncate font-medium">{item.productName} (x{item.quantity})</span>
+                          {item.brokerName && (
+                            <span className={`text-[10px] font-semibold ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`}>Broker: {item.brokerName}</span>
+                          )}
+                        </div>
+                      </div>
+                      <span className={`font-semibold shrink-0 ${isLight ? 'text-slate-900' : 'text-white'}`}>₹{(item.unitPrice * item.quantity).toLocaleString('en-IN')}</span>
                     </div>
                   ))
                 ) : (
                   <div className={`flex justify-between items-center ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                    <span>{selectedOrder.product || 'Quantum Smart Watch'} (x{selectedOrder.quantity || 1})</span>
+                    <span>{selectedOrder.product || 'Order Item'} (x{selectedOrder.quantity || 1})</span>
                     <span className={`font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>₹{(selectedOrder.amount || selectedOrder.totalAmount || 0).toLocaleString('en-IN')}</span>
                   </div>
                 )}

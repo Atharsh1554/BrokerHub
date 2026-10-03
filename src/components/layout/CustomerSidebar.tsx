@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -6,22 +6,25 @@ import {
   ShoppingBag,
   ShoppingCart,
   MessageSquare,
-  Calendar,
   Settings,
-  LogOut,
+  Package,
+  Gavel,
   X,
+  ChevronDown,
+  LogOut,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/customer/dashboard' },
   { label: 'My Brokers', icon: Users, path: '/customer/my-brokers' },
-  { label: 'Products', icon: ShoppingBag, path: '/customer/products' },
-  { label: 'Cart', icon: ShoppingCart, path: '/customer/cart', hasBadge: true },
   { label: 'Messages', icon: MessageSquare, path: '/customer/messages' },
-  { label: 'Appointments', icon: Calendar, path: '/customer/appointments' },
+  { label: 'Products', icon: ShoppingBag, path: '/customer/products' },
+  { label: 'My Orders', icon: Package, path: '/customer/my-orders' },
+  { label: 'Cart', icon: ShoppingCart, path: '/customer/cart', hasBadge: true },
+  { label: 'Reverse Auction', icon: Gavel, path: '/reverse-auction' },
   { label: 'Settings', icon: Settings, path: '/customer/settings' },
 ];
 
@@ -33,19 +36,38 @@ interface CustomerSidebarProps {
 export const CustomerSidebar: React.FC<CustomerSidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
   const { cart } = useApp();
+  const { user, signOut } = useAuth();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const displayName = resolveUserDisplayName(user?.fullName, user?.email);
+  const initials = getUserInitials(displayName);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSettingsClick = () => {
+    setShowDropdown(false);
+    onClose?.();
+    navigate('/customer/settings');
+  };
 
   const handleLogout = async () => {
-    if (onClose) onClose();
+    setShowDropdown(false);
+    onClose?.();
     await signOut();
     navigate('/login');
   };
-
-  const displayName = resolveUserDisplayName(user?.fullName, user?.email);
-  const initials = getUserInitials(displayName);
 
   return (
     <>
@@ -63,7 +85,7 @@ export const CustomerSidebar: React.FC<CustomerSidebarProps> = ({ isOpen, onClos
         }`}
       >
         {/* Logo Header */}
-        <div className="p-5 border-b border-gray-border flex items-center justify-between">
+        <div className="p-5 border-b border-gray-border flex items-center justify-between shrink-0">
           <Link to="/" onClick={onClose} className="flex items-center gap-2.5">
             <img src="/logo.png" alt="B2C Logo" className="h-9 w-auto object-contain" />
             <div className="flex flex-col">
@@ -119,24 +141,85 @@ export const CustomerSidebar: React.FC<CustomerSidebarProps> = ({ isOpen, onClos
           </ul>
         </nav>
 
-        {/* User Profile & Logout Footer */}
-        <div className="p-3 border-t border-gray-border space-y-2">
-          <div className="flex items-center gap-3 px-2 py-1.5">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-semibold text-xs shadow-xs shrink-0">
-              {initials}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-text-primary truncate">{displayName}</p>
-              <p className="text-[10px] text-gray-label truncate">{user?.email || 'Customer Account'}</p>
-            </div>
-          </div>
+        {/* Profile card — fixed at bottom of sidebar */}
+        <div className="shrink-0 border-t border-gray-border p-3" ref={dropdownRef}>
+          {/* Dropdown opens upward */}
+          {showDropdown && (
+            <div className="absolute bottom-[72px] left-3 right-3 bg-white rounded-2xl shadow-xl border border-gray-border py-1.5 z-50 animate-fade-in">
+              {/* User info */}
+              <div className="px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-2.5">
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={displayName}
+                      className="w-9 h-9 rounded-full object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                      {initials}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-text-primary truncate">{displayName}</p>
+                    <p className="text-[11px] text-gray-text capitalize">{user?.role || 'Customer'}</p>
+                  </div>
+                </div>
+              </div>
 
+              {/* Menu items */}
+              <div className="py-1">
+                <button
+                  onClick={handleSettingsClick}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors cursor-pointer"
+                >
+                  <Settings size={16} className="text-gray-400" />
+                  Profile &amp; Settings
+                </button>
+
+                <div className="border-t border-gray-100 my-1" />
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer font-medium"
+                >
+                  <LogOut size={16} />
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Profile trigger button */}
           <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-status-red hover:bg-red-50 transition-all duration-200 cursor-pointer"
+            onClick={() => setShowDropdown((prev) => !prev)}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors border border-gray-border cursor-pointer group"
+            aria-expanded={showDropdown}
+            title="Account Menu"
           >
-            <LogOut size={18} />
-            <span>Logout</span>
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt={displayName}
+                className="w-8 h-8 rounded-full object-cover shadow-xs shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-bold text-xs shadow-xs shrink-0">
+                {initials}
+              </div>
+            )}
+            <div className="flex-1 flex flex-col text-left min-w-0">
+              <span className="text-xs font-semibold text-text-primary group-hover:text-primary transition-colors truncate leading-tight">
+                {displayName}
+              </span>
+              <span className="text-[10px] text-gray-text capitalize leading-tight">
+                {user?.role || 'Customer'}
+              </span>
+            </div>
+            <ChevronDown
+              size={14}
+              className={`text-gray-label transition-transform duration-200 shrink-0 ${showDropdown ? 'rotate-180' : ''}`}
+            />
           </button>
         </div>
       </aside>

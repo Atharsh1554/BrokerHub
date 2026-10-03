@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Bell, Search, Phone, MessageSquare, ShoppingBag, Calendar, UserCheck, ShieldAlert } from 'lucide-react';
-import { notifications as mockNotifications } from '../../data/mockData';
 import type { Notification } from '../../types';
 import { useAdminTheme } from '../../context/AdminThemeContext';
+import { supabase } from '../../lib/supabase';
 
 export const AdminNotifications: React.FC = () => {
   const [notificationsList, setNotificationsList] = useState<Notification[]>([]);
@@ -12,12 +12,32 @@ export const AdminNotifications: React.FC = () => {
   const isLight = theme === 'light';
 
   useEffect(() => {
-    // Map mock notifications for admin platform telemetry view
-    const formatted: Notification[] = mockNotifications.map((n) => ({
-      ...n,
-      type: n.type as any,
-    }));
-    setNotificationsList(formatted);
+    const loadNotifications = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('broker_notifications')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (!error && data && data.length > 0) {
+          const formatted: Notification[] = data.map((n) => ({
+            id: n.id,
+            type: (n.type || 'general') as any,
+            title: n.title || 'Notification',
+            description: n.description || '',
+            timestamp: n.created_at ? new Date(n.created_at).toLocaleString() : '',
+            read: n.is_read ?? false,
+          }));
+          setNotificationsList(formatted);
+        } else {
+          setNotificationsList([]);
+        }
+      } catch {
+        setNotificationsList([]);
+      }
+    };
+    loadNotifications();
   }, []);
 
   const categories = [

@@ -348,3 +348,223 @@ BEGIN
 END $$;
 
 
+-- Reverse Auction Full Setup Migration
+
+-- 1. Create the `reverse_auctions` table if it does not exist
+CREATE TABLE IF NOT EXISTS public.reverse_auctions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id UUID REFERENCES auth.users(id),
+    customer_name TEXT,
+    customer_company TEXT,
+    contact_name TEXT,
+    customer_email TEXT,
+    customer_phone TEXT,
+    delivery_location TEXT,
+    title TEXT NOT NULL,
+    category TEXT,
+    product_name TEXT,
+    product_image TEXT,
+    photos TEXT[],
+    quantity INTEGER DEFAULT 1,
+    description TEXT,
+    specifications JSONB DEFAULT '{}'::jsonb,
+    starting_price NUMERIC,
+    budget_text TEXT,
+    deadline_date TEXT,
+    activity_text TEXT,
+    bid_count INTEGER DEFAULT 0,
+    current_lowest_bid NUMERIC,
+    lowest_bidder_id UUID,
+    lowest_bidder_name TEXT,
+    start_time TIMESTAMPTZ,
+    end_time TIMESTAMPTZ,
+    status TEXT DEFAULT 'OPEN',
+    status_pill TEXT,
+    current_level TEXT DEFAULT 'OPEN',
+    assigned_broker_id UUID REFERENCES auth.users(id),
+    winning_bid_id UUID,
+    winning_broker_id UUID REFERENCES auth.users(id),
+    winning_broker_name TEXT,
+    delivery_proof_photos TEXT[],
+    delivery_confirmed_text TEXT,
+    completed_at TIMESTAMPTZ,
+    cancelled_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 2. Create the `reverse_auction_bids` table
+CREATE TABLE IF NOT EXISTS public.reverse_auction_bids (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    auction_id UUID REFERENCES public.reverse_auctions(id) ON DELETE CASCADE,
+    broker_id UUID REFERENCES auth.users(id),
+    broker_name TEXT,
+    broker_company TEXT,
+    broker_avatar TEXT,
+    bid_amount NUMERIC NOT NULL,
+    lead_time_days INTEGER,
+    lead_time_text TEXT,
+    notes TEXT,
+    status TEXT DEFAULT 'Active',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 3. Create reverse_auction_history table
+CREATE TABLE IF NOT EXISTS public.reverse_auction_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    auction_id UUID REFERENCES public.reverse_auctions(id) ON DELETE CASCADE,
+    changed_by UUID REFERENCES auth.users(id),
+    old_status TEXT,
+    new_status TEXT,
+    old_level TEXT,
+    new_level TEXT,
+    timestamp TIMESTAMPTZ DEFAULT now()
+);
+
+-- 4. Enable RLS and create policies
+ALTER TABLE public.reverse_auctions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reverse_auction_bids ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reverse_auction_history ENABLE ROW LEVEL SECURITY;
+
+-- REVERSE AUCTIONS POLICIES
+CREATE POLICY "Customers can view their own auctions" ON public.reverse_auctions FOR SELECT USING (auth.uid() = customer_id);
+CREATE POLICY "Brokers can view OPEN auctions" ON public.reverse_auctions FOR SELECT USING (status = 'OPEN');
+CREATE POLICY "Brokers can view assigned auctions" ON public.reverse_auctions FOR SELECT USING (auth.uid() = assigned_broker_id);
+CREATE POLICY "Customers can create auctions" ON public.reverse_auctions FOR INSERT WITH CHECK (auth.uid() = customer_id);
+CREATE POLICY "Customers can update their own auctions" ON public.reverse_auctions FOR UPDATE USING (auth.uid() = customer_id);
+CREATE POLICY "Brokers can update assigned auctions" ON public.reverse_auctions FOR UPDATE USING (auth.uid() = assigned_broker_id);
+CREATE POLICY "Customers can delete their own auctions" ON public.reverse_auctions FOR DELETE USING (auth.uid() = customer_id);
+
+-- REVERSE AUCTION BIDS POLICIES
+CREATE POLICY "Anyone can view bids" ON public.reverse_auction_bids FOR SELECT USING (true);
+CREATE POLICY "Brokers can insert bids" ON public.reverse_auction_bids FOR INSERT WITH CHECK (auth.uid() = broker_id);
+CREATE POLICY "Brokers can update their own bids" ON public.reverse_auction_bids FOR UPDATE USING (auth.uid() = broker_id);
+
+-- REVERSE AUCTION HISTORY POLICIES
+CREATE POLICY "Anyone involved can view history" ON public.reverse_auction_history FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can insert history" ON public.reverse_auction_history FOR INSERT WITH CHECK (auth.uid() = changed_by);
+
+-- Enable Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE public.reverse_auctions;
+-- ============================================================
+-- FIX: RLS Policies + Storage Bucket for Reverse Auctions
+-- Run this in Supabase SQL Editor
+-- ============================================================
+
+-- 1. DROP ALL EXISTING POLICIES (to start clean - idempotent)
+DROP POLICY IF EXISTS "Brokers can update assigned auctions" ON public.reverse_auctions;
+DROP POLICY IF EXISTS "Customers can update their own auctions" ON public.reverse_auctions;
+DROP POLICY IF EXISTS "Brokers can view OPEN auctions" ON public.reverse_auctions;
+DROP POLICY IF EXISTS "Customers can view their own auctions" ON public.reverse_auctions;
+DROP POLICY IF EXISTS "Brokers can view assigned auctions" ON public.reverse_auctions;
+DROP POLICY IF EXISTS "Customers can create auctions" ON public.reverse_auctions;
+DROP POLICY IF EXISTS "view_own_auctions" ON public.reverse_auctions;
+DROP POLICY IF EXISTS "create_auction" ON public.reverse_auctions;
+DROP POLICY IF EXISTS "update_auction" ON public.reverse_auctions;
+
+-- 2. RECREATE CORRECT POLICIES
+
+-- SELECT: Customers see their own; Brokers see OPEN + their assigned auctions
+CREATE POLICY "view_own_auctions" ON public.reverse_auctions
+  FOR SELECT USING (
+    auth.uid() = customer_id
+    OR status = 'OPEN'
+    OR auth.uid() = assigned_broker_id
+  );
+
+-- INSERT: Any authenticated user can create (customer creates)
+CREATE POLICY "create_auction" ON public.reverse_auctions
+  FOR INSERT WITH CHECK (auth.uid() = customer_id);
+
+-- UPDATE: Customer updates their auction OR any authenticated broker can update (for accept + level updates)
+CREATE POLICY "update_auction" ON public.reverse_auctions
+  FOR UPDATE USING (
+    auth.uid() = customer_id
+    OR auth.role() = 'authenticated'
+  );
+
+-- DELETE: Customer deletes their own auction
+CREATE POLICY "delete_auction" ON public.reverse_auctions
+  FOR DELETE USING (auth.uid() = customer_id);
+
+-- 3. DROP OLD BIDS POLICIES and recreate cleanly
+DROP POLICY IF EXISTS "Anyone can view bids" ON public.reverse_auction_bids;
+DROP POLICY IF EXISTS "Brokers can insert bids" ON public.reverse_auction_bids;
+DROP POLICY IF EXISTS "Brokers can update their own bids" ON public.reverse_auction_bids;
+
+CREATE POLICY "view_bids" ON public.reverse_auction_bids FOR SELECT USING (true);
+CREATE POLICY "insert_bids" ON public.reverse_auction_bids FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "update_bids" ON public.reverse_auction_bids FOR UPDATE USING (auth.uid() = broker_id OR auth.role() = 'authenticated');
+
+-- 4. CREATE Storage bucket for reverse auction product images (if not already created)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'reverse-auctions',
+  'reverse-auctions',
+  true,
+  10485760,
+  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+) ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- 5. Storage Policies for reverse-auctions bucket
+DROP POLICY IF EXISTS "Anyone can view reverse-auctions bucket" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can insert to reverse-auctions" ON storage.objects;
+DROP POLICY IF EXISTS "reverse_auctions_select" ON storage.objects;
+DROP POLICY IF EXISTS "reverse_auctions_insert" ON storage.objects;
+DROP POLICY IF EXISTS "reverse_auctions_update" ON storage.objects;
+DROP POLICY IF EXISTS "reverse_auctions_delete" ON storage.objects;
+
+CREATE POLICY "reverse_auctions_select" ON storage.objects
+  FOR SELECT USING (bucket_id = 'reverse-auctions');
+
+CREATE POLICY "reverse_auctions_insert" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'reverse-auctions' AND auth.role() = 'authenticated');
+
+CREATE POLICY "reverse_auctions_update" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'reverse-auctions' AND auth.role() = 'authenticated');
+
+CREATE POLICY "reverse_auctions_delete" ON storage.objects
+  FOR DELETE USING (bucket_id = 'reverse-auctions' AND auth.role() = 'authenticated');
+
+-- 6. Also ensure avatars bucket exists (used as fallback) and has correct policies
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Ensure avatars bucket allows authenticated uploads (for fallback image uploads)
+DROP POLICY IF EXISTS "avatars_select" ON storage.objects;
+DROP POLICY IF EXISTS "avatars_insert" ON storage.objects;
+DROP POLICY IF EXISTS "avatars_update" ON storage.objects;
+DROP POLICY IF EXISTS "Avatar images are publicly accessible" ON storage.objects;
+DROP POLICY IF EXISTS "Anyone can upload an avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload their own avatar" ON storage.objects;
+
+CREATE POLICY "avatars_select" ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
+
+CREATE POLICY "avatars_insert" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.role() = 'authenticated');
+
+CREATE POLICY "avatars_update" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'avatars' AND auth.role() = 'authenticated');
+
+SELECT 'RLS and Storage policies fixed successfully' as result;
+-- Create reverse_auction_images table for strict auction_id association
+CREATE TABLE IF NOT EXISTS public.reverse_auction_images (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    auction_id UUID REFERENCES public.reverse_auctions(id) ON DELETE CASCADE,
+    storage_path TEXT NOT NULL,
+    image_url TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.reverse_auction_images ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view reverse auction images" ON public.reverse_auction_images FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can insert reverse auction images" ON public.reverse_auction_images FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- Try to create bucket
+INSERT INTO storage.buckets (id, name, public) VALUES ('reverse-auctions', 'reverse-auctions', true) ON CONFLICT (id) DO NOTHING;
+CREATE POLICY "Anyone can view reverse-auctions bucket" ON storage.objects FOR SELECT USING (bucket_id = 'reverse-auctions');
+CREATE POLICY "Authenticated users can insert to reverse-auctions" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'reverse-auctions' AND auth.role() = 'authenticated');

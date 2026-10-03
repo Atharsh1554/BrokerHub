@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
   Search, Filter, Package, ChevronRight, Download, CheckCircle2, Truck,
-  Sparkles, DollarSign, Clock, Check, X, FileText, Printer, ShieldCheck
+  DollarSign, Clock, Check, X, FileText, Printer, ShieldCheck
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useApp } from '../../context/AppContext';
+import { updateOrderStatusInDB } from '../../lib/api/orders';
 import type { Order } from '../../types';
 
 export const OrderTracking: React.FC = () => {
-  const { orders, updateOrderStatus, addOrder, showToast } = useApp();
+  const { orders, updateOrderStatus, showToast } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -39,49 +40,32 @@ export const OrderTracking: React.FC = () => {
     }
   }, [orders, filteredOrders, selectedOrder]);
 
-  // Compute stats
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount ?? o.amount ?? 0), 0);
-  const pendingCount = orders.filter((o) => o.status.toLowerCase().includes('pending')).length;
-  const deliveredCount = orders.filter((o) => o.status.toLowerCase().includes('delivered')).length;
+  // Compute stats — revenue only from successful payments
+  const totalRevenue = orders.reduce((sum, o) => {
+    const ps = (o.paymentStatus || '').toLowerCase();
+    const st = (o.status || '').toLowerCase();
+    if ((ps === 'successful' || ps === 'success' || ps === 'paid') && !st.includes('cancel') && !st.includes('refund')) {
+      return sum + (o.totalAmount ?? o.amount ?? 0);
+    }
+    return sum;
+  }, 0);
+  const pendingCount = orders.filter((o) => {
+    const st = o.status.toLowerCase();
+    return !st.includes('delivered') && !st.includes('completed') && !st.includes('cancel') && !st.includes('refund');
+  }).length;
+  const deliveredCount = orders.filter((o) => o.status.toLowerCase().includes('delivered') || o.status.toLowerCase().includes('completed')).length;
 
-  const handleSimulateNewOrder = () => {
-    const randomId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
-    const sampleCustomers = [
-      { name: 'Sarah Jenkins', product: 'Quantum Smart Watch Series X', amount: 49800, qty: 2 },
-      { name: 'Vikram Malhotra', product: 'Studio Pro ANC Headphones', amount: 15900, qty: 1 },
-      { name: 'Anita Roy', product: 'Pro Ergonomic Office Chair', amount: 70000, qty: 2 },
-      { name: 'Rajesh Kumar', product: 'Super-Speed Charging Hub', amount: 12597, qty: 3 },
-    ];
-    const picked = sampleCustomers[Math.floor(Math.random() * sampleCustomers.length)];
 
-    const newOrderObj: Order = {
-      id: randomId,
-      customerId: `c_${Date.now()}`,
-      customerName: picked.name,
-      product: `${picked.product} (x${picked.qty})`,
-      quantity: picked.qty,
-      amount: picked.amount,
-      totalAmount: picked.amount,
-      items: [
-        {
-          productName: picked.product,
-          quantity: picked.qty,
-          unitPrice: picked.amount / picked.qty,
-        },
-      ],
-      date: new Date().toISOString().split('T')[0],
-      status: 'Pending Broker Approval',
-    };
-
-    addOrder(newOrderObj);
-    setSelectedOrder(newOrderObj);
-  };
-
-  const handleUpdateStatus = (newStatus: string) => {
+  const handleUpdateStatus = async (newStatus: string) => {
     if (!selectedOrder) return;
     updateOrderStatus(selectedOrder.id, newStatus);
+    const success = await updateOrderStatusInDB(selectedOrder.id, newStatus);
     setSelectedOrder({ ...selectedOrder, status: newStatus as any });
+    if (success) {
+      showToast(`✅ Order marked as "${newStatus}" — customer notified.`, 'success');
+    }
   };
+
 
   const handleExportCSV = () => {
     const csvContent =
@@ -115,14 +99,6 @@ export const OrderTracking: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="secondary"
-            className="gap-2 text-xs bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-            onClick={handleSimulateNewOrder}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            Simulate New Order
-          </Button>
           <Button
             variant="outline"
             className="gap-2 border-zinc-200 text-zinc-700 hover:bg-zinc-50 text-xs"
@@ -299,24 +275,70 @@ export const OrderTracking: React.FC = () => {
                 <StatusBadge status={selectedOrder.status} />
               </div>
 
-              {/* Customer Delivery Info */}
+              {/* Customer & Complete Delivery Address Info */}
               <div className="space-y-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">Customer Delivery Info</p>
-                <div className="p-3.5 bg-zinc-50 rounded-xl space-y-1.5 border border-zinc-100 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">Customer Name:</span>
-                    <span className="font-bold text-zinc-900">{selectedOrder.customerName}</span>
+                <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">Customer & Delivery Information</p>
+                <div className="p-4 bg-zinc-50 rounded-xl space-y-2.5 border border-zinc-100 text-xs">
+                  <div className="flex justify-between items-center border-b border-zinc-200/60 pb-2">
+                    <span className="text-zinc-500 font-semibold">Customer Name:</span>
+                    <span className="font-bold text-zinc-900 text-sm">
+                      {selectedOrder.shippingAddress?.fullName || selectedOrder.customerName}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">Shipping Address:</span>
-                    <span className="font-semibold text-zinc-800 text-right">Commercial Estate, Hub 4B</span>
+
+                  <div className="flex justify-between items-center border-b border-zinc-200/60 pb-2">
+                    <span className="text-zinc-500 font-semibold">Customer Phone:</span>
+                    <span className="font-bold text-zinc-900 font-mono">
+                      {selectedOrder.shippingAddress?.phone || selectedOrder.customerPhone || 'Not provided'}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">Payment Status:</span>
-                    <span className="font-bold text-emerald-600">Verified & Escrow Secured</span>
+
+                  <div className="flex justify-between items-center border-b border-zinc-200/60 pb-2">
+                    <span className="text-zinc-500 font-semibold">Payment Status:</span>
+                    <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      {selectedOrder.paymentStatus || 'Successful'}
+                    </span>
+                  </div>
+
+                  <div className="pt-1">
+                    <span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px] block mb-1">
+                      Complete Delivery Address Snapshot:
+                    </span>
+                    {selectedOrder.shippingAddress && selectedOrder.shippingAddress.addressLine1 ? (
+                      <div className="bg-white p-3 rounded-lg border border-zinc-200 space-y-1 text-zinc-800 font-medium">
+                        <p className="font-bold text-zinc-900">{selectedOrder.shippingAddress.addressLine1}</p>
+                        {selectedOrder.shippingAddress.addressLine2 && (
+                          <p>{selectedOrder.shippingAddress.addressLine2}</p>
+                        )}
+                        <p>
+                          {selectedOrder.shippingAddress.city}
+                          {selectedOrder.shippingAddress.state ? `, ${selectedOrder.shippingAddress.state}` : ''}
+                          {selectedOrder.shippingAddress.pincode ? ` - ${selectedOrder.shippingAddress.pincode}` : ''}
+                        </p>
+                        {selectedOrder.shippingAddress.landmark && (
+                          <p className="text-amber-800 text-[11px] font-semibold pt-1 border-t border-zinc-100">
+                            Landmark: {selectedOrder.shippingAddress.landmark}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-white p-3 rounded-lg border border-zinc-200 text-zinc-800 font-medium">
+                        {selectedOrder.deliveryAddress || 'Standard Site Address'}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
+
+              {/* Customer Requirements */}
+              {selectedOrder.customerRequirements && (
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">Customer Requirements</p>
+                  <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-xs">
+                    <p className="font-medium text-amber-900">{selectedOrder.customerRequirements}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Items List */}
               <div className="space-y-2">
@@ -327,9 +349,22 @@ export const OrderTracking: React.FC = () => {
                   {selectedOrder.items && selectedOrder.items.length > 0 ? (
                     selectedOrder.items.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 rounded-xl text-xs border border-zinc-100">
-                        <div className="min-w-0 pr-2">
-                          <p className="font-bold text-zinc-900 truncate">{item.productName}</p>
-                          <p className="text-zinc-500">Qty: {item.quantity} × ₹{item.unitPrice.toLocaleString('en-IN')}</p>
+                        <div className="flex items-center gap-2 min-w-0 pr-2">
+                          {item.productImage && (
+                            <img
+                              src={item.productImage}
+                              alt={item.productName}
+                              className="w-8 h-8 rounded-lg object-cover shrink-0 border border-zinc-200"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-bold text-zinc-900 truncate">{item.productName}</p>
+                            <p className="text-zinc-500">Qty: {item.quantity} × ₹{item.unitPrice.toLocaleString('en-IN')}</p>
+                            {item.brokerName && (
+                              <p className="text-emerald-600 text-[10px] font-semibold">Broker: {item.brokerName}</p>
+                            )}
+                          </div>
                         </div>
                         <span className="font-black text-zinc-900 shrink-0">
                           ₹{(item.quantity * item.unitPrice).toLocaleString('en-IN')}
@@ -464,17 +499,35 @@ export const OrderTracking: React.FC = () => {
             </div>
 
             {/* Bill To & Broker Info */}
-            <div className="grid grid-cols-2 gap-4 bg-zinc-50 p-4 rounded-xl text-xs border border-zinc-100 mb-4">
+              <div className="grid grid-cols-2 gap-4 bg-zinc-50 p-4 rounded-xl text-xs border border-zinc-100 mb-4">
               <div>
                 <p className="font-bold uppercase tracking-wider text-zinc-400 mb-1">Customer / Billed To</p>
-                <p className="font-bold text-zinc-900 text-sm">{selectedOrder.customerName}</p>
-                <p className="text-zinc-500">123 Commercial Way, Suite 400</p>
-                <p className="text-zinc-500">Mumbai, MH 400001</p>
+                <p className="font-bold text-zinc-900 text-sm">
+                  {selectedOrder.shippingAddress?.fullName || selectedOrder.customerName}
+                </p>
+                {selectedOrder.shippingAddress?.addressLine1 ? (
+                  <>
+                    <p className="text-zinc-500">{selectedOrder.shippingAddress.addressLine1}</p>
+                    {selectedOrder.shippingAddress.addressLine2 && (
+                      <p className="text-zinc-500">{selectedOrder.shippingAddress.addressLine2}</p>
+                    )}
+                    <p className="text-zinc-500">
+                      {selectedOrder.shippingAddress.city}
+                      {selectedOrder.shippingAddress.state ? `, ${selectedOrder.shippingAddress.state}` : ''}
+                      {selectedOrder.shippingAddress.pincode ? ` - ${selectedOrder.shippingAddress.pincode}` : ''}
+                    </p>
+                    <p className="text-zinc-500 font-mono">
+                      {selectedOrder.shippingAddress.phone || selectedOrder.customerPhone || ''}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-zinc-500">{selectedOrder.deliveryAddress || 'Address not available'}</p>
+                )}
               </div>
               <div>
-                <p className="font-bold uppercase tracking-wider text-zinc-400 mb-1">Fulfilling Brokerage</p>
-                <p className="font-bold text-zinc-900 text-sm">Apex Realty & Trade Group</p>
-                <p className="text-zinc-500">Broker License: BRK-2024-9981</p>
+                <p className="font-bold uppercase tracking-wider text-zinc-400 mb-1">Fulfilling Broker</p>
+                <p className="font-bold text-zinc-900 text-sm">{selectedOrder.brokerName || 'Verified Broker'}</p>
+                <p className="text-zinc-500">Broker ID: {selectedOrder.brokerId ? selectedOrder.brokerId.slice(0, 8) + '...' : 'N/A'}</p>
                 <p className="text-emerald-700 font-semibold flex items-center gap-1 mt-1">
                   <ShieldCheck size={13} /> Verified Trade Escrow
                 </p>

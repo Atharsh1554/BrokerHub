@@ -9,7 +9,6 @@ import { useApp } from '../../context/AppContext';
 import { getBrokerById } from '../../lib/api/brokers';
 import { getProductById } from '../../lib/api/products';
 import type { Broker, Product, ProductReview } from '../../types';
-import { brokers as mockBrokers, products as mockProducts } from '../../data/mockData';
 
 // Helpers
 const formatINR = (amount: number) =>
@@ -28,34 +27,6 @@ const StarRating: React.FC<{ rating: number; size?: number }> = ({ rating, size 
   </div>
 );
 
-// Mock reviews
-const generateMockReviews = (productId: string): ProductReview[] => [
-  {
-    id: `rev-${productId}-1`,
-    customerId: 'c1',
-    customerName: 'Arjun Mehta',
-    rating: 5,
-    comment: 'Excellent product! Exactly as described. Very fast delivery and great packaging. Highly recommend this broker.',
-    createdAt: '2026-08-20T10:00:00Z',
-  },
-  {
-    id: `rev-${productId}-2`,
-    customerId: 'c2',
-    customerName: 'Priya Sharma',
-    rating: 4,
-    comment: 'Good quality product. Minor delay in delivery but the broker was responsive and helpful throughout.',
-    createdAt: '2026-08-15T14:30:00Z',
-  },
-  {
-    id: `rev-${productId}-3`,
-    customerId: 'c3',
-    customerName: 'Rahul Nair',
-    rating: 5,
-    comment: 'Outstanding quality. The broker provided all specifications upfront and the product matched perfectly.',
-    createdAt: '2026-08-10T09:15:00Z',
-  },
-];
-
 export const ProductDetailPage: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
@@ -68,26 +39,23 @@ export const ProductDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
   const [wishlist, setWishlist] = useState(false);
+  const [reviews] = useState<ProductReview[]>([]);
 
   useEffect(() => {
     const load = async () => {
       if (!productId) return;
       setLoading(true);
 
-      // Try context first (already loaded), then API, then mock
+      // Try context first (already loaded), then API
       let prod = products.find((p) => p.id === productId) || null;
       if (!prod) {
         prod = await getProductById(productId);
-      }
-      if (!prod) {
-        prod = mockProducts.find((p) => p.id === productId) || null;
       }
       setProduct(prod);
 
       if (prod?.brokerId) {
         let bk = brokers.find((b) => b.id === prod!.brokerId) || null;
         if (!bk) bk = await getBrokerById(prod.brokerId);
-        if (!bk) bk = mockBrokers.find((b) => b.id === prod!.brokerId) || null;
         setBroker(bk);
       }
 
@@ -131,11 +99,9 @@ export const ProductDetailPage: React.FC = () => {
   const isLowStock = !isOutOfStock && (product.stock <= 5 || product.status === 'Low Stock');
   const rating = product.rating ?? 0;
   const reviewCount = product.reviewCount ?? 0;
-  const reviews = generateMockReviews(product.id);
 
   // Related products — same category, excluding current
-  const allProducts = products.length > 0 ? products : mockProducts;
-  const related = allProducts
+  const related = products
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 
@@ -536,29 +502,37 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Review Cards */}
-          <div className="space-y-4">
-            {reviews.map((review) => (
-              <div key={review.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                <div className="flex items-start gap-3 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-secondary to-purple-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                    {review.customerName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <p className="text-sm font-bold text-text-primary">{review.customerName}</p>
-                      <span className="text-xs text-gray-label flex items-center gap-1">
-                        <Calendar size={11} />
-                        {new Date(review.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
+          {/* Review Cards or Empty State */}
+          {reviews.length === 0 ? (
+            <div className="text-center py-6 bg-gray-50/50 rounded-xl border border-gray-100">
+              <Star size={32} className="text-gray-300 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-text-primary">No reviews yet</p>
+              <p className="text-xs text-gray-label mt-0.5">Reviews from verified buyers will appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <div key={review.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <div className="flex items-start gap-3 mb-2">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-secondary to-purple-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      {review.customerName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
                     </div>
-                    <StarRating rating={review.rating} size={13} />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-text-primary">{review.customerName}</p>
+                        <span className="text-xs text-gray-label flex items-center gap-1">
+                          <Calendar size={11} />
+                          {new Date(review.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <StarRating rating={review.rating} size={13} />
+                    </div>
                   </div>
+                  <p className="text-sm text-gray-text leading-relaxed pl-12">{review.comment}</p>
                 </div>
-                <p className="text-sm text-gray-text leading-relaxed pl-12">{review.comment}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

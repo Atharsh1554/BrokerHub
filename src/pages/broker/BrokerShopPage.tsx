@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Store,
+  User,
   Copy,
   Check,
   Share2,
@@ -13,7 +14,6 @@ import {
   Eye,
   Edit3,
   Plus,
-  ExternalLink,
   Building2,
   Phone,
   Mail,
@@ -21,6 +21,9 @@ import {
   QrCode,
   ChevronRight,
   ShoppingCart,
+  Search,
+  X,
+  Info,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -30,42 +33,65 @@ import type { Product } from '../../types';
 const formatINR = (amount: number) =>
   '₹' + amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-const StarRating: React.FC<{ rating: number; size?: number }> = ({ rating, size = 14 }) => (
-  <div className="flex items-center gap-0.5">
-    {[1, 2, 3, 4, 5].map((s) => (
-      <svg key={s} width={size} height={size} viewBox="0 0 20 20" fill="none">
-        <path
-          d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-          fill={s <= Math.round(rating) ? '#F59E0B' : '#E5E7EB'}
-        />
-      </svg>
-    ))}
-  </div>
-);
 
 export const BrokerShopPage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, orders } = useApp();
+  const { brokerProducts, orders, brokers } = useApp();
   const { user } = useAuth();
 
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'analytics' | 'settings'>('products');
+  const [shopSearchQuery, setShopSearchQuery] = useState('');
 
-  const displayName = resolveUserDisplayName(user?.fullName, user?.email);
+  // Find active broker record
+  const currentBroker = brokers.find((b) => b.id === user?.id || b.id === 'b1');
+
+  // Local overrides check
+  let localOv: any = null;
+  try {
+    const raw = localStorage.getItem('brokerhub_broker_overrides');
+    if (raw && user?.id) localOv = JSON.parse(raw)[user.id];
+  } catch {}
+
+  const displayName = resolveUserDisplayName(localOv?.name || user?.fullName || currentBroker?.name, localOv?.email || user?.email);
   const initials = getUserInitials(displayName);
+  const brandName = localOv?.company || currentBroker?.company || 'MYTRIO';
+  const displayEmail = localOv?.email || user?.email || currentBroker?.email || '';
+  const displayPhone = localOv?.phone || user?.phone || currentBroker?.phone || '';
+  const avatarUrl = localOv?.avatar || user?.avatar || currentBroker?.avatar;
 
-  // Filter products belonging to this broker
-  const myProducts: Product[] = products.filter(
-    (p) => !user?.id || p.brokerId === user.id || p.brokerId === 'b1'
-  );
+  // Filter products belonging to this broker (use broker-isolated products)
+  const myProducts: Product[] = brokerProducts;
+
+  // Derive product type / specialty
+  const productTypeCounts = myProducts.reduce<Record<string, number>>((acc, p) => {
+    acc[p.category] = (acc[p.category] || 0) + 1;
+    return acc;
+  }, {});
+  const dominantCategory =
+    localOv?.specialty || currentBroker?.specialty || Object.entries(productTypeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Industrial Products';
+
+  const aboutText = localOv?.description || currentBroker?.description || `Specialized commercial and industrial broker matching verified buyers with premier ${dominantCategory.toLowerCase()} products and manufacturers.`;
+
+  // Search-filtered products for the shop product tab
+  const searchFilteredProducts = useMemo(() => {
+    const q = shopSearchQuery.toLowerCase().trim();
+    if (!q) return myProducts;
+    return myProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q)
+    );
+  }, [myProducts, shopSearchQuery]);
 
   // Shop URL — shareable link
-  const shopUrl = `${window.location.origin}/shop/${user?.id || 'broker'}`;
+  const shopUrl = `${window.location.origin}/shop/${user?.id || currentBroker?.id || 'b1'}`;
 
   // Stats
   const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount ?? o.amount ?? 0), 0);
   const totalOrders = orders.length;
-  const avgRating = 4.8; // placeholder — would come from reviews table
+  const avgRating = currentBroker?.rating ?? 4.9;
   const inStockCount = myProducts.filter((p) => p.status === 'In Stock').length;
 
   const handleCopyLink = async () => {
@@ -114,76 +140,83 @@ export const BrokerShopPage: React.FC = () => {
     <div className="space-y-6 pb-12">
       {/* Page Title */}
       <div className="flex items-center gap-2 text-sm">
-        <Store size={16} className="text-primary" />
-        <span className="font-bold text-text-primary">My Shop</span>
+        <User size={16} className="text-primary" />
+        <span className="font-bold text-text-primary">My Profile</span>
         <ChevronRight size={14} className="text-gray-label" />
         <span className="text-gray-text">Public broker profile & shareable store</span>
       </div>
 
-      {/* Hero Card */}
-      <div className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs relative">
-        {/* Cover Banner */}
-        <div className="h-32 sm:h-36 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 relative">
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-2 right-10 w-24 h-24 rounded-full bg-white/30 blur-2xl" />
-            <div className="absolute bottom-0 left-20 w-32 h-32 rounded-full bg-white/20 blur-3xl" />
-          </div>
-          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-            <span className="flex items-center gap-1.5 text-xs font-bold bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-full border border-white/30 shadow-xs">
-              <Eye size={12} />
-              Public Shop • Live
-            </span>
-          </div>
-        </div>
-
-        <div className="px-6 pb-6 pt-3 relative">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            {/* Avatar + Info */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="shrink-0 -mt-14 sm:-mt-16 z-10">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-black text-2xl sm:text-3xl shadow-lg border-4 border-white">
-                  {initials}
-                </div>
+      {/* ── Broker Info Card ── */}
+      <div className="bg-white rounded-2xl border border-gray-border shadow-xs overflow-hidden">
+        {/* Top accent strip */}
+        <div className="h-1.5 bg-gradient-to-r from-primary via-teal-400 to-emerald-400" />
+        <div className="p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            {/* Avatar */}
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={displayName}
+                className="w-16 h-16 rounded-2xl object-cover border-2 border-primary/20 shadow-md shrink-0"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-black text-2xl shadow-md shrink-0">
+                {initials}
               </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl font-black text-text-primary">{displayName}</h1>
-                  <span className="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    <CheckCircle size={10} />
-                    Verified Broker
+            )}
+
+            {/* Details */}
+            <div className="flex-1 min-w-0 space-y-2.5">
+              {/* Name + Brand + Verified badge */}
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-xl font-black text-text-primary">{displayName}</h1>
+                {brandName && (
+                  <span className="text-xs font-bold text-primary bg-primary-50 px-2.5 py-0.5 rounded-lg border border-primary/20">
+                    {brandName}
+                  </span>
+                )}
+                <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
+                  <CheckCircle size={10} />
+                  Verified Broker
+                </span>
+              </div>
+              {/* Info grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1.5 text-sm">
+                <div className="flex items-center gap-2 text-gray-text">
+                  <Mail size={13} className="text-primary shrink-0" />
+                  <span className="truncate font-medium">{displayEmail || '—'}</span>
+                </div>
+                {displayPhone && (
+                  <div className="flex items-center gap-2 text-gray-text">
+                    <Phone size={13} className="text-primary shrink-0" />
+                    <span className="font-medium">{displayPhone}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-gray-text">
+                  <Package size={13} className="text-primary shrink-0" />
+                  <span className="font-medium">
+                    Product Type:{' '}
+                    <span className="text-text-primary font-semibold">{dominantCategory}</span>
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-text mt-0.5">
-                  {user?.email || 'broker@brokerhub.com'}
+              </div>
+              {/* About */}
+              <div className="flex items-start gap-2 text-sm text-gray-text">
+                <Info size={13} className="text-primary shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <span className="font-semibold text-text-primary">About: </span>
+                  {aboutText}
                 </p>
-                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                  <StarRating rating={avgRating} size={14} />
-                  <span className="text-xs text-gray-text font-medium">{avgRating} · {totalOrders} reviews</span>
-                  <span className="text-gray-300">·</span>
-                  <span className="text-xs text-primary font-semibold">{myProducts.length} Active Listings</span>
-                </div>
               </div>
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto justify-end mt-2 md:mt-0">
-              <button
-                onClick={() => navigate('/broker/settings')}
-                className="flex items-center gap-2 px-3.5 py-2 border border-gray-border bg-white text-text-primary rounded-xl text-xs sm:text-sm font-semibold hover:bg-gray-50 transition-all cursor-pointer shadow-2xs"
-              >
-                <Edit3 size={14} />
-                Edit Profile
-              </button>
-              <a
-                href={shopUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-primary-dark transition-all shadow-md cursor-pointer"
-              >
-                <ExternalLink size={14} />
-                Preview Shop
-              </a>
-            </div>
+            {/* Edit Profile shortcut */}
+            <button
+              onClick={() => navigate('/broker/settings')}
+              className="shrink-0 flex items-center gap-2 px-3.5 py-2 border border-gray-border bg-white text-text-primary rounded-xl text-xs font-semibold hover:bg-gray-50 hover:border-primary/40 transition-all cursor-pointer self-start"
+            >
+              <Edit3 size={13} />
+              Edit Profile
+            </button>
           </div>
         </div>
       </div>
@@ -288,20 +321,43 @@ export const BrokerShopPage: React.FC = () => {
         {/* Tab: Products */}
         {activeTab === 'products' && (
           <div className="p-5">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
                 <h2 className="font-bold text-text-primary">Your Product Listings</h2>
                 <p className="text-xs text-gray-text mt-0.5">
-                  {myProducts.length} products visible on your public shop · {inStockCount} In Stock
+                  {myProducts.length} products · {inStockCount} In Stock
+                  {shopSearchQuery && ` · ${searchFilteredProducts.length} match search`}
                 </p>
               </div>
               <Link
                 to="/broker/products"
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-dark transition-all shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-dark transition-all shadow-sm shrink-0"
               >
                 <Plus size={14} />
                 Add Product
               </Link>
+            </div>
+
+            {/* Product Search Bar */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-label pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search products by name, category, or description..."
+                value={shopSearchQuery}
+                onChange={(e) => setShopSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-9 py-2.5 border border-gray-border rounded-xl bg-gray-bg text-sm text-text-primary placeholder-gray-label focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors"
+              />
+              {shopSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setShopSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-label hover:text-text-primary transition-colors cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             {myProducts.length === 0 ? (
@@ -319,9 +375,22 @@ export const BrokerShopPage: React.FC = () => {
                   Add First Product
                 </Link>
               </div>
+            ) : searchFilteredProducts.length === 0 ? (
+              <div className="py-12 text-center">
+                <Search size={36} className="text-gray-300 mx-auto mb-3" />
+                <p className="font-semibold text-text-primary">No products match your search</p>
+                <p className="text-sm text-gray-text mt-1">Try a different keyword or clear the search.</p>
+                <button
+                  type="button"
+                  onClick={() => setShopSearchQuery('')}
+                  className="mt-3 text-sm font-semibold text-primary hover:underline cursor-pointer"
+                >
+                  Clear search
+                </button>
+              </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myProducts.map((prod) => (
+                {searchFilteredProducts.map((prod) => (
                   <div
                     key={prod.id}
                     className="border border-gray-border rounded-xl overflow-hidden hover:shadow-md hover:border-primary/30 transition-all group"
@@ -448,18 +517,28 @@ export const BrokerShopPage: React.FC = () => {
                   icon: Building2,
                 },
                 {
+                  label: 'Brand Name',
+                  value: brandName || '—',
+                  icon: Building2,
+                },
+                {
+                  label: 'Product Type',
+                  value: dominantCategory || '—',
+                  icon: Package,
+                },
+                {
                   label: 'Email',
-                  value: user?.email || '—',
+                  value: displayEmail || '—',
                   icon: Mail,
                 },
                 {
                   label: 'Phone',
-                  value: user?.phone || '—',
+                  value: displayPhone || '—',
                   icon: Phone,
                 },
                 {
                   label: 'Location',
-                  value: 'Not set',
+                  value: currentBroker?.location || 'India',
                   icon: MapPin,
                 },
               ].map(({ label, value, icon: Icon }) => (

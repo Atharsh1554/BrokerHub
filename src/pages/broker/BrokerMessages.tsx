@@ -15,7 +15,7 @@ const EMOJI_LIST = ['😊', '👍', '🚀', '📦', '💼', '💰', '🙏', '✅
 
 export const BrokerMessages: React.FC = () => {
   const { user } = useAuth();
-  const { conversations, messagesMap, sendMessage, fetchConversationMessages } = useApp();
+  const { conversations, messagesMap, sendMessage, fetchConversationMessages, clearConversationUnread } = useApp();
   const [activeConvId, setActiveConvId] = useState(conversations[0]?.id || 'conv1');
   const [inputMessage, setInputMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,6 +55,7 @@ export const BrokerMessages: React.FC = () => {
   const handleSelectConv = (convId: string) => {
     setActiveConvId(convId);
     setShowMobileChat(true);
+    // Do NOT clear unread here — unread is only resolved after the broker sends a reply
   };
 
   const handleSend = (e?: React.FormEvent) => {
@@ -64,6 +65,8 @@ export const BrokerMessages: React.FC = () => {
     sendMessage(activeConvId, inputMessage.trim(), true);
     setInputMessage('');
     setShowEmojiPicker(false);
+    // Clear unread count for this conversation now that the broker has replied
+    clearConversationUnread(activeConvId);
   };
 
   const handleQuickPrompt = (prompt: string) => {

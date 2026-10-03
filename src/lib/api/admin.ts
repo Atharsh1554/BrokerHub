@@ -10,7 +10,7 @@ import type {
   AdminReviewItem,
   AdminActivityLog,
 } from '../../types';
-import { brokers as mockBrokers, orders as mockOrders } from '../../data/mockData';
+
 import { getProducts } from './products';
 
 // Fallback initial data for smooth standalone dev experience
@@ -289,10 +289,10 @@ export const logAdminActivity = async (action: string, target: string) => {
 
 // 1. Fetch Admin KPIs
 export const getAdminKpis = async (): Promise<AdminKpis> => {
-  let customersCount = initialCustomers.length;
-  let brokersList = [...mockBrokers];
+  let customersCount = 0;
+  let brokersList: any[] = [];
   let productsList = await getAdminProducts();
-  let ordersList = [...mockOrders];
+  let ordersList: any[] = [];
 
   // Try DB counts if available
   try {
@@ -420,17 +420,7 @@ export const getAdminBrokers = async (): Promise<Broker[]> => {
     // Fallback
   }
 
-  const savedStatus = JSON.parse(localStorage.getItem('brokerhub_broker_status') || '{}');
-  return mockBrokers.map(b => ({
-    ...b,
-    status: savedStatus[b.id] || b.status,
-    email: `${b.name.toLowerCase().replace(/\s+/g, '.')}@brokerhub.com`,
-    phone: '+91 98765 00000',
-    totalProducts: Math.floor(Math.random() * 10) + 2,
-    totalOrders: Math.floor(Math.random() * 30) + 5,
-    totalSales: Math.floor(Math.random() * 500000) + 50000,
-    createdAt: '2026-01-10',
-  }));
+  return [];
 };
 
 export const updateBrokerStatus = async (brokerId: string, status: Broker['status']) => {
@@ -452,7 +442,6 @@ export const getAdminProducts = async (): Promise<Product[]> => {
 
   return allProducts.map((p) => ({
     ...p,
-    brokerName: p.brokerName || (p.brokerId === 'b1' ? 'Marcus Chen' : p.brokerId === 'b2' ? 'Sarah Williams' : 'David Park'),
     isActive: savedAdminOverrides[p.id]?.isActive !== undefined ? savedAdminOverrides[p.id].isActive : (p.isActive ?? true),
     ...savedAdminOverrides[p.id],
   }));
@@ -491,37 +480,96 @@ export const deleteAdminProduct = async (productId: string) => {
   await logAdminActivity('Product Delete', `Product ID: ${productId}`);
 };
 
-// 5. Orders API
 export const getAdminOrders = async (): Promise<Order[]> => {
   try {
-    const { data } = await supabase.from('orders').select('*, order_items(*)');
-    if (data && data.length > 0) {
-      return data.map(o => ({
-        id: o.id,
-        customerId: o.customer_id,
-        customerName: o.customer_name,
-        totalAmount: o.total_amount,
-        paymentStatus: o.payment_status || 'Successful',
-        date: o.date ? new Date(o.date).toISOString().split('T')[0] : '2026-01-15',
-        status: o.status || 'Pending',
-        items: o.order_items?.map((i: any) => ({
-          productName: i.product_name,
-          quantity: i.quantity,
-          unitPrice: i.unit_price,
-        })) || [],
-      }));
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching admin orders:', error);
     }
-  } catch {
-    // Fallback
+
+    if (data && data.length > 0) {
+      return data.map((o: any) => {
+        // Parse the immutable shipping_address JSONB snapshot
+        const rawAddr = o.shipping_address || {};
+        const shippingAddress = {
+          fullName: rawAddr.full_name || rawAddr.fullName || o.customer_name || '',
+          phone: rawAddr.phone || o.customer_phone || '',
+          addressLine1: rawAddr.address_line_1 || rawAddr.addressLine1 || o.delivery_address || '',
+          addressLine2: rawAddr.address_line_2 || rawAddr.addressLine2 || '',
+          city: rawAddr.city || '',
+          state: rawAddr.state || '',
+          pincode: rawAddr.pincode || rawAddr.zip || '',
+          landmark: rawAddr.landmark || '',
+        };
+
+        const formattedDeliveryAddress =
+          o.delivery_address ||
+          [
+            shippingAddress.addressLine1,
+            shippingAddress.addressLine2,
+            shippingAddress.city,
+            shippingAddress.state,
+            shippingAddress.pincode,
+            shippingAddress.landmark ? `(Landmark: ${shippingAddress.landmark})` : '',
+          ]
+            .filter(Boolean)
+            .join(', ');
+
+        const items = (o.order_items || []).map((i: any) => {
+          const cleanName = (i.product_name || '')
+            .replace(/\[Broker:[^\]]+\]/g, '')
+            .replace(/\(BrokerID:[^)]+\)/g, '')
+            .trim();
+          return {
+            id: i.id,
+            productId: i.product_id || undefined,
+            productName: cleanName,
+            productImage: i.product_image || undefined,
+            quantity: i.quantity,
+            unitPrice: i.unit_price,
+            totalPrice: i.unit_price * i.quantity,
+            brokerId: i.broker_id || o.broker_id || '',
+            brokerName: i.broker_name || o.broker_name || 'Verified Broker',
+          };
+        });
+
+        const productSummary =
+          items.length > 0
+            ? items.map((i: any) => `${i.productName} (x${i.quantity})`).join(', ')
+            : o.product_name || 'Order';
+
+        return {
+          id: o.id,
+          customerId: o.customer_id,
+          customerName: o.customer_name,
+          customerEmail: o.customer_email || '',
+          customerPhone: o.customer_phone || shippingAddress.phone || '',
+          brokerId: o.broker_id || '',
+          brokerName: o.broker_name || 'Verified Broker',
+          totalAmount: o.total_amount || o.amount || 0,
+          amount: o.total_amount || o.amount || 0,
+          paymentStatus: o.payment_status || 'Successful',
+          paymentMethod: o.payment_method || 'Online Payment',
+          transactionId: o.transaction_id || `TXN-${o.id}`,
+          deliveryAddress: formattedDeliveryAddress,
+          shippingAddress,
+          date: o.date ? new Date(o.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          createdAt: o.created_at || o.date,
+          status: o.status || 'Pending',
+          product: productSummary,
+          items,
+        } as Order;
+      });
+    }
+  } catch (err) {
+    console.error('Error fetching admin orders:', err);
   }
 
-  const savedStatus = JSON.parse(localStorage.getItem('brokerhub_order_status_overrides') || '{}');
-  return mockOrders.map(o => ({
-    ...o,
-    paymentStatus: o.status === 'Cancelled' ? 'Refunded' : 'Successful',
-    status: savedStatus[o.id] || o.status,
-    brokerName: 'Marcus Chen',
-  }));
+  return [];
 };
 
 export const updateOrderStatus = async (orderId: string, status: string) => {

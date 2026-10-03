@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Input } from '../../components/ui/Input';
-import { Button } from '../../components/ui/Button';
 import {
-  Mail, Lock, Eye, EyeOff, ShieldCheck, UserCheck, Briefcase,
-  Sparkles, CheckCircle2, ArrowRight, Building2, TrendingUp, Package, MessageCircle
+  ShieldCheck, UserCheck, Briefcase,
+  Sparkles, CheckCircle2, ArrowRight,
+  Building2, TrendingUp, Package, MessageCircle,
+  Phone, Hash
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -31,20 +31,31 @@ const BROKER_FEATURES = [
   { icon: <TrendingUp size={16} />, text: 'Revenue & Commission Analytics' },
 ];
 
+type LoginTab = 'google' | 'phone';
+type PhoneStep = 'enter' | 'verify';
+
 export const LoginPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const initialRole = (searchParams.get('role') as 'customer' | 'broker') || 'customer';
 
   const [role, setRole] = useState<'customer' | 'broker'>(initialRole);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tab, setTab] = useState<LoginTab>('google');
+
+  // Phone OTP state
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [phoneStep, setPhoneStep] = useState<PhoneStep>('enter');
+  const [phoneLoading, setPhoneLoading] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+
+  // Google state
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const { signIn, signInWithGoogle, user } = useAuth();
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const { sendPhoneOtp, verifyPhoneOtp, signInWithGoogle, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,43 +64,87 @@ export const LoginPage: React.FC = () => {
     }
   }, [user, navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setIsSubmitting(true);
-    try {
-      const { error } = await signIn(email, password);
-      if (error) setErrorMsg(error.message);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to sign in');
-    } finally {
-      setIsSubmitting(false);
+  // Resend countdown timer
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const t = setTimeout(() => setResendTimer((r) => r - 1), 1000);
+      return () => clearTimeout(t);
     }
-  };
+  }, [resendTimer]);
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    setErrorMsg('');
     try {
       await signInWithGoogle(role);
     } catch {
       setIsGoogleLoading(false);
+      setErrorMsg('Google sign-in failed. Please try again.');
     }
   };
 
-  const fillDemoCustomer = () => {
-    setEmail('customer@brokerhub.com');
-    setPassword('password123');
-    setRole('customer');
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    if (!phone.trim()) { setErrorMsg('Please enter your phone number.'); return; }
+
+    // Format phone: ensure it starts with +91 or user's country code
+    let formattedPhone = phone.trim().replace(/\s/g, '');
+    if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+91' + formattedPhone; // default India code
+    }
+
+    setPhoneLoading(true);
+    const { error } = await sendPhoneOtp(formattedPhone, role);
+    setPhoneLoading(false);
+
+    if (error) {
+      setErrorMsg(error.message || 'Failed to send OTP. Please check your phone number.');
+    } else {
+      setSuccessMsg(`OTP sent to ${formattedPhone}`);
+      setPhone(formattedPhone);
+      setPhoneStep('verify');
+      setResendTimer(30);
+    }
   };
 
-  const fillDemoBroker = () => {
-    setEmail('broker@brokerhub.com');
-    setPassword('password123');
-    setRole('broker');
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    if (!otp.trim() || otp.length < 6) { setErrorMsg('Enter the 6-digit OTP.'); return; }
+
+    setOtpLoading(true);
+    const { error } = await verifyPhoneOtp(phone, otp);
+    setOtpLoading(false);
+
+    if (error) {
+      setErrorMsg(error.message || 'Invalid OTP. Please try again.');
+    }
+    // On success, AuthContext will update user and the useEffect above redirects
+  };
+
+  const handleResendOtp = async () => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    setOtp('');
+    setPhoneLoading(true);
+    const { error } = await sendPhoneOtp(phone, role);
+    setPhoneLoading(false);
+    if (error) {
+      setErrorMsg(error.message || 'Failed to resend OTP.');
+    } else {
+      setSuccessMsg('OTP resent successfully!');
+      setResendTimer(30);
+    }
   };
 
   const isCustomer = role === 'customer';
   const features = isCustomer ? CUSTOMER_FEATURES : BROKER_FEATURES;
+
+  const accentColor = isCustomer ? 'teal' : 'indigo';
+  const btnClass = isCustomer
+    ? 'bg-teal-600 hover:bg-teal-700 focus:ring-teal-500'
+    : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500';
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -101,13 +156,10 @@ export const LoginPage: React.FC = () => {
             : 'bg-gradient-to-br from-indigo-700 via-purple-700 to-slate-900'
         }`}
       >
-        {/* Decorative blobs */}
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-32 -right-16 w-80 h-80 bg-white/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/3 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 text-white max-w-md px-10 py-16 space-y-10">
-          {/* Brand */}
           <div className="space-y-4">
             <div className="w-20 h-20 bg-white/95 rounded-3xl flex items-center justify-center shadow-2xl p-3 transform hover:scale-105 transition-transform duration-300">
               <img src="/logo.png" alt="BrokerHub" className="w-full h-full object-contain" />
@@ -120,7 +172,6 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Role headline */}
           <div className="space-y-3">
             <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold backdrop-blur-sm border border-white/20 ${
               isCustomer ? 'bg-white/15' : 'bg-white/10'
@@ -129,9 +180,7 @@ export const LoginPage: React.FC = () => {
               {isCustomer ? 'Customer Portal' : 'Broker Professional Desk'}
             </div>
             <h2 className="text-3xl font-bold leading-tight">
-              {isCustomer
-                ? 'Find the best brokers for your business'
-                : 'Manage clients, grow your brokerage'}
+              {isCustomer ? 'Find the best brokers for your business' : 'Manage clients, grow your brokerage'}
             </h2>
             <p className="text-sm text-white/75 leading-relaxed">
               {isCustomer
@@ -140,7 +189,6 @@ export const LoginPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Feature bullets */}
           <ul className="space-y-3">
             {features.map((feat, idx) => (
               <li key={idx} className="flex items-center gap-3 text-sm font-medium">
@@ -152,7 +200,6 @@ export const LoginPage: React.FC = () => {
             ))}
           </ul>
 
-          {/* Trust badge */}
           <div className="flex items-center gap-2 text-xs font-semibold text-white/60 pt-2 border-t border-white/10">
             <ShieldCheck size={16} className="text-emerald-300" />
             256-bit Bank-Grade Encryption · SOC 2 Compliant
@@ -183,154 +230,174 @@ export const LoginPage: React.FC = () => {
             <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
               <button
                 type="button"
-                onClick={() => setRole('customer')}
+                onClick={() => { setRole('customer'); setPhoneStep('enter'); setErrorMsg(''); setSuccessMsg(''); }}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
-                  isCustomer
-                    ? 'bg-white text-teal-700 shadow-sm border border-gray-200'
-                    : 'text-gray-500 hover:text-gray-700'
+                  isCustomer ? 'bg-white text-teal-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                <UserCheck size={15} />
-                Customer
+                <UserCheck size={15} /> Customer
               </button>
               <button
                 type="button"
-                onClick={() => setRole('broker')}
+                onClick={() => { setRole('broker'); setPhoneStep('enter'); setErrorMsg(''); setSuccessMsg(''); }}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
-                  !isCustomer
-                    ? 'bg-white text-indigo-700 shadow-sm border border-gray-200'
-                    : 'text-gray-500 hover:text-gray-700'
+                  !isCustomer ? 'bg-white text-indigo-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                <Briefcase size={15} />
-                Broker
+                <Briefcase size={15} /> Broker
               </button>
             </div>
 
-            {/* Demo Quick Fill */}
-            <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700 flex items-center gap-1 mb-2">
-                <Sparkles size={11} className="text-amber-500" />
-                Quick Demo Fill
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={fillDemoCustomer}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-teal-700 border border-teal-200 hover:bg-teal-50 transition-all cursor-pointer shadow-sm"
-                >
-                  👤 Customer Demo
-                </button>
-                <button
-                  type="button"
-                  onClick={fillDemoBroker}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50 transition-all cursor-pointer shadow-sm"
-                >
-                  💼 Broker Demo
-                </button>
-              </div>
+            {/* Sign-in Method Tabs */}
+            <div className="flex rounded-xl overflow-hidden border border-gray-200">
+              <button
+                type="button"
+                onClick={() => { setTab('google'); setErrorMsg(''); setSuccessMsg(''); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold transition-colors cursor-pointer ${
+                  tab === 'google'
+                    ? isCustomer ? 'bg-teal-600 text-white' : 'bg-indigo-600 text-white'
+                    : 'bg-white text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                <GoogleIcon /> Google
+              </button>
+              <button
+                type="button"
+                onClick={() => { setTab('phone'); setErrorMsg(''); setSuccessMsg(''); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold transition-colors cursor-pointer border-l border-gray-200 ${
+                  tab === 'phone'
+                    ? isCustomer ? 'bg-teal-600 text-white' : 'bg-indigo-600 text-white'
+                    : 'bg-white text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                <Phone size={14} /> Phone / SMS
+              </button>
             </div>
 
-            {/* Google */}
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={isGoogleLoading}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-800 hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {isGoogleLoading ? (
-                <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-              ) : <GoogleIcon />}
-              {isGoogleLoading ? 'Redirecting…' : `Sign in as ${isCustomer ? 'Customer' : 'Broker'} with Google`}
-            </button>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="px-3 bg-white text-gray-400 font-medium">or sign in with email</span>
-              </div>
-            </div>
-
-            {/* Error */}
+            {/* Error / Success Message */}
             {errorMsg && (
               <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs border border-red-100 font-medium">
                 ⚠️ {errorMsg}
               </div>
             )}
+            {successMsg && (
+              <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl text-xs border border-emerald-100 font-medium">
+                ✅ {successMsg}
+              </div>
+            )}
 
-            {/* Form */}
-            <form className="space-y-4" onSubmit={handleLogin}>
-              <Input
-                label="Email Address"
-                type="email"
-                placeholder={`your@${isCustomer ? 'email' : 'brokerage'}.com`}
-                icon={<Mail size={17} />}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-
-              <div className="relative">
-                <Input
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  icon={<Lock size={17} />}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+            {/* ── Google Tab ── */}
+            {tab === 'google' && (
+              <div className="space-y-4">
                 <button
                   type="button"
-                  onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-3.5 top-[38px] text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
-                  title={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={handleGoogleSignIn}
+                  disabled={isGoogleLoading}
+                  className="w-full flex items-center justify-center gap-3 px-4 py-3.5 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-800 hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                  {isGoogleLoading ? (
+                    <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  ) : <GoogleIcon />}
+                  {isGoogleLoading ? 'Redirecting…' : `Continue as ${isCustomer ? 'Customer' : 'Broker'} with Google`}
                 </button>
+                <p className="text-center text-xs text-gray-400">
+                  Secure sign-in via your Google account. No password required.
+                </p>
               </div>
+            )}
 
-              <div className="flex items-center justify-between pt-0.5">
-                <label className="flex items-center gap-2 text-xs cursor-pointer text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                  />
-                  Remember me
-                </label>
-                <a href="#" className="text-xs font-semibold text-teal-700 hover:underline">
-                  Forgot password?
-                </a>
-              </div>
-
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                fullWidth
-                disabled={isSubmitting}
-                className={`mt-1 group !flex !items-center !justify-center !gap-2 ${
-                  !isCustomer ? '!bg-indigo-600 hover:!bg-indigo-700 focus:!ring-indigo-500' : ''
-                }`}
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Authenticating…
-                  </>
+            {/* ── Phone Tab ── */}
+            {tab === 'phone' && (
+              <div className="space-y-4">
+                {phoneStep === 'enter' ? (
+                  <form onSubmit={handleSendOtp} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                        Phone Number
+                      </label>
+                      <div className="relative">
+                        <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="+91 98765 43210"
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          required
+                        />
+                      </div>
+                      <p className="text-[11px] text-gray-400 mt-1">Enter with country code (e.g. +91 for India)</p>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={phoneLoading}
+                      className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer ${btnClass}`}
+                    >
+                      {phoneLoading ? (
+                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      ) : <Phone size={16} />}
+                      {phoneLoading ? 'Sending OTP…' : 'Send OTP via SMS'}
+                    </button>
+                  </form>
                 ) : (
-                  <>
-                    Sign In as {isCustomer ? 'Customer' : 'Broker'}
-                    <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-                  </>
+                  <form onSubmit={handleVerifyOtp} className="space-y-4">
+                    <div className="text-center p-3 bg-gray-50 rounded-xl border border-gray-200">
+                      <p className="text-xs text-gray-500">OTP sent to</p>
+                      <p className="font-bold text-gray-800 text-sm">{phone}</p>
+                      <button
+                        type="button"
+                        onClick={() => { setPhoneStep('enter'); setOtp(''); setErrorMsg(''); setSuccessMsg(''); }}
+                        className="text-xs text-teal-600 hover:underline mt-1"
+                      >
+                        Change number
+                      </button>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                        Enter 6-Digit OTP
+                      </label>
+                      <div className="relative">
+                        <Hash size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                          placeholder="• • • • • •"
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-sm text-center tracking-[0.5em] font-bold focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={otpLoading || otp.length < 6}
+                      className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer ${btnClass}`}
+                    >
+                      {otpLoading ? (
+                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      ) : <ArrowRight size={16} />}
+                      {otpLoading ? 'Verifying…' : 'Verify & Sign In'}
+                    </button>
+                    <div className="text-center">
+                      {resendTimer > 0 ? (
+                        <p className="text-xs text-gray-400">Resend OTP in {resendTimer}s</p>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleResendOtp}
+                          disabled={phoneLoading}
+                          className="text-xs text-teal-600 font-semibold hover:underline cursor-pointer"
+                        >
+                          {phoneLoading ? 'Sending…' : 'Resend OTP'}
+                        </button>
+                      )}
+                    </div>
+                  </form>
                 )}
-              </Button>
-            </form>
+              </div>
+            )}
 
             {/* Footer links */}
             <div className="text-center space-y-2 pt-1">
@@ -343,11 +410,7 @@ export const LoginPage: React.FC = () => {
               {isCustomer && (
                 <p className="text-xs text-gray-400">
                   Are you a broker?{' '}
-                  <button
-                    type="button"
-                    onClick={() => setRole('broker')}
-                    className="text-indigo-600 font-semibold hover:underline cursor-pointer"
-                  >
+                  <button type="button" onClick={() => setRole('broker')} className="text-indigo-600 font-semibold hover:underline cursor-pointer">
                     Switch to Broker Login
                   </button>
                 </p>
@@ -355,11 +418,7 @@ export const LoginPage: React.FC = () => {
               {!isCustomer && (
                 <p className="text-xs text-gray-400">
                   Looking as a customer?{' '}
-                  <button
-                    type="button"
-                    onClick={() => setRole('customer')}
-                    className="text-teal-700 font-semibold hover:underline cursor-pointer"
-                  >
+                  <button type="button" onClick={() => setRole('customer')} className="text-teal-700 font-semibold hover:underline cursor-pointer">
                     Switch to Customer Login
                   </button>
                 </p>

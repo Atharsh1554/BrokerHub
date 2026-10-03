@@ -10,8 +10,11 @@ interface AuthContextType {
   signIn: (email: string, password?: string) => Promise<{ error: any }>;
   signUp: (email: string, password?: string) => Promise<{ data?: any, error: any }>;
   signInWithGoogle: (role?: 'customer' | 'broker') => Promise<void>;
+  sendPhoneOtp: (phone: string, role: 'customer' | 'broker') => Promise<{ error: any }>;
+  verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateUserLocal: (data: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -20,8 +23,11 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({ error: null }),
   signUp: async () => ({ data: null, error: null }),
   signInWithGoogle: async () => {},
+  sendPhoneOtp: async () => ({ error: null }),
+  verifyPhoneOtp: async () => ({ error: null }),
   signOut: async () => {},
   refreshUser: async () => {},
+  updateUserLocal: () => {},
 });
 
 const GOOGLE_ROLE_KEY = 'brokerhub_google_role';
@@ -84,14 +90,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error fetching user profile:', error);
       }
 
+      // Check if there are local overrides saved for this user
+      let localOverride: any = null;
+      try {
+        const raw = localStorage.getItem('brokerhub_broker_overrides');
+        if (raw) {
+          const overrides = JSON.parse(raw);
+          localOverride = overrides[authUser.id];
+        }
+      } catch {}
+
       if (data) {
-        const resolvedName = resolveUserDisplayName(data.full_name, data.email || authUser.email);
+        const resolvedName = resolveUserDisplayName(localOverride?.name || data.full_name, localOverride?.email || data.email || authUser.email);
         setUser({
           id: data.id,
           fullName: resolvedName,
-          email: data.email || authUser.email || '',
-          phone: data.phone || '',
-          avatar: data.avatar,
+          email: localOverride?.email || data.email || authUser.email || '',
+          phone: localOverride?.phone || data.phone || authUser.user_metadata?.phone || '',
+          addressLine1: data.address_line_1 || authUser.user_metadata?.address_line_1 || '',
+          addressLine2: data.address_line_2 || authUser.user_metadata?.address_line_2 || '',
+          city: data.city || authUser.user_metadata?.city || '',
+          state: data.state || authUser.user_metadata?.state || '',
+          pincode: data.pincode || authUser.user_metadata?.pincode || '',
+          landmark: data.landmark || authUser.user_metadata?.landmark || '',
+          address: data.address || authUser.user_metadata?.address || '',
+          avatar: localOverride?.avatar || data.avatar,
           role: data.role || 'customer',
         });
       } else if (authUser) {
@@ -105,21 +128,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const detectedRole: 'customer' | 'broker' = brokerRow ? 'broker' : 'customer';
 
         const resolvedName = resolveUserDisplayName(
-          authUser.user_metadata?.full_name || authUser.user_metadata?.name,
-          authUser.email
+          localOverride?.name || authUser.user_metadata?.full_name || authUser.user_metadata?.name,
+          localOverride?.email || authUser.email
         );
         setUser({
           id: authUser.id,
           fullName: resolvedName,
-          email: authUser.email || '',
-          phone: authUser.user_metadata?.phone || '',
-          avatar: authUser.user_metadata?.avatar_url || null,
+          email: localOverride?.email || authUser.email || '',
+          phone: localOverride?.phone || authUser.user_metadata?.phone || '',
+          addressLine1: authUser.user_metadata?.address_line_1 || '',
+          addressLine2: authUser.user_metadata?.address_line_2 || '',
+          city: authUser.user_metadata?.city || '',
+          state: authUser.user_metadata?.state || '',
+          pincode: authUser.user_metadata?.pincode || '',
+          landmark: authUser.user_metadata?.landmark || '',
+          address: authUser.user_metadata?.address || '',
+          avatar: localOverride?.avatar || authUser.user_metadata?.avatar_url || null,
           role: detectedRole,
         });
       }
     } catch (err) {
       console.error('Exception fetching profile:', err);
     }
+  };
+
+  const updateUserLocal = (data: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...data } : null));
   };
 
   const refreshUser = async () => {
@@ -194,6 +228,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const PHONE_ROLE_KEY = 'brokerhub_phone_role';
+
+  const sendPhoneOtp = async (phone: string, role: 'customer' | 'broker') => {
+    localStorage.setItem(PHONE_ROLE_KEY, role);
+    const { error } = await supabase.auth.signInWithOtp({ phone });
+    return { error };
+  };
+
+  const verifyPhoneOtp = async (phone: string, token: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
+    if (!error && data.user) {
+      // Check if user profile exists in public.users
+      const { data: existingProfile } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', data.user.id)
+        .single();
+
+      if (!existingProfile) {
+        // Create profile for first-time phone login
+        const savedRole = (localStorage.getItem(PHONE_ROLE_KEY) as 'customer' | 'broker') || 'customer';
+        localStorage.removeItem(PHONE_ROLE_KEY);
+        await supabase.from('users').insert({
+          id: data.user.id,
+          email: data.user.email || `${phone.replace('+', '')}@phone.brokerhub.com`,
+          full_name: `User ${phone.slice(-4)}`,
+          phone: phone,
+          role: savedRole,
+          status: 'active',
+        });
+      }
+    }
+    return { error };
+  };
+
   const signOut = async () => {
     // scope: 'global' signs out from ALL sessions on all devices
     await supabase.auth.signOut({ scope: 'global' });
@@ -203,7 +272,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, signOut, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, sendPhoneOtp, verifyPhoneOtp, signOut, refreshUser, updateUserLocal }}>
       {children}
     </AuthContext.Provider>
   );

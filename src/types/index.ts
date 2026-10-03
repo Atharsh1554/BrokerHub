@@ -1,3 +1,14 @@
+export interface ShippingAddress {
+  fullName?: string;
+  phone?: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  landmark?: string;
+}
+
 export type UserRole = 'customer' | 'broker' | 'admin' | 'super_admin' | 'moderator';
 
 export interface User {
@@ -5,6 +16,13 @@ export interface User {
   fullName: string;
   email: string;
   phone: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  landmark?: string;
+  address?: string;
   avatar?: string;
   role: UserRole;
   status?: 'active' | 'inactive' | 'suspended';
@@ -72,9 +90,15 @@ export interface ProductReview {
 }
 
 export interface OrderItem {
+  id?: string;
+  productId?: string;
   productName: string;
+  productImage?: string;
   quantity: number;
   unitPrice: number;
+  totalPrice?: number;
+  brokerId?: string;
+  brokerName?: string;
 }
 
 export interface Order {
@@ -82,16 +106,27 @@ export interface Order {
   customerId: string;
   customerName: string;
   customerEmail?: string;
+  customerPhone?: string;
   brokerId?: string;
   brokerName?: string;
   product?: string;
+  productName?: string;
+  productImage?: string;
   quantity?: number;
+  price?: number;
   amount?: number;
   totalAmount?: number;
-  paymentStatus?: 'Pending' | 'Successful' | 'Failed' | 'Refunded';
+  paymentStatus?: 'Pending' | 'Successful' | 'Failed' | 'Refunded' | string;
+  paymentMethod?: string;
+  transactionId?: string;
+  deliveryAddress?: string;
+  shippingAddress?: ShippingAddress;
+  customerRequirements?: string;
   items?: OrderItem[];
   date: string;
-  status: 'Delivered' | 'In Transit' | 'Pending' | 'Cancelled' | 'Processing' | 'Shipped' | 'ACCEPTED' | 'COMPLETED' | 'REFUNDED' | string;
+  createdAt?: string;
+  updatedAt?: string;
+  status: 'Delivered' | 'In Transit' | 'Pending' | 'Cancelled' | 'Processing' | 'Shipped' | 'ACCEPTED' | 'COMPLETED' | 'REFUNDED' | 'Confirmed' | string;
 }
 
 export interface Notification {
@@ -112,6 +147,7 @@ export type BrokerNotificationType =
   | 'order' 
   | 'meeting' 
   | 'profile_request' 
+  | 'reverse_auction'
   | 'general';
 
 export type NotificationStatus = 'pending' | 'accepted' | 'rejected' | 'completed' | 'handled';
@@ -133,6 +169,70 @@ export interface BrokerNotification {
   status: NotificationStatus;
   metadata?: Record<string, any>;
   created_at: string;
+}
+
+export type ReverseAuctionStatus = 'OPEN' | 'ACCEPTED' | 'IN_PROGRESS' | 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'READY' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED';
+
+export interface ReverseAuction {
+  id: string;
+  customerId: string;
+  customerName: string;
+  customerCompany?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  contactName?: string;
+  deliveryLocation?: string;
+  title: string;
+  category: string;
+  productId?: string;
+  productName?: string;
+  productImage?: string;
+  photos?: string[];
+  quantity: number;
+  description: string;
+  specifications?: Record<string, string>;
+  startingPrice: number;
+  budgetText?: string;
+  deadlineDate?: string;
+  activityText?: string;
+  currentLowestBid?: number;
+  lowestBidderId?: string;
+  lowestBidderName?: string;
+  bidCount: number;
+  startTime: string;
+  endTime: string;
+  status: ReverseAuctionStatus;
+  statusPill?: string;
+  currentLevel?: string;
+  assignedBrokerId?: string;
+  assignedBrokerName?: string;
+  winningBidId?: string;
+  winningBrokerId?: string;
+  winningBrokerName?: string;
+  deliveryProofPhotos?: string[];
+  deliveryConfirmedText?: string;
+  completedAt?: string;
+  cancelledAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ReverseAuctionBid {
+  id: string;
+  auctionId: string;
+  brokerId: string;
+  brokerName: string;
+  brokerCompany?: string;
+  brokerAvatar?: string;
+  bidAmount: number;
+  bidAmountText?: string;
+  leadTimeDays?: number;
+  leadTimeText?: string;
+  offerNote?: string;
+  notes?: string;
+  status: 'Active' | 'Lowest' | 'Outbid' | 'Accepted' | 'Rejected' | 'Approved' | 'Reviewed' | 'Received';
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CustomerProfile {

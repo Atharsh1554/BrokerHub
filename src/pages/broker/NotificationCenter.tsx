@@ -11,7 +11,6 @@ import {
   Check,
   X,
   CheckCheck,
-  Search,
   ExternalLink,
   Clock,
   Sparkles,
@@ -44,7 +43,6 @@ export const NotificationCenter: React.FC = () => {
 
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedProfile, setSelectedProfile] = useState<CustomerProfile | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -62,18 +60,9 @@ export const NotificationCenter: React.FC = () => {
         if (statusFilter === 'rejected' && notif.status !== 'rejected') return false;
         if (statusFilter === 'completed' && notif.status !== 'completed' && notif.status !== 'handled') return false;
       }
-      // Search
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesName = notif.customer_name?.toLowerCase().includes(q);
-        const matchesTitle = notif.title?.toLowerCase().includes(q);
-        const matchesDesc = notif.description?.toLowerCase().includes(q);
-        const matchesOrder = notif.related_order_id?.toLowerCase().includes(q);
-        return matchesName || matchesTitle || matchesDesc || matchesOrder;
-      }
       return true;
     });
-  }, [notifications, activeCategory, statusFilter, searchQuery]);
+  }, [notifications, activeCategory, statusFilter]);
 
   // Counts by category
   const categoryCounts = useMemo(() => {
@@ -212,12 +201,10 @@ export const NotificationCenter: React.FC = () => {
 
   const categories: { id: CategoryFilter; label: string; icon: React.ReactNode }[] = [
     { id: 'all', label: 'All Activities', icon: <Bell className="w-4 h-4" /> },
-    { id: 'call_request', label: 'Calls', icon: <Phone className="w-4 h-4" /> },
     { id: 'message', label: 'Messages', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'order', label: 'Orders', icon: <ShoppingBag className="w-4 h-4" /> },
-    { id: 'meeting', label: 'Meetings', icon: <Calendar className="w-4 h-4" /> },
     { id: 'profile_request', label: 'Profile Requests', icon: <UserCheck className="w-4 h-4" /> },
-    { id: 'general', label: 'System', icon: <Info className="w-4 h-4" /> },
+    { id: 'general', label: 'General', icon: <Info className="w-4 h-4" /> },
   ];
 
   return (
@@ -314,33 +301,20 @@ export const NotificationCenter: React.FC = () => {
         })}
       </div>
 
-      {/* Filters & Search Row */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-gray-border shadow-xs">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by customer, title, order ID..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 rounded-lg border border-gray-border text-slate-800 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <span className="text-xs text-slate-500 font-medium">Status:</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="px-3 py-2 text-sm bg-slate-50 border border-gray-border rounded-lg text-slate-800 focus:bg-white focus:border-primary outline-none transition-colors"
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="accepted">Accepted</option>
-            <option value="rejected">Declined</option>
-            <option value="completed">Completed / Handled</option>
-          </select>
-        </div>
+      {/* Status Filter Row */}
+      <div className="flex flex-wrap items-center gap-2.5 bg-white p-3.5 rounded-xl border border-gray-border shadow-xs">
+        <span className="text-xs text-slate-500 font-medium">Filter by status:</span>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+          className="px-3 py-2 text-sm bg-slate-50 border border-gray-border rounded-lg text-slate-800 focus:bg-white focus:border-primary outline-none transition-colors"
+        >
+          <option value="all">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="accepted">Accepted</option>
+          <option value="rejected">Declined</option>
+          <option value="completed">Completed / Handled</option>
+        </select>
       </div>
 
       {/* Notification Cards List */}
@@ -352,17 +326,16 @@ export const NotificationCenter: React.FC = () => {
             </div>
             <h3 className="text-lg font-bold text-slate-900 mb-1">No notifications found</h3>
             <p className="text-sm text-slate-500 max-w-md mx-auto">
-              {searchQuery || statusFilter !== 'all' || activeCategory !== 'all'
-                ? 'No activities match your current filter criteria. Try clearing search or switching tabs.'
-                : 'You are all caught up! When customers request calls, send messages, or place orders, they will appear here.'}
+              {(statusFilter !== 'all' || activeCategory !== 'all')
+                ? 'No activities match your current filter criteria. Try clearing filters or switching tabs.'
+                : 'You are all caught up! When customers send messages, place orders, or make requests, they will appear here.'}
             </p>
-            {(searchQuery || statusFilter !== 'all' || activeCategory !== 'all') && (
+            {(statusFilter !== 'all' || activeCategory !== 'all') && (
               <Button
                 variant="secondary"
                 size="sm"
                 className="mt-4"
                 onClick={() => {
-                  setSearchQuery('');
                   setStatusFilter('all');
                   setActiveCategory('all');
                 }}

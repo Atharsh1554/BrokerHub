@@ -2,17 +2,72 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
+const GOOGLE_ROLE_KEY = 'brokerhub_google_role';
+
 /**
  * This page handles the OAuth redirect from Google/other providers.
  * Supabase automatically exchanges the code for a session; we just wait
  * for the session to be ready then route the user to the right dashboard.
+ * If no profile exists in public.users yet, it creates one automatically.
  */
 export const AuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const provisionAndNavigate = async (user: any) => {
+      // Check if user profile already exists in public.users
+      const { data: existingProfile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (existingProfile) {
+        // Profile exists — route to correct dashboard
+        const role = existingProfile.role;
+        navigate(
+          role === 'broker' ? '/broker/dashboard'
+          : role === 'admin' ? '/admin/dashboard'
+          : '/customer/dashboard',
+          { replace: true }
+        );
+        return;
+      }
+
+      // Profile doesn't exist — create one now (first Google sign-in)
+      const savedRole = (localStorage.getItem(GOOGLE_ROLE_KEY) as 'customer' | 'broker') || 'customer';
+      localStorage.removeItem(GOOGLE_ROLE_KEY);
+
+      const fullName =
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email?.split('@')[0] ||
+        'User';
+
+      const { error: insertError } = await supabase.from('users').insert({
+        id: user.id,
+        email: user.email,
+        full_name: fullName,
+        avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+        role: savedRole,
+        status: 'active',
+      });
+
+      if (insertError) {
+        console.error('Failed to create user profile:', insertError.message);
+        // Navigate anyway — profile can be created later
+      }
+
+      navigate(
+        savedRole === 'broker' ? '/broker/dashboard' : '/customer/dashboard',
+        { replace: true }
+      );
+    };
+
     const handleCallback = async () => {
-      // Give Supabase a moment to exchange the auth code for a session
+      // Small delay to allow Supabase to finish exchanging the auth code
+      await new Promise((res) => setTimeout(res, 500));
+
       const { data: { session }, error } = await supabase.auth.getSession();
 
       if (error) {
@@ -22,30 +77,19 @@ export const AuthCallbackPage: React.FC = () => {
       }
 
       if (session?.user) {
-        // Fetch role from DB to determine where to route
-        const { data: profile } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-
-        const role = profile?.role;
-        navigate(role === 'broker' ? '/broker/dashboard' : '/customer/dashboard', { replace: true });
+        await provisionAndNavigate(session.user);
       } else {
-        // No session yet — listen for it
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, sess) => {
-          subscription.unsubscribe();
-          if (sess?.user) {
-            const { data: profile } = await supabase
-              .from('users')
-              .select('role')
-              .eq('id', sess.user.id)
-              .single();
-            navigate(profile?.role === 'broker' ? '/broker/dashboard' : '/customer/dashboard', { replace: true });
-          } else {
-            navigate('/login', { replace: true });
+        // No session yet — listen for auth state change
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (_event, sess) => {
+            subscription.unsubscribe();
+            if (sess?.user) {
+              await provisionAndNavigate(sess.user);
+            } else {
+              navigate('/login', { replace: true });
+            }
           }
-        });
+        );
       }
     };
 

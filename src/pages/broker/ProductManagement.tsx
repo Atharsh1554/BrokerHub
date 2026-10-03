@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Edit2, Trash2, ShoppingBag, X, ImagePlus, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, ShoppingBag, X, ImagePlus, CheckCircle2, Search, Loader2 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useApp } from '../../context/AppContext';
@@ -7,10 +7,12 @@ import type { Product } from '../../types';
 import { compressImage } from '../../lib/utils/imageCompressor';
 
 export const ProductManagement: React.FC = () => {
-  const { products, addProduct, updateProduct, deleteProduct } = useApp();
+  const { brokerProducts, brokerProductsLoading, addProduct, updateProduct, deleteProduct } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Modal Form State
@@ -23,11 +25,18 @@ export const ProductManagement: React.FC = () => {
     image: '',
   });
 
-  const categories = ['All', ...Array.from(new Set(products.map((p) => p.category)))];
+  const categories = ['All', ...Array.from(new Set(brokerProducts.map((p) => p.category)))];
 
-  const filteredProducts = products.filter(
-    (p) => selectedCategory === 'All' || p.category === selectedCategory
-  );
+  const filteredProducts = brokerProducts.filter((p) => {
+    const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      p.name.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q) ||
+      (p.description || '').toLowerCase().includes(q);
+    return matchesCategory && matchesSearch;
+  });
 
   // Handle image file upload → compress image to ~30KB before saving
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,38 +55,45 @@ export const ProductManagement: React.FC = () => {
     }
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.price) return;
+    if (!formData.name || !formData.price || isSubmitting) return;
 
     const stockNum = parseInt(formData.stock) || 0;
     const statusVal = stockNum === 0 ? 'Out of Stock' : stockNum < 10 ? 'Low Stock' : 'In Stock';
 
-    if (editingProduct) {
-      updateProduct(editingProduct.id, {
-        name: formData.name,
-        price: parseFloat(formData.price),
-        category: formData.category,
-        stock: stockNum,
-        status: statusVal,
-        description: formData.description,
-        image: formData.image,
-      });
-      setEditingProduct(null);
-    } else {
-      addProduct({
-        name: formData.name,
-        price: parseFloat(formData.price),
-        image: formData.image,
-        category: formData.category,
-        stock: stockNum,
-        status: statusVal,
-        description: formData.description,
-      });
-    }
+    setIsSubmitting(true);
+    try {
+      if (editingProduct) {
+        await updateProduct(editingProduct.id, {
+          name: formData.name,
+          price: parseFloat(formData.price),
+          category: formData.category,
+          stock: stockNum,
+          status: statusVal,
+          description: formData.description,
+          image: formData.image,
+        });
+        setEditingProduct(null);
+      } else {
+        await addProduct({
+          name: formData.name,
+          price: parseFloat(formData.price),
+          image: formData.image,
+          category: formData.category,
+          stock: stockNum,
+          status: statusVal,
+          description: formData.description,
+        });
+      }
 
-    setIsAddModalOpen(false);
-    setFormData({ name: '', price: '', category: 'Electronics', stock: '', description: '', image: '' });
+      setIsAddModalOpen(false);
+      setFormData({ name: '', price: '', category: 'Electronics', stock: '', description: '', image: '' });
+    } catch (err) {
+      console.error('Failed to save product:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEditClick = (product: Product) => {
@@ -129,26 +145,101 @@ export const ProductManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Category Filter Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
-              selectedCategory === cat
-                ? 'bg-primary text-white shadow-xs'
-                : 'bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
+      {/* Search + Category Filters Row */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        {/* Search Bar */}
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by name, category, description..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-9 py-2 border border-zinc-200 rounded-xl bg-white text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors cursor-pointer"
+              aria-label="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Category Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-0 no-scrollbar flex-1">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                selectedCategory === cat
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Products Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProducts.map((product) => (
+      {/* Products Grid or Loading or Empty State */}
+      {brokerProductsLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="bg-white rounded-2xl border border-zinc-200 p-5 animate-pulse space-y-4 shadow-xs">
+              <div className="h-44 bg-zinc-100 rounded-xl" />
+              <div className="h-4 bg-zinc-100 rounded w-3/4" />
+              <div className="h-3 bg-zinc-100 rounded w-1/2" />
+              <div className="pt-4 border-t border-zinc-100 flex justify-between">
+                <div className="h-6 bg-zinc-100 rounded w-1/3" />
+                <div className="h-6 bg-zinc-100 rounded w-1/4" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-zinc-200 p-12 text-center shadow-xs">
+          <ShoppingBag className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-zinc-700 mb-1">
+            {searchQuery ? 'No products match your search' : 'No personal product listings yet'}
+          </h3>
+          <p className="text-sm text-zinc-400 max-w-sm mx-auto">
+            {searchQuery
+              ? `No results for "${searchQuery}". Try a different keyword or clear the search.`
+              : 'Add your first private product listing. It will only be visible and manageable by your broker account.'}
+          </p>
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="mt-4 text-sm font-semibold text-primary hover:underline cursor-pointer"
+            >
+              Clear search
+            </button>
+          ) : (
+            <Button
+              variant="primary"
+              size="sm"
+              className="mt-4 gap-1.5"
+              onClick={() => {
+                setEditingProduct(null);
+                setFormData({ name: '', price: '', category: 'Electronics', stock: '', description: '', image: '' });
+                setIsAddModalOpen(true);
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              Add Product
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProducts.map((product) => (
           <div
             key={product.id}
             className="bg-white rounded-2xl border border-zinc-200 shadow-xs flex flex-col justify-between hover:shadow-md transition-all overflow-hidden"
@@ -210,9 +301,9 @@ export const ProductManagement: React.FC = () => {
               </Button>
             </div>
           </div>
-        ))}
-      </div>
-
+          ))}
+          </div>
+        )}
       {/* Add / Edit Product Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
@@ -341,11 +432,20 @@ export const ProductManagement: React.FC = () => {
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-zinc-100">
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" onClick={resetForm} disabled={isSubmitting}>
                   Cancel
                 </Button>
-                <Button type="submit" variant="primary">
-                  {editingProduct ? 'Save Changes' : '🚀 Create Listing'}
+                <Button type="submit" variant="primary" disabled={isSubmitting} className="gap-2">
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : editingProduct ? (
+                    'Save Changes'
+                  ) : (
+                    '🚀 Create Listing'
+                  )}
                 </Button>
               </div>
             </form>
