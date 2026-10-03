@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
 import { CustomerSidebar } from '../../components/layout/CustomerSidebar';
 import { BrokerSidebar } from '../../components/layout/BrokerSidebar';
 import { TopHeader } from '../../components/layout/TopHeader';

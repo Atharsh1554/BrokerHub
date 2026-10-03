@@ -11,11 +11,8 @@ import {
   Layers,
   Award,
   DollarSign,
-  Info,
-  Calendar,
   User,
   ShieldCheck,
-  Check,
   Ban,
   RefreshCw,
 } from 'lucide-react';

@@ -171,7 +171,7 @@ export interface BrokerNotification {
   created_at: string;
 }
 
-export type ReverseAuctionStatus = 'OPEN' | 'ACCEPTED' | 'IN_PROGRESS' | 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'READY' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED';
+export type ReverseAuctionStatus = 'OPEN' | 'ACCEPTED' | 'IN_PROGRESS' | 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'READY' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'Active' | 'Ending Soon' | 'Broker approved' | 'Completed' | 'Cancelled' | 'Draft' | 'DRAFT' | (string & {});
 
 export interface ReverseAuction {
   id: string;

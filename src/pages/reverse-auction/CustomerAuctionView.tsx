@@ -59,7 +59,6 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
 
   // Image Upload
   const [files, setFiles] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
 
   const [publishing, setPublishing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -138,7 +137,7 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
           // Fallback: use avatars bucket with a subfolder path
           console.warn('reverse-auctions bucket not available, using avatars fallback. Error:', primaryErr.message);
           const fallbackPath = `auction-images/${auctionId}/${fileName}`;
-          const { error: fallbackErr, data: fallbackData } = await supabase.storage
+          const { error: fallbackErr } = await supabase.storage
             .from('avatars')
             .upload(fallbackPath, file, { upsert: true, contentType: file.type });
           
@@ -364,7 +363,6 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
                 {TIMELINE_STEPS.map((step, idx) => {
                   const isCompleted = currentStepIndex >= 0 && idx < currentStepIndex;
                   const isActive    = idx === currentStepIndex;
-                  const isUpcoming  = currentStepIndex < 0 || idx > currentStepIndex;
                   // When status is COMPLETED all steps are done
                   const allDone = selectedAuction.currentLevel === 'COMPLETED';
                   const done = allDone || isCompleted;

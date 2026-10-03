@@ -74,6 +74,7 @@ export const NotificationCenter: React.FC = () => {
       meeting: 0,
       profile_request: 0,
       general: 0,
+      reverse_auction: 0,
     };
     notifications.forEach((n) => {
       if (counts[n.type] !== undefined) {

@@ -71,7 +71,7 @@ export const ReverseAuctionPage: React.FC = () => {
     };
   }, [fetchAuctionsData]);
 
-  const handleNavigateToMessages = (contactId?: string) => {
+  const handleNavigateToMessages = (_contactId?: string) => {
     if (perspective === 'broker') {
       navigate('/broker/messages');
     } else {

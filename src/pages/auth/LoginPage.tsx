@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ShieldCheck, UserCheck, Briefcase,
-  Sparkles, CheckCircle2, ArrowRight,
+  CheckCircle2, ArrowRight,
   Building2, TrendingUp, Package, MessageCircle,
   Phone, Hash
 } from 'lucide-react';
@@ -140,8 +140,6 @@ export const LoginPage: React.FC = () => {
 
   const isCustomer = role === 'customer';
   const features = isCustomer ? CUSTOMER_FEATURES : BROKER_FEATURES;
-
-  const accentColor = isCustomer ? 'teal' : 'indigo';
   const btnClass = isCustomer
     ? 'bg-teal-600 hover:bg-teal-700 focus:ring-teal-500'
     : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500';
