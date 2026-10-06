@@ -385,24 +385,53 @@ export const OrderTracking: React.FC = () => {
                 </div>
               </div>
 
-              {/* Financial Breakdown */}
+              {/* Financial Breakdown — sourced from DB commission snapshot */}
               {(() => {
-                const total = selectedOrder.totalAmount ?? selectedOrder.amount ?? 0;
-                const commission = total * 0.05;
-                const netPayout = total * 0.95;
+                const orderData = selectedOrder as any;
+                const total = orderData.totalAmount ?? orderData.amount ?? 0;
+                // Use stored commission snapshot if available, else fallback to 0
+                const platformCommission = orderData.platform_commission ?? orderData.platformCommission ?? 0;
+                const brokerAmount = orderData.broker_amount ?? orderData.brokerAmount ?? (total - platformCommission);
+                const commissionType = orderData.commission_type ?? orderData.commissionType ?? 'NONE';
+                const commissionValue = orderData.commission_value ?? orderData.commissionValue ?? 0;
+                const settlementStatus = orderData.settlement_status ?? orderData.settlementStatus ?? 'Pending Admin Settlement';
+
+                const commissionLabel = commissionType === 'NONE'
+                  ? 'Platform Commission (Free Launch)'
+                  : commissionType === 'FIXED'
+                  ? `Platform Commission (₹${commissionValue} fixed)`
+                  : `Platform Commission (${commissionValue}%)`;
+
                 return (
                   <div className="border-t border-zinc-100 pt-3 space-y-2 text-xs">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                      Payment & Settlement Breakdown
+                    </p>
                     <div className="flex justify-between text-zinc-500">
-                      <span>Order Subtotal</span>
+                      <span>Gross Order Amount</span>
                       <span className="font-bold text-zinc-800">₹{total.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between text-zinc-500">
-                      <span>Platform Commission (5%)</span>
-                      <span className="text-emerald-600 font-semibold">-₹{commission.toLocaleString('en-IN')}</span>
+                      <span>{commissionLabel}</span>
+                      <span className={platformCommission > 0 ? 'text-amber-600 font-semibold' : 'text-zinc-400 font-semibold'}>
+                        {platformCommission > 0 ? `-₹${platformCommission.toLocaleString('en-IN')}` : '₹0'}
+                      </span>
                     </div>
                     <div className="flex justify-between font-black text-zinc-900 text-sm pt-2 border-t border-zinc-100">
-                      <span>Net Broker Payout</span>
-                      <span className="text-emerald-600 text-base">₹{netPayout.toLocaleString('en-IN')}</span>
+                      <span>Your Broker Amount</span>
+                      <span className="text-emerald-600 text-base">₹{brokerAmount.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between text-xs pt-1">
+                      <span className="text-zinc-400">Settlement Status</span>
+                      <span className={`font-bold px-2 py-0.5 rounded-full text-[10px] ${
+                        settlementStatus === 'Settled'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : settlementStatus === 'Refunded'
+                          ? 'bg-red-50 text-red-600 border border-red-200'
+                          : 'bg-amber-50 text-amber-600 border border-amber-200'
+                      }`}>
+                        {settlementStatus}
+                      </span>
                     </div>
                   </div>
                 );

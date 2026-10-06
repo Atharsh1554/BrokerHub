@@ -292,8 +292,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         { event: '*', schema: 'public', table: 'orders' },
         (payload) => {
           handleOrdersReload();
+          const newRecord = payload.new as any;
+          const oldRecord = payload.old as any;
+
           if (payload.eventType === 'INSERT') {
-            showToast('🔔 New order activity detected!', 'info');
+            if (userRole === 'broker') {
+              showToast('🔔 New order received!', 'info');
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            // Broker gets a "Payment received" toast when payment flips to Successful
+            if (
+              userRole === 'broker' &&
+              newRecord?.payment_status === 'Successful' &&
+              oldRecord?.payment_status !== 'Successful'
+            ) {
+              const amount = newRecord?.total_amount ?? newRecord?.amount ?? 0;
+              const formatted = `₹${Number(amount).toLocaleString('en-IN')}`;
+              showToast(`💰 Payment received: ${formatted} — Pending Admin Settlement`, 'success');
+            }
           }
         }
       )

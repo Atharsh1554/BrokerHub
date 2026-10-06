@@ -9,8 +9,8 @@ export const AdminLoginPage: React.FC = () => {
   const location = useLocation();
   const { signIn } = useAuth();
 
-  const [email, setEmail] = useState('admin@brokerhub.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,11 +22,27 @@ export const AdminLoginPage: React.FC = () => {
     setError(null);
 
     try {
-      // 1. Check demo credentials
-      if (email.trim().toLowerCase() === 'admin@brokerhub.com' && password === 'admin123') {
+      // 1. Check Role-based Hardcoded Credentials
+      const emailLower = email.trim().toLowerCase();
+      
+      let assignedRole = null;
+      let roleName = '';
+
+      if (emailLower === 'superadmin@brokerhub.com' && password === 'superadmin123') {
+        assignedRole = 'super_admin';
+        roleName = 'Super Admin';
+      } else if (emailLower === 'admin@brokerhub.com' && password === 'admin123') {
+        assignedRole = 'admin';
+        roleName = 'Admin';
+      } else if (emailLower === 'moderator@brokerhub.com' && password === 'moderator123') {
+        assignedRole = 'moderator';
+        roleName = 'Moderator';
+      }
+
+      if (assignedRole) {
         localStorage.setItem('brokerhub_admin_session', 'true');
-        localStorage.setItem('brokerhub_admin_role', 'super_admin');
-        await logAdminActivity('Admin Login', 'Super Admin Console');
+        localStorage.setItem('brokerhub_admin_role', assignedRole);
+        await logAdminActivity('Admin Login', `${roleName} Console`);
         setLoading(false);
         navigate(from, { replace: true });
         return;
@@ -141,30 +157,6 @@ export const AdminLoginPage: React.FC = () => {
               )}
             </button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-slate-100">
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Demo Admin Access</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('admin@brokerhub.com');
-                    setPassword('admin123');
-                  }}
-                  className="text-[11px] font-bold text-emerald-600 hover:underline"
-                >
-                  Auto-fill Demo
-                </button>
-              </div>
-              <p className="text-[11px] text-slate-600">
-                Email: <code className="text-emerald-700 font-bold">admin@brokerhub.com</code> | Pass: <code className="text-emerald-700 font-bold">admin123</code>
-              </p>
-            </div>
-          </div>
         </div>
 
         <div className="mt-6 text-center text-xs text-slate-500">

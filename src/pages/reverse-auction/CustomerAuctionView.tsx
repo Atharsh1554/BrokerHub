@@ -253,7 +253,7 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
             </div>
             
             <div>
-              <label className="block text-sm font-bold mb-2">Budget (€)</label>
+              <label className="block text-sm font-bold mb-2">Budget (₹)</label>
               <input required type="number" min="1" className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500" value={budget} onChange={e => setBudget(e.target.value)} />
             </div>
 
@@ -451,17 +451,26 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
             </div>
             
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-              <h3 className="font-bold text-lg">Project Details</h3>
-              <p className="text-sm text-gray-700 leading-relaxed">{selectedAuction.description}</p>
-              
-              <div className="pt-4 border-t border-gray-100 space-y-3">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Budget</p>
-                  <p className="font-bold text-slate-800 text-lg">€{selectedAuction.startingPrice}</p>
+              <h3 className="font-bold text-lg text-slate-800">Project Details</h3>
+
+              {/* Description — clamped & scrollable if very long */}
+              <p className="text-sm text-gray-700 leading-relaxed break-words whitespace-pre-wrap overflow-hidden">
+                {selectedAuction.description}
+              </p>
+
+              <div className="pt-4 border-t border-gray-100 grid grid-cols-1 gap-3">
+                {/* Budget */}
+                <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                  <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Budget</p>
+                  <p className="font-bold text-slate-800 text-base">₹{selectedAuction.startingPrice}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1"><Calendar size={12}/> Deadline</p>
-                  <p className="font-bold text-slate-800">
+
+                {/* Deadline */}
+                <div className="flex items-center justify-between py-2 border-b border-gray-50">
+                  <p className="text-xs text-gray-500 uppercase font-bold tracking-wider flex items-center gap-1">
+                    <Calendar size={12}/> Deadline
+                  </p>
+                  <p className="font-semibold text-slate-800 text-sm text-right">
                     {new Date(selectedAuction.endTime || '').toLocaleString(undefined, {
                       month: 'short',
                       day: 'numeric',
@@ -470,9 +479,13 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
                     })}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs text-rose-500 uppercase font-bold tracking-wider mb-1 flex items-center gap-1"><Clock size={12}/> Time Left</p>
-                  <p className="font-bold text-rose-700 text-lg">
+
+                {/* Time Left */}
+                <div className="flex items-center justify-between py-2">
+                  <p className="text-xs text-rose-500 uppercase font-bold tracking-wider flex items-center gap-1">
+                    <Clock size={12}/> Time Left
+                  </p>
+                  <p className="font-bold text-rose-700 text-base">
                     {formatCountdown(selectedAuction.endTime || '')}
                   </p>
                 </div>
@@ -521,7 +534,7 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
                 <div>
                   <h3 className="font-bold text-slate-800 text-lg">{auc.title}</h3>
                   <p className="text-sm text-gray-500 mb-2">
-                    Budget: €{auc.startingPrice} · 
+                    Budget: ₹{auc.startingPrice} · 
                     Deadline: {new Date(auc.endTime || '').toLocaleDateString()}
                   </p>
                   <div className="flex flex-wrap items-center gap-2">

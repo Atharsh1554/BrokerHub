@@ -30,6 +30,12 @@ import { CareersPage } from './pages/mytrio/CareersPage';
 import { BlogPage } from './pages/mytrio/BlogPage';
 import { ContactPage } from './pages/mytrio/ContactPage';
 
+// Legal Pages
+import { TermsPage } from './pages/legal/TermsPage';
+import { PrivacyPage } from './pages/legal/PrivacyPage';
+import { CookiesPage } from './pages/legal/CookiesPage';
+import { CompliancePage } from './pages/legal/CompliancePage';
+
 // Customer Pages
 import { CustomerDashboard } from './pages/customer/CustomerDashboard';
 import { MyOrdersPage } from './pages/customer/MyOrdersPage';
@@ -67,6 +73,7 @@ import { AdminReports } from './pages/admin/AdminReports';
 import { AdminActivityLogs } from './pages/admin/AdminActivityLogs';
 import { AdminSearch } from './pages/admin/AdminSearch';
 import { AdminSettings } from './pages/admin/AdminSettings';
+import { AdminCommissions } from './pages/admin/AdminCommissions';
 
 export const App: React.FC = () => {
   return (
@@ -87,6 +94,12 @@ export const App: React.FC = () => {
         <Route path="/careers" element={<CareersPage />} />
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/contact" element={<ContactPage />} />
+
+        {/* Legal Pages */}
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/cookies" element={<CookiesPage />} />
+        <Route path="/compliance" element={<CompliancePage />} />
 
         {/* Direct /my-orders shortcut */}
         <Route path="/my-orders" element={<Navigate to="/customer/my-orders" replace />} />
@@ -170,6 +183,7 @@ export const App: React.FC = () => {
           <Route path="products" element={<AdminProducts />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="payments" element={<AdminPayments />} />
+          <Route path="commissions" element={<AdminCommissions />} />
           <Route path="connections" element={<AdminConnections />} />
           <Route path="notifications" element={<AdminNotifications />} />
 

@@ -786,6 +786,41 @@ export const BrokerDashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* Payment & Settlement Breakdown */}
+            <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 space-y-3">
+              <p className="text-xs font-bold text-emerald-900 uppercase tracking-wider">
+                💰 Settlement & Commission Breakdown
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
+                  <p className="text-gray-500 font-medium text-[11px]">Payment Received</p>
+                  <p className="text-sm font-bold text-slate-900 mt-0.5">
+                    ₹{(selectedOrderDetails.totalAmount || selectedOrderDetails.amount || 0).toLocaleString('en-IN')}
+                  </p>
+                </div>
+                <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
+                  <p className="text-gray-500 font-medium text-[11px]">Platform Commission</p>
+                  <p className="text-sm font-bold text-emerald-600 mt-0.5">₹0</p>
+                </div>
+                <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
+                  <p className="text-gray-500 font-medium text-[11px]">Broker Amount</p>
+                  <p className="text-sm font-bold text-emerald-700 mt-0.5">
+                    ₹{(selectedOrderDetails.totalAmount || selectedOrderDetails.amount || 0).toLocaleString('en-IN')}
+                  </p>
+                </div>
+                <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
+                  <p className="text-gray-500 font-medium text-[11px]">Settlement Status</p>
+                  <span className={`inline-block mt-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                    (selectedOrderDetails.settlement_status === 'Settled')
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {selectedOrderDetails.settlement_status || 'Pending Admin Settlement'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Payment & Order Status Control */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-border">
               <div>

@@ -5,67 +5,94 @@ import { supabase } from '../../lib/supabase';
 const GOOGLE_ROLE_KEY = 'brokerhub_google_role';
 
 /**
- * This page handles the OAuth redirect from Google/other providers.
- * Supabase automatically exchanges the code for a session; we just wait
- * for the session to be ready then route the user to the right dashboard.
- * If no profile exists in public.users yet, it creates one automatically.
+ * Handles the OAuth redirect from Google/other providers.
+ * Reads the requested role saved before redirect (e.g. 'broker' or 'customer'),
+ * provisions or updates the user profile in public.users and public.brokers accordingly,
+ * then routes to the correct dashboard.
  */
 export const AuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
     const provisionAndNavigate = async (user: any) => {
+      const savedRole = (localStorage.getItem(GOOGLE_ROLE_KEY) as 'customer' | 'broker') || 'customer';
+      localStorage.removeItem(GOOGLE_ROLE_KEY);
+
       // Check if user profile already exists in public.users
       const { data: existingProfile } = await supabase
         .from('users')
         .select('role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (existingProfile) {
-        // Profile exists — route to correct dashboard
-        const role = existingProfile.role;
-        navigate(
-          role === 'broker' ? '/broker/dashboard'
-          : role === 'admin' ? '/admin/dashboard'
-          : '/customer/dashboard',
-          { replace: true }
-        );
-        return;
+      let targetRole: 'customer' | 'broker' | 'admin' = existingProfile?.role || savedRole;
+
+      // If user explicitly initiated sign-in/up as a broker (from broker auth page or broker tab),
+      // update or set their role in users table to 'broker'
+      if (savedRole === 'broker' && existingProfile?.role !== 'broker') {
+        targetRole = 'broker';
+        if (existingProfile) {
+          await supabase.from('users').update({ role: 'broker' }).eq('id', user.id);
+        }
       }
 
-      // Profile doesn't exist — create one now (first Google sign-in)
-      const savedRole = (localStorage.getItem(GOOGLE_ROLE_KEY) as 'customer' | 'broker') || 'customer';
-      localStorage.removeItem(GOOGLE_ROLE_KEY);
+      // If profile doesn't exist yet, insert new user record
+      if (!existingProfile) {
+        const fullName =
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          user.email?.split('@')[0] ||
+          'User';
 
-      const fullName =
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        user.email?.split('@')[0] ||
-        'User';
+        const { error: insertError } = await supabase.from('users').insert({
+          id: user.id,
+          email: user.email,
+          full_name: fullName,
+          avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+          role: targetRole,
+          status: 'active',
+        });
 
-      const { error: insertError } = await supabase.from('users').insert({
-        id: user.id,
-        email: user.email,
-        full_name: fullName,
-        avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
-        role: savedRole,
-        status: 'active',
-      });
-
-      if (insertError) {
-        console.error('Failed to create user profile:', insertError.message);
-        // Navigate anyway — profile can be created later
+        if (insertError) {
+          console.error('Failed to create user profile:', insertError.message);
+        }
       }
 
-      navigate(
-        savedRole === 'broker' ? '/broker/dashboard' : '/customer/dashboard',
-        { replace: true }
-      );
+      // If targetRole is broker, ensure a corresponding record exists in public.brokers table
+      if (targetRole === 'broker') {
+        const { data: brokerRow } = await supabase
+          .from('brokers')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (!brokerRow) {
+          const fullName =
+            user.user_metadata?.full_name ||
+            user.user_metadata?.name ||
+            user.email?.split('@')[0] ||
+            'Broker Partner';
+
+          await supabase.from('brokers').insert([{
+            id: user.id,
+            name: fullName,
+            specialty: 'General Brokerage',
+            company: 'Independent Broker',
+          }]);
+        }
+      }
+
+      // Navigate to destination dashboard
+      const destination =
+        targetRole === 'broker' ? '/broker/dashboard'
+        : targetRole === 'admin' ? '/admin/dashboard'
+        : '/customer/dashboard';
+
+      navigate(destination, { replace: true });
     };
 
     const handleCallback = async () => {
-      // Small delay to allow Supabase to finish exchanging the auth code
+      // Small delay to allow Supabase to finish exchanging auth code
       await new Promise((res) => setTimeout(res, 500));
 
       const { data: { session }, error } = await supabase.auth.getSession();
@@ -79,7 +106,7 @@ export const AuthCallbackPage: React.FC = () => {
       if (session?.user) {
         await provisionAndNavigate(session.user);
       } else {
-        // No session yet — listen for auth state change
+        // Listen for auth state change if session isn't immediately present
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (_event, sess) => {
             subscription.unsubscribe();

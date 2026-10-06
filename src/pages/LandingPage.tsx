@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { Button } from '../components/ui/Button';
@@ -7,6 +7,23 @@ import { Zap, Shield, Users, Star, ArrowRight, CheckCircle, Quote } from 'lucide
 
 export const LandingPage: React.FC = () => {
   const [filterRole, setFilterRole] = useState<'all' | 'client' | 'broker'>('all');
+  const location = useLocation();
+
+  useEffect(() => {
+    const state = location.state as { scrollTo?: string } | null;
+    if (state?.scrollTo) {
+      // Small delay to allow the page to fully render before scrolling
+      const timer = setTimeout(() => {
+        const el = document.getElementById(state.scrollTo!);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+        // Clear state so back-navigation doesn't re-scroll
+        window.history.replaceState({}, document.title);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   const testimonials = [
     {
@@ -276,6 +293,74 @@ export const LandingPage: React.FC = () => {
                     <p className="text-xs font-semibold text-primary">{t.company}</p>
                   </div>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl font-bold text-text-primary mb-4">
+              Simple, <span className="text-primary">transparent pricing</span>
+            </h2>
+            <p className="text-gray-text max-w-2xl mx-auto">
+              No hidden fees. Choose the plan that works best for your business needs.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              { plan: 'Starter', price: '₹0', period: '/month', desc: 'Perfect for individuals exploring broker connections.', features: ['Up to 3 broker matches', 'Basic messaging', 'Public broker profiles'] },
+              { plan: 'Growth', price: '₹2,999', period: '/month', desc: 'For growing businesses needing consistent broker access.', features: ['Unlimited broker matches', 'Priority support', 'Advanced analytics', 'Appointment scheduling'], highlight: true },
+              { plan: 'Enterprise', price: 'Custom', period: '', desc: 'Tailored solutions for large-scale operations.', features: ['Dedicated account manager', 'Custom integrations', 'SLA guarantee', 'Bulk deal management'] },
+            ].map((tier) => (
+              <div key={tier.plan} className={`rounded-2xl border p-8 flex flex-col gap-6 ${
+                tier.highlight ? 'border-primary bg-primary/5 shadow-lg' : 'border-gray-border bg-gray-bg'
+              }`}>
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-wider text-primary mb-1">{tier.plan}</p>
+                  <p className="text-4xl font-bold text-text-primary">{tier.price}<span className="text-sm font-normal text-gray-text">{tier.period}</span></p>
+                  <p className="text-sm text-gray-text mt-2">{tier.desc}</p>
+                </div>
+                <ul className="space-y-2 flex-1">
+                  {tier.features.map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-text-primary">
+                      <CheckCircle size={16} className="text-primary shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/signup">
+                  <Button variant={tier.highlight ? 'primary' : 'secondary'} size="md" className="w-full justify-center">
+                    Get Started
+                  </Button>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-bg border-t border-gray-border">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl font-bold text-text-primary mb-4">Frequently Asked Questions</h2>
+            <p className="text-gray-text">Everything you need to know about BROKER HUB.</p>
+          </div>
+          <div className="space-y-4">
+            {[
+              { q: 'How does broker matching work?', a: 'Our algorithm analyses your business requirements and matches you with verified brokers who specialize in your industry and deal type.' },
+              { q: 'Are brokers verified and vetted?', a: 'Yes. Every broker on BROKER HUB goes through a thorough verification process including identity checks, license validation, and reference reviews.' },
+              { q: 'How quickly can I get matched?', a: 'Most matches are delivered within 24 hours of submitting your requirements. Priority plan users get matches within 4 hours.' },
+              { q: 'Is there a free plan available?', a: 'Yes, our Starter plan is completely free and lets you explore up to 3 broker matches with basic messaging.' },
+              { q: 'Can I switch plans later?', a: 'Absolutely. You can upgrade, downgrade, or cancel your plan at any time from your account settings.' },
+            ].map((item, i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-border p-6">
+                <h3 className="font-semibold text-text-primary mb-2">{item.q}</h3>
+                <p className="text-sm text-gray-text leading-relaxed">{item.a}</p>
               </div>
             ))}
           </div>

@@ -164,9 +164,6 @@ export const LoginPage: React.FC = () => {
             </div>
             <div>
               <h1 className="text-4xl font-black tracking-tight">BROKER HUB</h1>
-              <p className="text-sm font-bold uppercase tracking-widest text-white/60 italic mt-1">
-                A MYSTRIO Product
-              </p>
             </div>
           </div>
 

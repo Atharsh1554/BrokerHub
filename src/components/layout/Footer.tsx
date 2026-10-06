@@ -1,11 +1,45 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useCallback } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 export const Footer: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleSectionLink = useCallback(
+    (sectionId: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      if (location.pathname === '/') {
+        // Already on homepage — scroll directly
+        const el = document.getElementById(sectionId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else {
+        // Navigate to homepage with hash; scroll after navigation
+        navigate('/', { state: { scrollTo: sectionId } });
+      }
+    },
+    [location.pathname, navigate]
+  );
+
+  const platformLinks: { label: string; sectionId: string }[] = [
+    { label: 'How It Works', sectionId: 'how-it-works' },
+    { label: 'Features', sectionId: 'features' },
+    { label: 'Pricing', sectionId: 'pricing' },
+    { label: 'FAQ', sectionId: 'faq' },
+  ];
+
+  const legalLinks: { label: string; path: string }[] = [
+    { label: 'Terms of Service', path: '/terms' },
+    { label: 'Privacy Policy', path: '/privacy' },
+    { label: 'Cookie Policy', path: '/cookies' },
+    { label: 'Compliance', path: '/compliance' },
+  ];
+
   return (
     <footer className="bg-navy text-white border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Brand Hierarchy & Description */}
           <div className="md:col-span-1 space-y-3">
             <div className="flex items-center gap-3">
@@ -24,11 +58,15 @@ export const Footer: React.FC = () => {
           <div>
             <h4 className="font-semibold text-sm uppercase tracking-wider mb-4 text-gray-300">Platform</h4>
             <ul className="space-y-2.5">
-              {['How It Works', 'Features', 'Pricing', 'FAQ'].map((item) => (
-                <li key={item}>
-                  <Link to="/" className="text-sm text-gray-400 hover:text-primary transition-colors duration-200">
-                    {item}
-                  </Link>
+              {platformLinks.map((item) => (
+                <li key={item.label}>
+                  <a
+                    href={`/#${item.sectionId}`}
+                    onClick={handleSectionLink(item.sectionId)}
+                    className="text-sm text-gray-400 hover:text-primary transition-colors duration-200"
+                  >
+                    {item.label}
+                  </a>
                 </li>
               ))}
             </ul>
@@ -57,13 +95,40 @@ export const Footer: React.FC = () => {
           <div>
             <h4 className="font-semibold text-sm uppercase tracking-wider mb-4 text-gray-300">Legal</h4>
             <ul className="space-y-2.5">
-              {['Terms of Service', 'Privacy Policy', 'Cookie Policy', 'Compliance'].map((item) => (
-                <li key={item}>
-                  <Link to="/" className="text-sm text-gray-400 hover:text-primary transition-colors duration-200">
-                    {item}
+              {legalLinks.map((item) => (
+                <li key={item.label}>
+                  <Link to={item.path} className="text-sm text-gray-400 hover:text-primary transition-colors duration-200">
+                    {item.label}
                   </Link>
                 </li>
               ))}
+            </ul>
+          </div>
+
+          {/* Support */}
+          <div>
+            <h4 className="font-semibold text-sm uppercase tracking-wider mb-4 text-gray-300">Support</h4>
+            <ul className="space-y-2.5">
+              <li>
+                <a href="mailto:mystriotechnologies@gmail.com" className="text-xs text-gray-400 hover:text-primary transition-colors duration-200">
+                  mystriotechnologies@gmail.com
+                </a>
+              </li>
+              <li>
+                <a href="mailto:brokerhub07@gmail.com" className="text-xs text-gray-400 hover:text-primary transition-colors duration-200">
+                  brokerhub07@gmail.com
+                </a>
+              </li>
+              <li>
+                <a href="tel:+917339174356" className="text-sm text-gray-400 hover:text-primary transition-colors duration-200">
+                  +91 73391 74356
+                </a>
+              </li>
+              <li>
+                <a href="tel:+917010158911" className="text-sm text-gray-400 hover:text-primary transition-colors duration-200">
+                  +91 70101 58911
+                </a>
+              </li>
             </ul>
           </div>
         </div>

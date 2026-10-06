@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Disallow private areas
+Disallow: /admin/
+Disallow: /broker/
+Disallow: /customer/
+Disallow: /checkout/
+Disallow: /login/
+Disallow: /signup/
+
+Sitemap: https://www.hendrixbrokerhub.in/sitemap.xml

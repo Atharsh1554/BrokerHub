@@ -127,6 +127,16 @@ export interface Order {
   createdAt?: string;
   updatedAt?: string;
   status: 'Delivered' | 'In Transit' | 'Pending' | 'Cancelled' | 'Processing' | 'Shipped' | 'ACCEPTED' | 'COMPLETED' | 'REFUNDED' | 'Confirmed' | string;
+  // Commission & settlement architecture (zero-commission model)
+  platform_commission?: number;
+  broker_amount?: number;
+  commission_type?: string;
+  commission_value?: number;
+  razorpay_order_id?: string | null;
+  razorpay_payment_id?: string | null;
+  settlement_status?: 'Pending Admin Settlement' | 'Settled' | 'On Hold' | string;
+  settlement_date?: string | null;
+  total_amount?: number;
 }
 
 export interface Notification {

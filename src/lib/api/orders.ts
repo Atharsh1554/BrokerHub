@@ -70,7 +70,7 @@ const parseOrderRow = (o: any): Order => {
     price: o.price || (items[0]?.unitPrice ?? 0),
     totalAmount: o.total_amount || o.amount || 0,
     amount: o.total_amount || o.amount || 0,
-    paymentStatus: o.payment_status || 'Successful',
+    paymentStatus: o.payment_status || 'Pending',
     paymentMethod: o.payment_method || 'Online Payment',
     transactionId: o.transaction_id || `TXN-${(o.id || '').slice(0, 8)}`,
     deliveryAddress: formattedDeliveryAddress,
@@ -81,6 +81,15 @@ const parseOrderRow = (o: any): Order => {
     date: o.date || o.created_at,
     createdAt: o.created_at || o.date,
     status: o.status || 'Pending',
+    // Commission & payment architecture fields
+    platform_commission: o.platform_commission ?? 0,
+    broker_amount: o.broker_amount ?? (o.total_amount || o.amount || 0),
+    commission_type: o.commission_type || 'NONE',
+    commission_value: o.commission_value ?? 0,
+    razorpay_order_id: o.razorpay_order_id || null,
+    razorpay_payment_id: o.razorpay_payment_id || null,
+    settlement_status: o.settlement_status || 'Pending Admin Settlement',
+    settlement_date: o.settlement_date || null,
   };
 };
 
@@ -197,7 +206,7 @@ export const createOrderInDB = async (payload: {
       broker_id: isUuidStr(primaryBrokerId) ? primaryBrokerId : null,
       broker_name: primaryBrokerName,
       total_amount: payload.totalAmount || 0,
-      payment_status: payload.paymentStatus || 'Successful',
+      payment_status: payload.paymentStatus || 'Pending',
       status: 'Pending',
       delivery_address: formattedDeliveryAddress,
       // Stored as JSONB — this is an immutable snapshot of the delivery address
@@ -259,6 +268,32 @@ export const createOrderInDB = async (payload: {
 
       const { error: itemsErr } = await supabase.from('order_items').insert(itemsToInsert);
       if (itemsErr) console.error('Error inserting order items:', itemsErr);
+
+      // Decrement stock for ordered products
+      for (const item of payload.items) {
+        if (isUuidStr(item.productId)) {
+          try {
+            // Fetch current stock
+            const { data: prodData } = await supabase
+              .from('products')
+              .select('stock')
+              .eq('id', item.productId)
+              .single();
+              
+            if (prodData && typeof prodData.stock === 'number') {
+              const newStock = Math.max(0, prodData.stock - item.quantity);
+              const newStatus = newStock === 0 ? 'Out of Stock' : (newStock < 10 ? 'Low Stock' : 'In Stock');
+              
+              await supabase
+                .from('products')
+                .update({ stock: newStock, status: newStatus })
+                .eq('id', item.productId);
+            }
+          } catch (stockErr) {
+            console.error(`Failed to update stock for product ${item.productId}:`, stockErr);
+          }
+        }
+      }
     }
 
     // 3. Notify every unique broker involved in this order

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -8,6 +8,7 @@ import {
   Package,
   ShoppingBag,
   CreditCard,
+  Percent,
   Link2,
   Bell,
   Calendar,
@@ -20,6 +21,10 @@ import {
   ShieldCheck,
   X,
   UserCheck,
+  ChevronDown,
+  Headphones,
+  Mail,
+  Phone,
 } from 'lucide-react';
 import { logAdminActivity } from '../../lib/api/admin';
 import { useAdminTheme } from '../../context/AdminThemeContext';
@@ -32,6 +37,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
   const navigate = useNavigate();
   const { theme } = useAdminTheme();
   const isLight = theme === 'light';
+  const [showSupport, setShowSupport] = useState(false);
 
   const handleLogout = async () => {
     await logAdminActivity('Admin Logout', 'Session ended');
@@ -48,9 +54,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
     { label: 'Products', path: '/admin/products', icon: Package },
     { label: 'Orders', path: '/admin/orders', icon: ShoppingBag },
     { label: 'Payments', path: '/admin/payments', icon: CreditCard },
-    { label: 'Connections', path: '/admin/connections', icon: Link2 },
+    { label: 'Commissions', path: '/admin/commissions', icon: Percent },
+    { label: 'Roles & Permissions', path: '/admin/roles', icon: ShieldCheck },
     { label: 'Notifications', path: '/admin/notifications', icon: Bell },
-    { label: 'Meetings', path: '/admin/meetings', icon: Calendar },
     { label: 'Reviews & Moderation', path: '/admin/reviews', icon: MessageSquareQuote },
     { label: 'Reports', path: '/admin/reports', icon: FileSpreadsheet },
     { label: 'Activity Logs', path: '/admin/activity-logs', icon: History },
@@ -118,6 +124,76 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
           );
         })}
       </nav>
+
+      {/* Support block */}
+      <div className={`mx-3 mb-2 rounded-xl border shrink-0 ${
+        isLight ? 'bg-gradient-to-b from-emerald-50/50 to-transparent border-emerald-100/60' : 'bg-gradient-to-b from-emerald-950/20 to-transparent border-emerald-900/30'
+      }`}>
+        <button
+          onClick={() => setShowSupport(!showSupport)}
+          className={`w-full flex items-center justify-between px-3 py-2.5 text-left cursor-pointer transition-colors group rounded-xl ${
+            isLight ? 'hover:bg-emerald-50/80' : 'hover:bg-emerald-900/20'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className={`p-1.5 rounded-lg transition-colors ${
+              isLight ? 'bg-white shadow-xs text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white' : 'bg-slate-800 text-emerald-400 group-hover:bg-emerald-500/20'
+            }`}>
+              <Headphones size={14} />
+            </div>
+            <span className={`text-xs font-semibold transition-colors ${
+              isLight ? 'text-slate-700 group-hover:text-emerald-700' : 'text-slate-300 group-hover:text-emerald-400'
+            }`}>System Support</span>
+          </div>
+          <ChevronDown size={14} className={`transition-transform duration-300 ${
+            isLight ? 'text-slate-400' : 'text-slate-500'
+          } ${showSupport ? 'rotate-180' : ''}`} />
+        </button>
+        
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${showSupport ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="px-3 pb-3 text-left">
+            <div className={`space-y-3 pt-2 mt-1 border-t ${
+              isLight ? 'border-emerald-100/60' : 'border-emerald-900/30'
+            }`}>
+              <div className="space-y-1">
+                <p className={`text-[9px] font-bold uppercase tracking-widest pl-1 mb-1 ${
+                  isLight ? 'text-emerald-600/70' : 'text-emerald-500/60'
+                }`}>Email Us</p>
+                <a href="mailto:mystriotechnologies@gmail.com" className={`flex items-center gap-2.5 text-[11px] transition-all p-1.5 rounded-lg group/link ${
+                  isLight ? 'text-slate-600 hover:text-emerald-700 hover:bg-white' : 'text-slate-300 hover:text-emerald-400 hover:bg-slate-800/50'
+                }`}>
+                  <Mail size={12} className={`transition-colors ${isLight ? 'text-slate-400 group-hover/link:text-emerald-600' : 'text-slate-500 group-hover/link:text-emerald-400'}`} />
+                  <span className="truncate">mystriotechnologies@gmail.com</span>
+                </a>
+                <a href="mailto:brokerhub07@gmail.com" className={`flex items-center gap-2.5 text-[11px] transition-all p-1.5 rounded-lg group/link ${
+                  isLight ? 'text-slate-600 hover:text-emerald-700 hover:bg-white' : 'text-slate-300 hover:text-emerald-400 hover:bg-slate-800/50'
+                }`}>
+                  <Mail size={12} className={`transition-colors ${isLight ? 'text-slate-400 group-hover/link:text-emerald-600' : 'text-slate-500 group-hover/link:text-emerald-400'}`} />
+                  <span className="truncate">brokerhub07@gmail.com</span>
+                </a>
+              </div>
+              
+              <div className="space-y-1">
+                <p className={`text-[9px] font-bold uppercase tracking-widest pl-1 mb-1 ${
+                  isLight ? 'text-emerald-600/70' : 'text-emerald-500/60'
+                }`}>Call Us</p>
+                <a href="tel:+917339174356" className={`flex items-center gap-2.5 text-[11px] transition-all p-1.5 rounded-lg group/link ${
+                  isLight ? 'text-slate-600 hover:text-emerald-700 hover:bg-white' : 'text-slate-300 hover:text-emerald-400 hover:bg-slate-800/50'
+                }`}>
+                  <Phone size={12} className={`transition-colors ${isLight ? 'text-slate-400 group-hover/link:text-emerald-600' : 'text-slate-500 group-hover/link:text-emerald-400'}`} />
+                  <span>+91 73391 74356</span>
+                </a>
+                <a href="tel:+917010158911" className={`flex items-center gap-2.5 text-[11px] transition-all p-1.5 rounded-lg group/link ${
+                  isLight ? 'text-slate-600 hover:text-emerald-700 hover:bg-white' : 'text-slate-300 hover:text-emerald-400 hover:bg-slate-800/50'
+                }`}>
+                  <Phone size={12} className={`transition-colors ${isLight ? 'text-slate-400 group-hover/link:text-emerald-600' : 'text-slate-500 group-hover/link:text-emerald-400'}`} />
+                  <span>+91 70101 58911</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Admin Profile Footer */}
       <div className={`p-3.5 m-3 rounded-2xl border space-y-3 ${

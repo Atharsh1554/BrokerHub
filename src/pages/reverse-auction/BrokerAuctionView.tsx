@@ -234,7 +234,7 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-teal-50 p-4 rounded-xl border border-teal-100">
                   <p className="text-teal-700 text-xs font-bold uppercase tracking-wider mb-1">Budget</p>
-                  <p className="font-bold text-teal-900 text-xl">€{selectedAuction.startingPrice}</p>
+                  <p className="font-bold text-teal-900 text-xl">₹{selectedAuction.startingPrice}</p>
                 </div>
                 <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
                   <p className="text-amber-700 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><Calendar size={14}/> Deadline</p>
@@ -414,7 +414,7 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
               )}
               <div className="flex-1">
                 <h3 className="font-bold text-slate-800 text-lg mb-1">{auc.title}</h3>
-                <p className="text-sm text-gray-500 mb-2">Customer: {auc.customerName} · Budget: €{auc.startingPrice}</p>
+                <p className="text-sm text-gray-500 mb-2">Customer: {auc.customerName} · Budget: ₹{auc.startingPrice}</p>
                 <div className="flex flex-wrap items-center gap-3">
                   <span className={`px-3 py-1 rounded-full text-xs font-bold border ${auc.status === 'OPEN' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-teal-50 text-teal-700 border-teal-200'}`}>
                     {auc.currentLevel || auc.status}

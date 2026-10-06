@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password?: string) => Promise<{ error: any }>;
-  signUp: (email: string, password?: string) => Promise<{ data?: any, error: any }>;
+  signUp: (email: string, password?: string, role?: 'customer' | 'broker', fullName?: string) => Promise<{ data?: any, error: any }>;
   signInWithGoogle: (role?: 'customer' | 'broker') => Promise<void>;
   sendPhoneOtp: (phone: string, role: 'customer' | 'broker') => Promise<{ error: any }>;
   verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: any }>;
@@ -33,14 +33,15 @@ const AuthContext = createContext<AuthContextType>({
 const GOOGLE_ROLE_KEY = 'brokerhub_google_role';
 
 /** Provisions a user profile in public.users (and public.brokers if needed) */
-async function provisionProfile(authUser: SupabaseUser, role: 'customer' | 'broker' = 'customer') {
+async function provisionProfile(authUser: SupabaseUser, requestedRole?: 'customer' | 'broker') {
+  const metaRole = authUser.user_metadata?.role as 'customer' | 'broker' | undefined;
+  const effectiveRequestedRole = requestedRole || metaRole || 'customer';
+
   const { data: existing } = await supabase
     .from('users')
-    .select('id')
+    .select('id, role')
     .eq('id', authUser.id)
-    .single();
-
-  if (existing) return; // Already provisioned
+    .maybeSingle();
 
   const rawName = authUser.user_metadata?.full_name || authUser.user_metadata?.name;
   const fullName = resolveUserDisplayName(rawName, authUser.email);
@@ -50,27 +51,51 @@ async function provisionProfile(authUser: SupabaseUser, role: 'customer' | 'brok
     authUser.user_metadata?.picture ||
     null;
 
-  const { error } = await supabase.from('users').insert([{
-    id: authUser.id,
-    full_name: fullName,
-    email: authUser.email,
-    phone: authUser.user_metadata?.phone || null,
-    avatar,
-    role,
-  }]);
+  let targetRole: 'customer' | 'broker' | 'admin' = effectiveRequestedRole;
 
-  if (error) {
-    console.error('Error provisioning user profile:', error);
-    return;
+  if (existing) {
+    targetRole = existing.role || effectiveRequestedRole;
+    // Upgrade/update user role to broker if broker role was explicitly requested
+    if (effectiveRequestedRole === 'broker' && existing.role !== 'broker') {
+      targetRole = 'broker';
+      await supabase
+        .from('users')
+        .update({ role: 'broker' })
+        .eq('id', authUser.id);
+    }
+  } else {
+    // New user profile — use upsert so it never fails on duplicate key race conditions
+    const { error } = await supabase.from('users').upsert({
+      id: authUser.id,
+      full_name: fullName,
+      email: authUser.email,
+      phone: authUser.user_metadata?.phone || null,
+      avatar,
+      role: targetRole,
+      status: 'active',
+    }, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Error provisioning user profile:', error);
+    }
   }
 
-  if (role === 'broker') {
-    await supabase.from('brokers').insert([{
-      id: authUser.id,
-      name: fullName,
-      specialty: '',
-      company: '',
-    }]);
+  // Ensure corresponding record in public.brokers exists if targetRole is broker
+  if (targetRole === 'broker') {
+    const { data: existingBroker } = await supabase
+      .from('brokers')
+      .select('id')
+      .eq('id', authUser.id)
+      .maybeSingle();
+
+    if (!existingBroker) {
+      await supabase.from('brokers').upsert({
+        id: authUser.id,
+        name: fullName,
+        specialty: 'General Brokerage',
+        company: 'Independent Broker',
+      }, { onConflict: 'id' });
+    }
   }
 }
 
@@ -123,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('brokers')
           .select('id')
           .eq('id', authUser.id)
-          .single();
+          .maybeSingle();
 
         const detectedRole: 'customer' | 'broker' = brokerRow ? 'broker' : 'customer';
 
@@ -178,11 +203,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, session) => {
           if (session?.user) {
-            // If this is a new Google sign-in, provision the profile first
             if (event === 'SIGNED_IN') {
-              const storedRole = (localStorage.getItem(GOOGLE_ROLE_KEY) as 'customer' | 'broker') || 'customer';
+              const googleRole = localStorage.getItem(GOOGLE_ROLE_KEY) as 'customer' | 'broker' | null;
+              const phoneRole = localStorage.getItem(PHONE_ROLE_KEY) as 'customer' | 'broker' | null;
+              const userMetaRole = session.user.user_metadata?.role as 'customer' | 'broker' | undefined;
+              const storedRole = googleRole || phoneRole || userMetaRole || 'customer';
+
               await provisionProfile(session.user, storedRole);
               localStorage.removeItem(GOOGLE_ROLE_KEY);
+              localStorage.removeItem(PHONE_ROLE_KEY);
             }
             await fetchUserProfile(session.user);
           } else {
@@ -209,9 +238,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password?: string) => {
+  const signUp = async (
+    email: string,
+    password?: string,
+    role: 'customer' | 'broker' = 'customer',
+    fullName?: string
+  ) => {
     if (password) {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      localStorage.setItem(GOOGLE_ROLE_KEY, role);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role,
+            full_name: fullName,
+          },
+        },
+      });
+
+      if (!error && data?.user) {
+        await provisionProfile(data.user, role);
+        await fetchUserProfile(data.user);
+      }
       return { data, error };
     }
     return { data: null, error: new Error('Password required for sign up') };

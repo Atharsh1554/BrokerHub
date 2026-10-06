@@ -12,6 +12,9 @@ import {
   ChevronDown,
   LogOut,
   Settings,
+  Headphones,
+  Mail,
+  Phone,
 } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
@@ -38,6 +41,7 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
   const { unreadCount } = useNotifications();
   const { user, signOut } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const displayName = resolveUserDisplayName(user?.fullName, user?.email);
@@ -86,10 +90,7 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
         <div className="p-5 border-b border-gray-border flex items-center justify-between shrink-0">
           <Link to="/" onClick={onClose} className="flex items-center gap-2.5">
             <img src="/logo.png" alt="B2C Logo" className="h-9 w-auto object-contain" />
-            <div className="flex flex-col">
-              <span className="font-bold text-base text-text-primary tracking-tight leading-tight">BROKER HUB</span>
-              <span className="text-[10px] font-semibold text-primary italic leading-tight">A MYSTRIO Product</span>
-            </div>
+            <span className="font-bold text-base text-text-primary tracking-tight leading-tight">BROKER HUB</span>
           </Link>
 
           {onClose && (
@@ -140,6 +141,52 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
             })}
           </ul>
         </nav>
+
+        {/* Support block */}
+        <div className="mx-3 mb-2 bg-gradient-to-b from-primary-50/40 to-transparent rounded-xl border border-primary-100/50 shrink-0">
+          <button
+            onClick={() => setShowSupport(!showSupport)}
+            className="w-full flex items-center justify-between px-3 py-2.5 text-left cursor-pointer hover:bg-primary-50/80 transition-colors group rounded-xl"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="bg-white shadow-xs text-primary p-1.5 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                <Headphones size={14} />
+              </div>
+              <span className="text-xs font-semibold text-text-primary group-hover:text-primary transition-colors">Support Helpdesk</span>
+            </div>
+            <ChevronDown size={14} className={`text-gray-400 transition-transform duration-300 ${showSupport ? 'rotate-180' : ''}`} />
+          </button>
+          
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${showSupport ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className="px-3 pb-3 text-left">
+              <div className="space-y-3 pt-2 mt-1 border-t border-primary-100/50">
+                <div className="space-y-1">
+                  <p className="text-[9px] font-bold text-primary/60 uppercase tracking-widest pl-1 mb-1">Email Us</p>
+                  <a href="mailto:mystriotechnologies@gmail.com" className="flex items-center gap-2.5 text-[11px] text-gray-600 hover:text-primary hover:bg-white transition-all p-1.5 rounded-lg group/link">
+                    <Mail size={12} className="text-gray-400 group-hover/link:text-primary" />
+                    <span className="truncate">mystriotechnologies@gmail.com</span>
+                  </a>
+                  <a href="mailto:brokerhub07@gmail.com" className="flex items-center gap-2.5 text-[11px] text-gray-600 hover:text-primary hover:bg-white transition-all p-1.5 rounded-lg group/link">
+                    <Mail size={12} className="text-gray-400 group-hover/link:text-primary" />
+                    <span className="truncate">brokerhub07@gmail.com</span>
+                  </a>
+                </div>
+                
+                <div className="space-y-1">
+                  <p className="text-[9px] font-bold text-primary/60 uppercase tracking-widest pl-1 mb-1">Call Us</p>
+                  <a href="tel:+917339174356" className="flex items-center gap-2.5 text-[11px] text-gray-600 hover:text-primary hover:bg-white transition-all p-1.5 rounded-lg group/link">
+                    <Phone size={12} className="text-gray-400 group-hover/link:text-primary" />
+                    <span>+91 73391 74356</span>
+                  </a>
+                  <a href="tel:+917010158911" className="flex items-center gap-2.5 text-[11px] text-gray-600 hover:text-primary hover:bg-white transition-all p-1.5 rounded-lg group/link">
+                    <Phone size={12} className="text-gray-400 group-hover/link:text-primary" />
+                    <span>+91 70101 58911</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Profile card — fixed at bottom of sidebar */}
         <div className="shrink-0 border-t border-gray-border p-3" ref={dropdownRef}>

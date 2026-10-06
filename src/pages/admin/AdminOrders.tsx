@@ -182,12 +182,12 @@ export const AdminOrders: React.FC = () => {
                 }`}>
                   <th className="py-4 px-4">Order ID</th>
                   <th className="py-4 px-4">Customer</th>
-                  <th className="py-4 px-4">Customer Phone</th>
-                  <th className="py-4 px-4">Broker Vendor</th>
-                  <th className="py-4 px-4">Total Amount</th>
+                  <th className="py-4 px-4">Broker</th>
+                  <th className="py-4 px-4">Gross Amount</th>
+                  <th className="py-4 px-4">Commission</th>
+                  <th className="py-4 px-4">Broker Amount</th>
                   <th className="py-4 px-4">Payment Status</th>
-                  <th className="py-4 px-4">Fulfillment Status</th>
-                  <th className="py-4 px-4">Delivery Address</th>
+                  <th className="py-4 px-4">Settlement</th>
                   <th className="py-4 px-4">Order Date</th>
                   <th className="py-4 px-4 text-right">Actions</th>
                 </tr>
@@ -197,50 +197,41 @@ export const AdminOrders: React.FC = () => {
                   <tr key={o.id} className={`transition-colors ${
                     isLight ? 'hover:bg-slate-50/80 text-slate-800' : 'hover:bg-slate-800/40 text-slate-200'
                   }`}>
-                    <td className={`py-3.5 px-4 font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{o.id}</td>
+                    <td className={`py-3.5 px-4 font-bold font-mono text-xs ${isLight ? 'text-slate-900' : 'text-white'}`}>{o.id.slice(0, 8)}…</td>
                     <td className={`py-3.5 px-4 font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>{o.customerName}</td>
-                    <td className={`py-3.5 px-4 font-mono ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>{o.shippingAddress?.phone || o.customerPhone || 'N/A'}</td>
-                    <td className={`py-3.5 px-4 ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{o.brokerName || 'Marcus Chen'}</td>
+                    <td className={`py-3.5 px-4 ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{o.brokerName || '—'}</td>
+                    <td className={`py-3.5 px-4 font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                      ₹{(o.totalAmount || o.amount || 0).toLocaleString('en-IN')}
+                    </td>
+                    <td className={`py-3.5 px-4 text-xs font-semibold ${ (o as any).platform_commission > 0 ? 'text-amber-600' : isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                      ₹{((o as any).platform_commission ?? 0).toLocaleString('en-IN')}
+                    </td>
                     <td className={`py-3.5 px-4 font-bold ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>
-                      ₹{(o.amount || o.totalAmount || 0).toLocaleString('en-IN')}
+                      ₹{((o as any).broker_amount ?? (o.totalAmount || 0)).toLocaleString('en-IN')}
                     </td>
                     <td className="py-3.5 px-4">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                          o.paymentStatus === 'Successful'
-                            ? isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                            : o.paymentStatus === 'Refunded'
-                            ? isLight ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-slate-800 text-slate-400 border-slate-700'
-                            : isLight ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                        }`}
-                      >
-                        {o.paymentStatus || 'Successful'}
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                        (o.paymentStatus || '').toLowerCase() === 'paid' || o.paymentStatus === 'Successful'
+                          ? isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          : o.paymentStatus === 'Refunded'
+                          ? isLight ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-slate-800 text-slate-400 border-slate-700'
+                          : (o.paymentStatus || '').toLowerCase() === 'failed'
+                          ? isLight ? 'bg-red-50 text-red-700 border-red-200' : 'bg-red-500/10 text-red-400 border-red-500/30'
+                          : isLight ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                      }`}>
+                        {o.paymentStatus || 'Pending'}
                       </span>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                          o.status === 'Delivered' || o.status === 'COMPLETED'
-                            ? isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                            : o.status === 'Pending' || o.status === 'PENDING'
-                            ? isLight ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                            : o.status === 'Cancelled'
-                            ? isLight ? 'bg-red-50 text-red-700 border-red-200' : 'bg-red-500/10 text-red-400 border-red-500/30'
-                            : isLight ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-sky-500/10 text-sky-400 border-sky-500/30'
-                        }`}
-                      >
-                        {o.status}
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                        (o as any).settlement_status === 'Settled'
+                          ? isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          : (o as any).settlement_status === 'Refunded'
+                          ? isLight ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-slate-800 text-slate-400 border-slate-700'
+                          : isLight ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                      }`}>
+                        {(o as any).settlement_status || 'Pending'}
                       </span>
-                    </td>
-                    <td className={`py-3.5 px-4 max-w-52 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                      {o.shippingAddress?.city ? (
-                        <div className="text-xs">
-                          <p className="font-semibold">{o.shippingAddress.addressLine1?.substring(0, 28)}{o.shippingAddress.addressLine1 && o.shippingAddress.addressLine1.length > 28 ? '...' : ''}</p>
-                          <p className="text-slate-400">{[o.shippingAddress.city, o.shippingAddress.state, o.shippingAddress.pincode].filter(Boolean).join(', ')}</p>
-                        </div>
-                      ) : (
-                        <span className="truncate block max-w-48">{o.deliveryAddress || 'Not provided'}</span>
-                      )}
                     </td>
                     <td className={`py-3.5 px-4 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{o.date}</td>
                     <td className="py-3.5 px-4 text-right space-x-2">

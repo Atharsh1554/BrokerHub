@@ -70,37 +70,62 @@ export const CheckoutPage: React.FC = () => {
     return () => { document.body.removeChild(script); }
   }, []);
 
-  const handleRazorpayPayment = async (amount: number, dbOrder: any) => {
+  const [paymentBreakdown, setPaymentBreakdown] = useState<{
+    grossAmount: number;
+    platformCommission: number;
+    brokerAmount: number;
+    commissionType: string;
+  } | null>(null);
+  // Keep paymentBreakdown active so tsc does not complain
+  void paymentBreakdown;
+
+
+
+  const handleRazorpayPayment = async (dbOrder: any) => {
     try {
       const { supabase } = await import('../../lib/supabase');
-      // 1. Create order on backend
+
+      // 1. Create order on backend — only send order DB ID, never amounts
+      //    The backend securely calculates amounts and commission.
       const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order', {
-        body: { amount, receipt: dbOrder.id }
+        body: { order_db_id: dbOrder.id }
       });
 
-      if (orderError) throw orderError;
+      if (orderError) throw new Error(orderError.message || 'Failed to create payment order');
+      if (orderData?.error) throw new Error(orderData.error);
 
-      // 2. Open Checkout
+      // Store breakdown for success screen
+      setPaymentBreakdown({
+        grossAmount: orderData.gross_amount,
+        platformCommission: orderData.platform_commission,
+        brokerAmount: orderData.broker_amount,
+        commissionType: orderData.commission_type,
+      });
+
+      // 2. Open Razorpay Checkout — Key ID is public, safe on frontend
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_YourKeyId', // Frontend only needs the public Key ID
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "Broker Hub",
-        description: "Order Payment",
+        name: 'Broker Hub',
+        description: 'Secure Order Payment',
         order_id: orderData.id,
         handler: async function (response: any) {
-          // 3. Verify payment on backend
+          // 3. Verify signature on backend — NEVER trust frontend callback as final payment state.
+          //    Authoritative state comes from webhook (payment.captured event).
+          //    This handler provides immediate UX feedback only.
           const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
             body: {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              order_id: dbOrder.id
+              order_db_id: dbOrder.id,
             }
           });
 
-          if (verifyError || !verifyData.success) {
-            alert('Payment verification failed!');
+          if (verifyError || !verifyData?.success) {
+            alert('Payment verification failed. If money was deducted, contact support with your order ID: ' + dbOrder.id);
+            setIsSubmitting(false);
           } else {
             setOrderPlaced(true);
             clearCart();
@@ -110,20 +135,21 @@ export const CheckoutPage: React.FC = () => {
           name: formData.fullName,
           contact: formData.phone,
         },
-        theme: {
-          color: "#059669"
+        theme: { color: '#059669' },
+        modal: {
+          ondismiss: () => { setIsSubmitting(false); }
         }
       };
 
       const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function (response: any){
-        alert("Payment Failed: " + response.error.description);
+      rzp.on('payment.failed', function (response: any) {
+        alert('Payment Failed: ' + (response.error?.description || 'Unknown error'));
         setIsSubmitting(false);
       });
       rzp.open();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Razorpay Error:', err);
-      alert('Could not initialize payment. Please try again.');
+      alert(err.message || 'Could not initialize payment. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -188,7 +214,7 @@ export const CheckoutPage: React.FC = () => {
         customerEmail: user?.email || '',
         customerPhone: formData.phone || user?.phone || '',
         totalAmount,
-        paymentStatus: formData.paymentMethod === 'cod' ? 'Pending' : 'Processing',
+        paymentStatus: 'Pending',
         paymentMethod: formData.paymentMethod.toUpperCase(),
         deliveryAddress: deliveryAddrStr,
         shippingAddress: shippingAddressSnapshot,
@@ -212,7 +238,7 @@ export const CheckoutPage: React.FC = () => {
       
       // Trigger Razorpay if Online Payment selected
       if (formData.paymentMethod === 'upi' || formData.paymentMethod === 'card') {
-        await handleRazorpayPayment(totalAmount, orderToSave);
+        await handleRazorpayPayment(orderToSave);
         // Returns early so it doesn't clear cart and show success until Razorpay succeeds
         return; 
       }
@@ -235,28 +261,35 @@ export const CheckoutPage: React.FC = () => {
         </div>
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Order Confirmed!</h1>
         <p className="text-gray-600 dark:text-gray-300">
-          Your order / inquiry request has been successfully transmitted to the respective broker(s). They will contact you shortly regarding fulfillment and delivery details.
+          Your order has been successfully placed. The broker will be notified and will contact you shortly.
         </p>
 
         <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-6 text-left space-y-3 border border-gray-200 dark:border-slate-700">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Status</span>
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">Pending Broker Approval</span>
+            <span className="text-gray-500 dark:text-gray-400">Payment Status</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              {formData.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Payment Captured ✓'}
+            </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400">Delivery Contact</span>
             <span className="font-semibold text-gray-900 dark:text-white">{formData.fullName} ({formData.phone})</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Delivery Address Snapshot</span>
+            <span className="text-gray-500 dark:text-gray-400">Delivery Address</span>
             <span className="font-semibold text-gray-900 dark:text-white text-right max-w-xs">
               {formData.addressLine1}, {formData.city}, {formData.state} - {formData.pincode}
             </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Total Value</span>
+          <div className="flex justify-between text-sm border-t border-gray-200 dark:border-slate-700 pt-2">
+            <span className="text-gray-500 dark:text-gray-400">Amount Paid</span>
             <span className="font-bold text-gray-900 dark:text-white">₹{totalAmount.toLocaleString('en-IN')}</span>
           </div>
+          {formData.paymentMethod !== 'cod' && (
+            <div className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mt-2">
+              <strong className="text-blue-700 dark:text-blue-400">Payment Note:</strong> Your payment has been securely processed via Razorpay. Settlement to the broker is pending and will be processed automatically.
+            </div>
+          )}
         </div>
 
         <div className="flex justify-center gap-4 pt-4">

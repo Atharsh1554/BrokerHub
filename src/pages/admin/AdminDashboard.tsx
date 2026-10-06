@@ -98,6 +98,10 @@ export const AdminDashboard: React.FC = () => {
     let todayRev = 0;
     let weekRev = 0;
     let monthRev = 0;
+    let totalCommission = 0;
+    let totalBrokerPayable = 0;
+    let pendingSettlements = 0;
+    let completedSettlements = 0;
 
     let successfulCount = 0;
     let pendingCount = 0;
@@ -105,6 +109,7 @@ export const AdminDashboard: React.FC = () => {
     let refundedCount = 0;
 
     for (const order of orders) {
+      const o = order as any;
       const statusLower = (order.status || '').toLowerCase();
 
       if (statusLower.includes('pending')) {
@@ -123,6 +128,11 @@ export const AdminDashboard: React.FC = () => {
 
       const val = order.totalAmount ?? order.amount ?? 0;
       totalRev += val;
+      totalCommission += (o.platform_commission ?? 0);
+      totalBrokerPayable += (o.broker_amount ?? val);
+
+      if ((o.settlement_status || 'Pending') === 'Settled') completedSettlements++;
+      else pendingSettlements++;
 
       const orderDateStr = order.createdAt || order.date;
       if (orderDateStr) {
@@ -145,6 +155,10 @@ export const AdminDashboard: React.FC = () => {
       pendingOrders: pendingCount,
       cancelledOrders: cancelledCount,
       refundedOrders: refundedCount,
+      totalCommission,
+      totalBrokerPayable,
+      pendingSettlements,
+      completedSettlements,
     };
   }, [orders]);
 
@@ -287,10 +301,12 @@ export const AdminDashboard: React.FC = () => {
     { label: "Today's Revenue", value: formatRupeeExact(platformRevenueMetrics.todayRevenue), icon: DollarSign, color: 'text-emerald-500' },
     { label: "This Week's Revenue", value: formatRupeeExact(platformRevenueMetrics.weekRevenue), icon: TrendingUp, color: 'text-teal-500' },
     { label: "This Month's Revenue", value: formatRupeeExact(platformRevenueMetrics.monthRevenue), icon: Activity, color: 'text-indigo-500' },
-    { label: 'Total Platform Revenue', value: formatRupeeExact(platformRevenueMetrics.totalRevenue), icon: ShieldCheck, color: 'text-emerald-600' },
+    { label: 'Total Payment Volume', value: formatRupeeExact(platformRevenueMetrics.totalRevenue), icon: ShieldCheck, color: 'text-emerald-600' },
+    { label: 'Total Platform Commission', value: formatRupeeExact(platformRevenueMetrics.totalCommission), icon: DollarSign, color: 'text-amber-500' },
+    { label: 'Total Broker Payable', value: formatRupeeExact(platformRevenueMetrics.totalBrokerPayable), icon: CheckCircle2, color: 'text-emerald-500' },
+    { label: 'Pending Settlements', value: platformRevenueMetrics.pendingSettlements, icon: Clock, color: 'text-amber-500' },
+    { label: 'Completed Settlements', value: platformRevenueMetrics.completedSettlements, icon: CheckCircle2, color: 'text-teal-500' },
     { label: 'Total Orders', value: platformRevenueMetrics.totalOrders, icon: ShoppingBag, color: 'text-sky-500' },
-    { label: 'Successful Orders', value: platformRevenueMetrics.successfulOrders, icon: CheckCircle2, color: 'text-emerald-500' },
-    { label: 'Pending Orders', value: platformRevenueMetrics.pendingOrders, icon: Clock, color: 'text-amber-500' },
     { label: 'Cancelled / Refunded', value: platformRevenueMetrics.cancelledOrders + platformRevenueMetrics.refundedOrders, icon: XCircle, color: 'text-rose-500' },
   ];
 

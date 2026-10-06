@@ -13,47 +13,98 @@ serve(async (req) => {
   }
 
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, order_id } = await req.json()
-    const secret = Deno.env.get('RAZORPAY_KEY_SECRET')
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, order_db_id } = await req.json()
 
-    if (!secret) {
-      throw new Error("Razorpay secret not configured");
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !order_db_id) {
+      throw new Error('Missing required payment verification parameters')
     }
 
-    // Verify signature
+    const secret = Deno.env.get('RAZORPAY_KEY_SECRET')
+    if (!secret) throw new Error('Razorpay secret not configured')
+
+    // ---------------------------------------------------------------
+    // 1. Verify Razorpay HMAC signature — authoritative server-side check
+    // ---------------------------------------------------------------
     const generated_signature = crypto
       .createHmac('sha256', secret)
-      .update(razorpay_order_id + "|" + razorpay_payment_id)
-      .digest('hex');
+      .update(razorpay_order_id + '|' + razorpay_payment_id)
+      .digest('hex')
 
     if (generated_signature !== razorpay_signature) {
-      throw new Error("Invalid signature")
+      throw new Error('Invalid payment signature — verification failed')
     }
 
-    // Connect to Supabase using Service Role Key to bypass RLS for this secure backend update
-    const supabaseClient = createClient(
+    // ---------------------------------------------------------------
+    // 2. Connect using Service Role to bypass RLS
+    // ---------------------------------------------------------------
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Securely update the payment status to 'paid' in your database
-    const { error } = await supabaseClient
+    // ---------------------------------------------------------------
+    // 3. Fetch the order to prevent duplicate processing
+    // ---------------------------------------------------------------
+    const { data: orderRow, error: fetchErr } = await supabase
       .from('orders')
-      .update({ 
-        payment_status: 'paid',
-        razorpay_order_id,
-        razorpay_payment_id 
-      })
-      .eq('id', order_id)
+      .select('id, payment_status, razorpay_order_id, total_amount, broker_id, platform_commission, broker_amount')
+      .eq('id', order_db_id)
+      .single()
 
-    if (error) throw error;
+    if (fetchErr || !orderRow) throw new Error('Order not found')
+
+    // Idempotency: if already paid, return success without re-processing
+    if (orderRow.payment_status === 'paid' || orderRow.payment_status === 'Successful') {
+      return new Response(JSON.stringify({ success: true, already_processed: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
+    }
+
+    // ---------------------------------------------------------------
+    // 4. Update order to Successful with Razorpay payment ID
+    // ---------------------------------------------------------------
+    const { error: updateErr } = await supabase
+      .from('orders')
+      .update({
+        payment_status: 'Successful',
+        razorpay_payment_id,
+        razorpay_order_id: razorpay_order_id, // ensure it's stored even if create-order missed it
+        settlement_status: 'Pending Admin Settlement',
+        status: 'Processing',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', order_db_id)
+
+    if (updateErr) throw updateErr
+
+    // ---------------------------------------------------------------
+    // 5. Record in payments table for audit trail (non-blocking)
+    // ---------------------------------------------------------------
+    try {
+      await supabase
+        .from('payments')
+        .upsert({
+          transaction_id: razorpay_payment_id,
+          order_id: order_db_id,
+          broker_id: orderRow.broker_id,
+          amount: orderRow.total_amount,
+          payment_method: 'Razorpay',
+          status: 'Successful',
+        }, { onConflict: 'transaction_id' })
+    } catch (paymentsErr) {
+      // Non-fatal: payments table audit log failed, but order is already marked paid
+      console.warn('[verify-razorpay-payment] Payments table insert skipped:', paymentsErr)
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
+
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('[verify-razorpay-payment] Error:', error)
+    return new Response(JSON.stringify({ error: error.message, success: false }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     })

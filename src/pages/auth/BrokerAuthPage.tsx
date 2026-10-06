@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../lib/supabase';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { User, Phone, Mail, Star } from 'lucide-react';
@@ -24,7 +23,7 @@ export const BrokerAuthPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
@@ -44,7 +43,6 @@ export const BrokerAuthPage: React.FC = () => {
       return;
     }
     
-    // We only support email signup right now for real logic
     if (authTab !== 'email') {
       setErrorMsg('Phone auth is not fully configured. Please use Email.');
       return;
@@ -54,33 +52,11 @@ export const BrokerAuthPage: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const { data, error } = await signUp(email, password);
+      const { error } = await signUp(email, password, 'broker', fullName);
       if (error) throw error;
       
-      const userId = data?.user?.id;
-      if (!userId) throw new Error('Failed to get user id from registration');
-      
-      const { error: userError } = await supabase
-        .from('users')
-        .insert([{
-          id: userId,
-          full_name: fullName,
-          email: email,
-          role: 'broker'
-        }]);
-      if (userError) throw userError;
-      
-      const { error: brokerError } = await supabase
-        .from('brokers')
-        .insert([{
-          id: userId,
-          name: fullName,
-          specialty: '',
-          company: ''
-        }]);
-      if (brokerError) throw brokerError;
-      
-      navigate('/broker/dashboard');
+      await refreshUser();
+      navigate('/broker/dashboard', { replace: true });
     } catch (err: any) {
       setErrorMsg(err.message || 'Registration failed');
     } finally {
@@ -100,8 +76,7 @@ export const BrokerAuthPage: React.FC = () => {
           <div className="w-24 h-24 bg-white/95 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-8 p-3 shadow-xl">
             <img src="/logo.png" alt="B2C Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-4xl font-bold mb-1 tracking-tight">BROKER HUB</h1>
-          <p className="text-sm font-semibold text-purple-200 italic mb-8">A MYSTRIO Product</p>
+          <h1 className="text-4xl font-bold mb-8 tracking-tight">BROKER HUB</h1>
           <p className="text-lg opacity-90 leading-relaxed mb-12">
             The professional platform for brokers to manage clients, products, and grow their business.
           </p>

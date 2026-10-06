@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Smile, Search, ArrowLeft, MessageSquare, Sparkles, ShieldCheck } from 'lucide-react';
+import { Send, Paperclip, Smile, Search, ArrowLeft, MessageSquare, Sparkles, ShieldCheck, X, ImageIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
@@ -21,7 +21,10 @@ export const BrokerMessages: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageName, setImageName] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeConv = conversations.find((c) => c.id === activeConvId) || conversations[0] || {
     id: 'conv1',
@@ -60,13 +63,35 @@ export const BrokerMessages: React.FC = () => {
 
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() && !imagePreview) return;
 
-    sendMessage(activeConvId, inputMessage.trim(), true);
+    if (imagePreview) {
+      sendMessage(activeConvId, `[IMG]:${imagePreview}`, true);
+      setImagePreview(null);
+      setImageName('');
+    }
+    if (inputMessage.trim()) {
+      sendMessage(activeConvId, inputMessage.trim(), true);
+    }
     setInputMessage('');
     setShowEmojiPicker(false);
-    // Clear unread count for this conversation now that the broker has replied
     clearConversationUnread(activeConvId);
+  };
+
+  const handleAttachImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setImagePreview(ev.target?.result as string);
+      setImageName(file.name);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleQuickPrompt = (prompt: string) => {
@@ -243,13 +268,21 @@ export const BrokerMessages: React.FC = () => {
                         </div>
 
                         <div
-                          className={`rounded-2xl px-4 py-3 shadow-xs text-sm leading-relaxed ${
+                          className={`rounded-2xl shadow-xs text-sm leading-relaxed overflow-hidden ${
                             isOwn
                               ? 'bg-primary text-white rounded-tr-none'
                               : 'bg-white border border-gray-border text-text-primary rounded-tl-none'
                           }`}
                         >
-                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                          {msg.content.startsWith('[IMG]:') ? (
+                            <img
+                              src={msg.content.replace('[IMG]:', '')}
+                              alt="Attachment"
+                              className="max-w-[240px] max-h-[200px] object-cover w-full rounded-2xl"
+                            />
+                          ) : (
+                            <p className="whitespace-pre-wrap break-words px-4 py-3">{msg.content}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -275,28 +308,59 @@ export const BrokerMessages: React.FC = () => {
             </div>
 
             {/* Input Bar */}
-            <div className="p-4 bg-white border-t border-gray-border relative">
+            <div className="bg-white border-t border-gray-border relative">
+              {/* Image Preview Strip */}
+              {imagePreview && (
+                <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+                  <div className="relative shrink-0">
+                    <img src={imagePreview} alt="preview" className="w-16 h-16 rounded-xl object-cover border border-gray-200" />
+                    <button
+                      type="button"
+                      onClick={() => { setImagePreview(null); setImageName(''); }}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center shadow cursor-pointer"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                      <ImageIcon size={12} className="text-primary" /> Image ready to send
+                    </p>
+                    <p className="text-[11px] text-gray-label truncate max-w-[180px]">{imageName}</p>
+                  </div>
+                </div>
+              )}
+
               {showEmojiPicker && (
                 <div className="absolute bottom-full left-4 mb-2 p-3 bg-white rounded-xl border border-gray-border shadow-xl grid grid-cols-6 gap-2 z-20">
                   {EMOJI_LIST.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => addEmoji(emoji)}
-                      className="p-2 text-xl hover:bg-gray-100 rounded-lg transition-transform hover:scale-115 cursor-pointer"
-                    >
+                    <button key={emoji} type="button" onClick={() => addEmoji(emoji)}
+                      className="p-2 text-xl hover:bg-gray-100 rounded-lg transition-transform hover:scale-115 cursor-pointer">
                       {emoji}
                     </button>
                   ))}
                 </div>
               )}
 
-              <form onSubmit={handleSend} className="flex items-center gap-2">
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAttachImage}
+              />
+
+              <form onSubmit={handleSend} className="flex items-center gap-2 p-4">
                 <button
                   type="button"
-                  onClick={() => alert('Proposal document attached.')}
-                  className="p-2.5 text-gray-label hover:text-primary hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
-                  title="Attach file / quote"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    imagePreview
+                      ? 'text-primary bg-primary-50'
+                      : 'text-gray-label hover:text-primary hover:bg-gray-100'
+                  }`}
+                  title="Attach image"
                 >
                   <Paperclip size={20} />
                 </button>
@@ -321,7 +385,7 @@ export const BrokerMessages: React.FC = () => {
 
                 <button
                   type="submit"
-                  disabled={!inputMessage.trim()}
+                  disabled={!inputMessage.trim() && !imagePreview}
                   className="p-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-xs cursor-pointer flex items-center justify-center shrink-0"
                   title="Send response"
                 >

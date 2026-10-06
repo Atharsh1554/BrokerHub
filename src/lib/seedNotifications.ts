@@ -27,7 +27,7 @@ export const INITIAL_NOTIFICATIONS: BrokerNotification[] = [
     customer_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
     type: 'order',
     title: 'New Product Order Placed',
-    description: 'Placed an order for 25x Heavy-Duty Hydraulic Valves ($4,750 total).',
+    description: 'Placed an order for 25x Heavy-Duty Hydraulic Valves (₹4,750 total).',
     related_order_id: 'ORD-9821',
     is_read: false,
     status: 'pending',

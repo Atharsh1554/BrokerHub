@@ -142,7 +142,6 @@ export const SignUpPage: React.FC = () => {
             </div>
             <div>
               <h1 className="text-2xl font-black tracking-tight">BROKER HUB</h1>
-              <p className="text-xs font-bold uppercase tracking-widest text-white/60 italic">A MYSTRIO Product</p>
             </div>
           </div>
 
