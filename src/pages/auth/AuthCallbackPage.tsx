@@ -1,152 +1,60 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-
-const GOOGLE_ROLE_KEY = 'brokerhub_google_role';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * Handles the OAuth redirect from Google/other providers.
- * Reads the requested role saved before redirect (e.g. 'broker' or 'customer'),
- * provisions or updates the user profile in public.users and public.brokers accordingly,
- * then routes to the correct dashboard.
+ * With PKCE flow, Supabase sends ?code= to this page.
+ * We exchange the code, then wait for AuthContext to update
+ * with the user profile before navigating to the dashboard.
+ * This avoids the race condition where CustomerLayout sees
+ * user=null before AuthContext has hydrated.
  */
 export const AuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const exchangeAttempted = useRef(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Step 1: Exchange the PKCE code on mount (run once)
   useEffect(() => {
-    const provisionAndNavigate = async (user: any) => {
-      const savedRole = (localStorage.getItem(GOOGLE_ROLE_KEY) as 'customer' | 'broker') || 'customer';
-      localStorage.removeItem(GOOGLE_ROLE_KEY);
+    if (exchangeAttempted.current) return;
+    exchangeAttempted.current = true;
 
-      // Check if user profile already exists in public.users
-      const { data: existingProfile } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle();
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
 
-      let targetRole: 'customer' | 'broker' | 'admin' = existingProfile?.role || savedRole;
+    if (code) {
+      // PKCE flow: exchange code for session
+      // This triggers onAuthStateChange(SIGNED_IN) in AuthContext
+      supabase.auth.exchangeCodeForSession(code).catch((err) => {
+        console.error('PKCE code exchange failed:', err);
+      });
+    }
+    // If no code, AuthContext will detect any existing session on its own
 
-      // If user explicitly initiated sign-in/up as a broker (from broker auth page or broker tab),
-      // update or set their role in users table to 'broker'
-      if (savedRole === 'broker' && existingProfile?.role !== 'broker') {
-        targetRole = 'broker';
-        if (existingProfile) {
-          await supabase.from('users').update({ role: 'broker' }).eq('id', user.id);
-        }
-      }
+    // Safety net: if still here after 8s with no user, redirect to login
+    timeoutRef.current = setTimeout(() => {
+      navigate('/login', { replace: true });
+    }, 8000);
 
-      // If profile doesn't exist yet, insert new user record
-      if (!existingProfile) {
-        const fullName =
-          user.user_metadata?.full_name ||
-          user.user_metadata?.name ||
-          user.email?.split('@')[0] ||
-          'User';
-
-        const { error: insertError } = await supabase.from('users').insert({
-          id: user.id,
-          email: user.email,
-          full_name: fullName,
-          avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
-          role: targetRole,
-          status: 'active',
-        });
-
-        if (insertError) {
-          console.error('Failed to create user profile:', insertError.message);
-        }
-      }
-
-      // If targetRole is broker, ensure a corresponding record exists in public.brokers table
-      if (targetRole === 'broker') {
-        const { data: brokerRow } = await supabase
-          .from('brokers')
-          .select('id')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (!brokerRow) {
-          const fullName =
-            user.user_metadata?.full_name ||
-            user.user_metadata?.name ||
-            user.email?.split('@')[0] ||
-            'Broker Partner';
-
-          await supabase.from('brokers').insert([{
-            id: user.id,
-            name: fullName,
-            specialty: 'General Brokerage',
-            company: 'Independent Broker',
-          }]);
-        }
-      }
-
-      // Navigate to destination dashboard
-      const destination =
-        targetRole === 'broker' ? '/broker/dashboard'
-        : targetRole === 'admin' ? '/admin/dashboard'
-        : '/customer/dashboard';
-
-      navigate(destination, { replace: true });
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-
-    const handleCallback = async () => {
-      try {
-        // PKCE flow: Supabase sends ?code= in the URL — exchange it for a session
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get('code');
-
-        if (code) {
-          const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) {
-            console.error('PKCE code exchange error:', error.message);
-            navigate('/login', { replace: true });
-            return;
-          }
-          if (session?.user) {
-            await provisionAndNavigate(session.user);
-            return;
-          }
-        }
-
-        // Fallback: implicit/existing session (small delay to allow Supabase to hydrate)
-        await new Promise((res) => setTimeout(res, 800));
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error('OAuth callback error:', error.message);
-          navigate('/login', { replace: true });
-          return;
-        }
-
-        if (session?.user) {
-          await provisionAndNavigate(session.user);
-        } else {
-          // Final fallback: listen for auth state change
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (_event, sess) => {
-              subscription.unsubscribe();
-              if (sess?.user) {
-                await provisionAndNavigate(sess.user);
-              } else {
-                navigate('/login', { replace: true });
-              }
-            }
-          );
-          // Safety timeout — if no auth state after 5s, send to login
-          setTimeout(() => {
-            navigate('/login', { replace: true });
-          }, 5000);
-        }
-      } catch (err) {
-        console.error('Auth callback unexpected error:', err);
-        navigate('/login', { replace: true });
-      }
-    };
-
-    handleCallback();
   }, [navigate]);
+
+  // Step 2: React to AuthContext user state — navigate once user is set
+  useEffect(() => {
+    if (!loading && user) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      const destination =
+        user.role === 'broker' ? '/broker/dashboard'
+        : user.role === 'admin' ? '/admin/dashboard'
+        : '/customer/dashboard';
+      navigate(destination, { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-bg">
