@@ -10,8 +10,15 @@ export const isSupabaseConfigured = Boolean(
   supabaseAnonKey !== 'your-anon-key'
 );
 
-// Fallback dummy client if credentials aren't configured yet to prevent runtime crash
+// Disable auto URL detection — AuthCallbackPage manually handles PKCE exchange
+// to avoid race conditions between auto-detection and our explicit exchange.
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
+  supabaseAnonKey || 'placeholder-key',
+  {
+    auth: {
+      detectSessionInUrl: false,
+      flowType: 'pkce',
+    }
+  }
 );

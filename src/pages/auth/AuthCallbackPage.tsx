@@ -4,12 +4,14 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 
 /**
- * Handles the OAuth redirect from Google/other providers.
- * With PKCE flow, Supabase sends ?code= to this page.
- * We exchange the code, then wait for AuthContext to update
- * with the user profile before navigating to the dashboard.
- * This avoids the race condition where CustomerLayout sees
- * user=null before AuthContext has hydrated.
+ * OAuth callback handler.
+ *
+ * With detectSessionInUrl=false on the Supabase client, auto-detection is
+ * disabled. This page explicitly:
+ *  1. Reads the ?code= parameter from the URL (PKCE flow)
+ *  2. Calls exchangeCodeForSession — fires SIGNED_IN in onAuthStateChange
+ *  3. AuthContext handles SIGNED_IN: provisions profile + sets user state
+ *  4. We then navigate to the correct dashboard once user is confirmed
  */
 export const AuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,34 +19,47 @@ export const AuthCallbackPage: React.FC = () => {
   const exchangeAttempted = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Step 1: Exchange the PKCE code on mount (run once)
+  // Step 1: Exchange the PKCE code exactly once
   useEffect(() => {
     if (exchangeAttempted.current) return;
     exchangeAttempted.current = true;
 
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
+    const run = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
 
-    if (code) {
-      // PKCE flow: exchange code for session
-      // This triggers onAuthStateChange(SIGNED_IN) in AuthContext
-      supabase.auth.exchangeCodeForSession(code).catch((err) => {
-        console.error('PKCE code exchange failed:', err);
-      });
-    }
-    // If no code, AuthContext will detect any existing session on its own
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          console.error('PKCE exchange failed:', error.message);
+          navigate('/login', { replace: true });
+          return;
+        }
+        // On success, onAuthStateChange(SIGNED_IN) fires in AuthContext
+        // which sets the user. Step 2 below will then navigate.
+      } else {
+        // No code — try reading session directly (e.g. existing session)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          // Nothing to do, timeout below will redirect
+          console.warn('No auth code and no session found on callback');
+        }
+      }
+    };
 
-    // Safety net: if still here after 8s with no user, redirect to login
+    run();
+
+    // Safety: if user never gets set after 12s, go to login
     timeoutRef.current = setTimeout(() => {
       navigate('/login', { replace: true });
-    }, 8000);
+    }, 12000);
 
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [navigate]);
 
-  // Step 2: React to AuthContext user state — navigate once user is set
+  // Step 2: Navigate once AuthContext confirms the user
   useEffect(() => {
     if (!loading && user) {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
