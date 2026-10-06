@@ -92,31 +92,56 @@ export const AuthCallbackPage: React.FC = () => {
     };
 
     const handleCallback = async () => {
-      // Small delay to allow Supabase to finish exchanging auth code
-      await new Promise((res) => setTimeout(res, 500));
+      try {
+        // PKCE flow: Supabase sends ?code= in the URL — exchange it for a session
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
 
-      const { data: { session }, error } = await supabase.auth.getSession();
-
-      if (error) {
-        console.error('OAuth callback error:', error.message);
-        navigate('/login');
-        return;
-      }
-
-      if (session?.user) {
-        await provisionAndNavigate(session.user);
-      } else {
-        // Listen for auth state change if session isn't immediately present
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (_event, sess) => {
-            subscription.unsubscribe();
-            if (sess?.user) {
-              await provisionAndNavigate(sess.user);
-            } else {
-              navigate('/login', { replace: true });
-            }
+        if (code) {
+          const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            console.error('PKCE code exchange error:', error.message);
+            navigate('/login', { replace: true });
+            return;
           }
-        );
+          if (session?.user) {
+            await provisionAndNavigate(session.user);
+            return;
+          }
+        }
+
+        // Fallback: implicit/existing session (small delay to allow Supabase to hydrate)
+        await new Promise((res) => setTimeout(res, 800));
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error('OAuth callback error:', error.message);
+          navigate('/login', { replace: true });
+          return;
+        }
+
+        if (session?.user) {
+          await provisionAndNavigate(session.user);
+        } else {
+          // Final fallback: listen for auth state change
+          const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (_event, sess) => {
+              subscription.unsubscribe();
+              if (sess?.user) {
+                await provisionAndNavigate(sess.user);
+              } else {
+                navigate('/login', { replace: true });
+              }
+            }
+          );
+          // Safety timeout — if no auth state after 5s, send to login
+          setTimeout(() => {
+            navigate('/login', { replace: true });
+          }, 5000);
+        }
+      } catch (err) {
+        console.error('Auth callback unexpected error:', err);
+        navigate('/login', { replace: true });
       }
     };
 
