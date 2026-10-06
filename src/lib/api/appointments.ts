@@ -81,7 +81,7 @@ const getAppointmentsFallback = async (userId: string, role: 'customer' | 'broke
   return data.map((a: any) => ({
     id: a.id,
     brokerName: brokerMap[a.broker_id]?.name || 'Unknown Broker',
-    brokerAvatar: brokerMap[a.broker_id]?.avatar ?? null,
+    brokerAvatar: brokerMap[a.broker_id]?.avatar ?? undefined,
     date: a.date,
     time: a.time,
     type: a.type,
