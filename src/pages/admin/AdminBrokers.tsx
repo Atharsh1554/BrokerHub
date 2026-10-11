@@ -320,7 +320,7 @@ export const AdminBrokers: React.FC = () => {
               <p className={`p-3.5 rounded-2xl border leading-relaxed ${
                 isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/40 border-slate-800 text-slate-300'
               }`}>
-                {selectedBroker.description || 'Specializing in high-value asset brokerage with extensive customer portfolio management.'}
+                {selectedBroker.description || 'Verified independent seller and merchant specializing in wholesale commercial supplies and custom fulfillment.'}
               </p>
             </div>
 

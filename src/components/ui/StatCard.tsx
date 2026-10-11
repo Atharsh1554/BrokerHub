@@ -13,16 +13,16 @@ export const StatCard: React.FC<StatCardProps> = ({
   const isPositive = change !== undefined && change >= 0;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-border p-5 hover:shadow-md transition-shadow duration-200">
+    <div className="bg-white rounded-xl border border-gray-border p-3.5 sm:p-5 hover:shadow-md transition-shadow duration-200 min-w-0 overflow-hidden">
       <div className="flex items-start justify-between mb-3">
-        <p className="text-sm text-gray-text font-medium">{label}</p>
+        <p className="text-xs sm:text-sm text-gray-text font-medium truncate pr-2">{label}</p>
         {icon && (
-          <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center text-primary">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-primary-50 flex items-center justify-center text-primary shrink-0">
             {icon}
           </div>
         )}
       </div>
-      <p className="text-2xl font-bold text-text-primary mb-1">{value}</p>
+      <p className="text-xl sm:text-2xl font-bold text-text-primary mb-1 truncate">{value}</p>
       {change !== undefined && (
         <div className="flex items-center gap-1">
           {isPositive ? (

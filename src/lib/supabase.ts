@@ -10,14 +10,18 @@ export const isSupabaseConfigured = Boolean(
   supabaseAnonKey !== 'your-anon-key'
 );
 
-// Disable auto URL detection — AuthCallbackPage manually handles PKCE exchange
-// to avoid race conditions between auto-detection and our explicit exchange.
+if (!isSupabaseConfigured) {
+  console.error('Supabase configuration error: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing or invalid. Please check your environment variables.');
+}
+
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder-key',
   {
     auth: {
-      detectSessionInUrl: false,
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true,
       flowType: 'pkce',
     }
   }

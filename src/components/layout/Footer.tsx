@@ -50,7 +50,7 @@ export const Footer: React.FC = () => {
               </div>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed pt-1">
-              Connecting verified brokers with businesses to streamline deals, appointments, and inventory management.
+              BrokerHub is a digital marketplace connecting customers with independent sellers and service providers. BrokerHub does not provide stock trading, investment advice, securities brokerage, portfolio management, or other financial services.
             </p>
           </div>
 
@@ -77,6 +77,7 @@ export const Footer: React.FC = () => {
             <h4 className="font-semibold text-sm uppercase tracking-wider mb-4 text-gray-300">Initiative</h4>
             <ul className="space-y-2.5">
               {[
+                { label: 'About BrokerHub', path: '/about' },
                 { label: 'About MYSTRIO', path: '/about-mystrio' },
                 { label: 'Careers', path: '/careers' },
                 { label: 'Blog', path: '/blog' },
@@ -137,8 +138,8 @@ export const Footer: React.FC = () => {
         <div className="border-t border-gray-800 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
             <p className="text-sm font-semibold text-gray-300">BROKER HUB</p>
-            <p className="text-xs text-gray-400 italic">A MYSTRIO Product</p>
-            <p className="text-xs text-gray-500 mt-1">© 2026 MYSTRIO. All rights reserved.</p>
+            <p className="text-xs text-gray-400 italic">BrokerHub is a digital marketplace product developed by Mystrio Technologies.</p>
+            <p className="text-xs text-gray-500 mt-1">© 2026 Mystrio Technologies. All rights reserved.</p>
           </div>
           <div className="flex items-center gap-4">
             {['Twitter', 'LinkedIn', 'Facebook'].map((social) => (

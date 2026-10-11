@@ -10,59 +10,52 @@ export const CompliancePage: React.FC = () => {
         <h1 className="text-3xl font-bold text-text-primary mb-2">Compliance</h1>
         <p className="text-sm text-gray-text mb-10">Last updated: October 2026</p>
 
+        <div className="p-4 mb-8 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm leading-relaxed">
+          <strong>Important Notice:</strong> BrokerHub is a digital marketplace connecting customers with independent sellers and service providers. BrokerHub does not provide stock trading, investment advice, securities brokerage, portfolio management, or other financial services.
+        </div>
+
         <div className="prose prose-sm max-w-none space-y-8 text-text-primary">
           <section>
-            <h2 className="text-xl font-semibold mb-3">Regulatory Framework</h2>
+            <h2 className="text-xl font-semibold mb-3">1. E-Commerce Marketplace Regulatory Framework</h2>
             <p className="text-gray-text leading-relaxed">
-              BROKER HUB, a product of MYSTRIO, is committed to operating in full compliance with applicable laws
-              and regulations governing online marketplaces, brokerage services, and data protection in India
-              and internationally.
+              BrokerHub is a digital commerce marketplace developed and operated by Mystrio Technologies. The platform operates as an electronic intermediary in compliance with the Information Technology Act 2000, the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, and the Consumer Protection (E-Commerce) Rules 2020.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">Broker Compliance Standards</h2>
+            <h2 className="text-xl font-semibold mb-3">2. Merchant & Seller Standards</h2>
             <p className="text-gray-text leading-relaxed">
-              All brokers registered on BROKER HUB must hold valid licenses and registrations as required by
-              their respective regulatory authorities. We conduct periodic audits to ensure ongoing compliance.
-              Brokers found in violation of our compliance standards are immediately suspended pending review.
+              All independent merchants and sellers registered on BrokerHub must comply with commercial trading laws applicable to their product lines, including holding appropriate tax registrations (such as GSTIN) and business licenses. We conduct merchant identity verification to maintain transparency and fair marketplace trade.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">Anti-Money Laundering (AML)</h2>
+            <h2 className="text-xl font-semibold mb-3">3. Strict Non-Financial Classification</h2>
             <p className="text-gray-text leading-relaxed">
-              MYSTRIO maintains robust AML policies. All transactions on the platform are monitored for suspicious
-              activity. We comply with applicable Know Your Customer (KYC) requirements for broker onboarding
-              and high-value transaction verification.
+              BrokerHub is solely a platform for physical goods, industrial supplies, and commercial trade services. BrokerHub is not a stock broker, does not deal in securities or equities, does not accept investment deposits, and does not provide financial or advisory services of any kind.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">Data Protection Compliance</h2>
+            <h2 className="text-xl font-semibold mb-3">4. Data Protection & Privacy Compliance</h2>
             <p className="text-gray-text leading-relaxed">
-              We comply with the Digital Personal Data Protection Act (DPDPA) 2023 and applicable international
-              data protection frameworks. Our data processing practices are reviewed regularly by our Data
-              Protection Officer.
+              We comply with the Digital Personal Data Protection Act (DPDPA) 2023 and applicable privacy standards. User information is processed strictly to facilitate marketplace transactions, order communication, and customer support.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">Dispute Resolution</h2>
+            <h2 className="text-xl font-semibold mb-3">5. Dispute Resolution</h2>
             <p className="text-gray-text leading-relaxed">
-              BROKER HUB provides a structured dispute resolution process for conflicts between users and brokers.
-              Unresolved disputes are escalated to our Compliance team. We aim to resolve all disputes within
-              14 business days.
+              BrokerHub provides a structured dispute resolution workflow for order discrepancies between customers and independent sellers. Inquiries can be escalated to our marketplace support team at{' '}
+              <a href="mailto:support@mystrio.com" className="text-primary hover:underline">support@mystrio.com</a>.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">Reporting Violations</h2>
+            <h2 className="text-xl font-semibold mb-3">6. Reporting Violations</h2>
             <p className="text-gray-text leading-relaxed">
-              If you observe any activity on BROKER HUB that you believe violates our compliance standards or
-              applicable law, please report it immediately to{' '}
+              If you identify any listing or activity on BrokerHub that violates marketplace guidelines or applicable law, please report it immediately to{' '}
               <a href="mailto:compliance@mystrio.com" className="text-primary hover:underline">compliance@mystrio.com</a>.
-              All reports are treated confidentially.
             </p>
           </section>
         </div>

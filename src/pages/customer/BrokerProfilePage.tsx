@@ -289,7 +289,7 @@ export const BrokerProfilePage: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Left sidebar — Broker Info */}
         <div className="space-y-4">
           {/* About */}
@@ -388,7 +388,7 @@ export const BrokerProfilePage: React.FC = () => {
         </div>
 
         {/* Right — Products */}
-        <div className="lg:col-span-2">
+        <div className="xl:col-span-2">
           <div className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs">
             {/* Products Header with Search */}
             <div className="px-5 py-4 border-b border-gray-border">

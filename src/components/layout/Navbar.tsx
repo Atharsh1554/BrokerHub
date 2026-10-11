@@ -3,9 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, ChevronDown, LayoutDashboard, LogOut, User } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
+import { UserAvatar } from '../ui/UserAvatar';
 
 const navLinks = [
   { label: 'Home', href: '/', sectionId: null },
+  { label: 'About', href: '/', sectionId: 'about' },
   { label: 'How It Works', href: '/', sectionId: 'how-it-works' },
   { label: 'Features', href: '/', sectionId: 'features' },
   { label: 'Testimonials', href: '/', sectionId: 'testimonials' },
@@ -95,10 +97,6 @@ export const Navbar: React.FC = () => {
       ? '/broker/settings'
       : '/customer/settings';
 
-  const initials = user?.fullName
-    ? user.fullName.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()
-    : '?';
-
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-border transition-shadow duration-200 ${
@@ -108,9 +106,23 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 shrink-0" onClick={() => setMobileOpen(false)}>
-            <img src="/logo.png" alt="B2C Logo" className="h-9 w-auto object-contain" />
+          {/* Mobile Hamburger on Left */}
+          <button
+            id="navbar-mobile-menu-btn"
+            className="md:hidden text-text-primary p-2 -ml-2 rounded-xl hover:bg-gray-100 transition-colors"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label="Toggle navigation menu"
+          >
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+
+          {/* Logo: On desktop top-left, on mobile top-right */}
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 shrink-0 order-last md:order-first"
+            onClick={() => setMobileOpen(false)}
+          >
+            <img src="/logo.png" alt="BrokerHub Logo" className="h-9 w-auto object-contain" />
             <span className="font-bold text-base text-text-primary tracking-tight leading-tight">BROKER HUB</span>
           </Link>
 
@@ -146,13 +158,12 @@ export const Navbar: React.FC = () => {
                   aria-haspopup="true"
                   aria-expanded={userMenuOpen}
                 >
-                  {user.avatar ? (
-                    <img src={user.avatar} alt={user.fullName} className="w-8 h-8 rounded-full object-cover border border-gray-border" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-teal-500 text-white text-xs font-bold flex items-center justify-center">
-                      {initials}
-                    </div>
-                  )}
+                  <UserAvatar
+                    src={user.avatar}
+                    name={user.fullName}
+                    alt={user.fullName}
+                    className="w-8 h-8 border border-gray-border"
+                  />
                   <span className="text-sm font-medium text-text-primary max-w-[120px] truncate">{user.fullName}</span>
                   <ChevronDown size={14} className={`text-gray-text transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -187,16 +198,6 @@ export const Navbar: React.FC = () => {
               </>
             )}
           </div>
-
-          {/* Mobile Hamburger */}
-          <button
-            id="navbar-mobile-menu-btn"
-            className="md:hidden text-text-primary p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label="Toggle navigation menu"
-          >
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
         </div>
       </div>
 
@@ -222,11 +223,12 @@ export const Navbar: React.FC = () => {
             {user ? (
               <>
                 <div className="flex items-center gap-3 px-3 py-2">
-                  {user.avatar ? (
-                    <img src={user.avatar} alt={user.fullName} className="w-9 h-9 rounded-full object-cover border border-gray-border" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-teal-500 text-white text-xs font-bold flex items-center justify-center">{initials}</div>
-                  )}
+                  <UserAvatar
+                    src={user.avatar}
+                    name={user.fullName}
+                    alt={user.fullName}
+                    className="w-9 h-9 border border-gray-border"
+                  />
                   <div>
                     <p className="text-sm font-semibold text-text-primary">{user.fullName}</p>
                     <p className="text-xs text-gray-text">{user.email}</p>
@@ -235,6 +237,10 @@ export const Navbar: React.FC = () => {
                 <Link to={dashboardPath} onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-text-primary hover:bg-gray-50 rounded-lg transition-colors">
                   <LayoutDashboard size={16} className="text-primary" /> Dashboard
+                </Link>
+                <Link to={settingsPath} onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-text-primary hover:bg-gray-50 rounded-lg transition-colors">
+                  <User size={16} className="text-gray-text" /> Profile & Settings
                 </Link>
                 <button
                   onClick={async () => { setMobileOpen(false); await signOut(); navigate('/'); }}

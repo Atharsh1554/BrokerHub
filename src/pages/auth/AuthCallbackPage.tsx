@@ -1,54 +1,26 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 
 /**
  * OAuth callback handler.
  *
- * With detectSessionInUrl=false on the Supabase client, auto-detection is
- * disabled. This page explicitly:
- *  1. Reads the ?code= parameter from the URL (PKCE flow)
- *  2. Calls exchangeCodeForSession — fires SIGNED_IN in onAuthStateChange
+ * With detectSessionInUrl=true on the Supabase client, auto-detection is
+ * enabled. Supabase will automatically:
+ *  1. Read the ?code= parameter from the URL (PKCE flow)
+ *  2. Exchange it for a session and fire SIGNED_IN in onAuthStateChange
  *  3. AuthContext handles SIGNED_IN: provisions profile + sets user state
  *  4. We then navigate to the correct dashboard once user is confirmed
  */
 export const AuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const exchangeAttempted = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Step 1: Exchange the PKCE code exactly once
   useEffect(() => {
-    if (exchangeAttempted.current) return;
-    exchangeAttempted.current = true;
-
-    const run = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
-          console.error('PKCE exchange failed:', error.message);
-          navigate('/login', { replace: true });
-          return;
-        }
-        // On success, onAuthStateChange(SIGNED_IN) fires in AuthContext
-        // which sets the user. Step 2 below will then navigate.
-      } else {
-        // No code — try reading session directly (e.g. existing session)
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          // Nothing to do, timeout below will redirect
-          console.warn('No auth code and no session found on callback');
-        }
-      }
-    };
-
-    run();
-
+    // With detectSessionInUrl=true, Supabase automatically exchanges the PKCE code.
+    // We just wait for the AuthContext to set the user or timeout if it fails.
+    
     // Safety: if user never gets set after 12s, go to login
     timeoutRef.current = setTimeout(() => {
       navigate('/login', { replace: true });

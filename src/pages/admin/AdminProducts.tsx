@@ -11,6 +11,8 @@ import {
   Plus,
   Edit,
   ImagePlus,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import { getAdminProducts, toggleProductActive, deleteAdminProduct } from '../../lib/api/admin';
 import type { Product } from '../../types';
@@ -32,6 +34,8 @@ export const AdminProducts: React.FC = () => {
     show: false,
     product: null,
   });
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -98,10 +102,22 @@ export const AdminProducts: React.FC = () => {
 
   const handleDeleteConfirm = async () => {
     if (deleteModal.product) {
-      await deleteAdminProduct(deleteModal.product.id);
-      setDeleteModal({ show: false, product: null });
-      fetchProducts();
-      notifyProductBroadcast();
+      const targetProduct = deleteModal.product;
+      setIsDeleting(true);
+      try {
+        // Optimistic UI removal
+        setProducts((prev) => prev.filter((p) => p.id !== targetProduct.id));
+        setDeleteModal({ show: false, product: null });
+        await deleteAdminProduct(targetProduct.id);
+        setSuccessNotice(`Product "${targetProduct.name}" removed successfully.`);
+        setTimeout(() => setSuccessNotice(null), 4000);
+        await fetchProducts();
+        notifyProductBroadcast();
+      } catch (err) {
+        console.error('Failed to delete product as admin:', err);
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -302,6 +318,14 @@ export const AdminProducts: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Success Notification Banner */}
+      {successNotice && (
+        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center gap-3 text-xs font-bold text-emerald-800 dark:text-emerald-300 shadow-sm animate-in fade-in slide-in-from-top duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span>{successNotice}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border transition-all ${
         isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800 text-white'
@@ -834,18 +858,23 @@ export const AdminProducts: React.FC = () => {
 
             <div className="flex justify-end space-x-3">
               <button
+                type="button"
+                disabled={isDeleting}
                 onClick={() => setDeleteModal({ show: false, product: null })}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold ${
+                className={`px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50 ${
                   isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
                 }`}
               >
                 Cancel
               </button>
               <button
+                type="button"
+                disabled={isDeleting}
                 onClick={handleDeleteConfirm}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-bold text-white shadow-md shadow-red-500/20"
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-xs font-bold text-white shadow-md shadow-red-500/20 cursor-pointer flex items-center gap-1.5"
               >
-                Delete Product
+                {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{isDeleting ? 'Deleting...' : 'Delete Product'}</span>
               </button>
             </div>
           </div>

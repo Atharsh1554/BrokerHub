@@ -20,7 +20,8 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
+import { resolveUserDisplayName } from '../../lib/userUtils';
+import { UserAvatar } from '../../components/ui/UserAvatar';
 import { formatRupeeCompact, formatRupeeExact, updateOrderStatusInDB } from '../../lib/api/orders';
 import type { Order } from '../../types';
 
@@ -54,7 +55,6 @@ export const BrokerDashboard: React.FC = () => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const displayName = resolveUserDisplayName(user?.fullName, user?.email);
-  const initials = getUserInitials(displayName);
 
   // 1. Calculate Time-Filtered Revenues & Order Status Counts
   const revenueMetrics = useMemo(() => {
@@ -357,49 +357,46 @@ export const BrokerDashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12 overflow-x-hidden">
       {/* Welcome Banner & Total Lifetime Revenue */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-border shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          {user?.avatar ? (
-            <img
-              src={user.avatar}
-              alt={displayName}
-              className="w-14 h-14 rounded-2xl object-cover shadow-sm border border-gray-100"
-            />
-          ) : (
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white text-xl font-bold shadow-sm">
-              {initials}
-            </div>
-          )}
-          <div>
-            <h1 className="text-2xl font-bold text-text-primary">Welcome back, {displayName}</h1>
-            <p className="text-sm text-gray-text">Live brokerage performance overview and order metrics</p>
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-border shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0 w-full md:w-auto">
+          <UserAvatar
+            src={user?.avatar}
+            name={displayName}
+            alt={displayName}
+            className="w-11 h-11 sm:w-14 sm:h-14 shadow-sm border border-gray-100 shrink-0"
+            roundedClassName="rounded-2xl"
+            fallbackClassName="bg-gradient-to-br from-primary to-teal-400 text-white text-base sm:text-xl font-bold"
+          />
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-text-primary truncate">Welcome back, {displayName}</h1>
+            <p className="text-xs sm:text-sm text-gray-text truncate">Live brokerage performance overview and order metrics</p>
           </div>
         </div>
 
-        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-4 w-full md:w-auto">
-          <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs">
-            <DollarSign size={24} />
+        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 sm:gap-4 w-full md:w-auto">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+            <DollarSign size={22} />
           </div>
-          <div>
-            <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Total Lifetime Revenue</p>
-            <p className="text-2xl font-extrabold text-emerald-900">{formatRupeeExact(revenueMetrics.totalRevenue)}</p>
+          <div className="min-w-0">
+            <p className="text-[11px] sm:text-xs font-semibold text-emerald-800 uppercase tracking-wider">Total Lifetime Revenue</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-emerald-900 truncate">{formatRupeeExact(revenueMetrics.totalRevenue)}</p>
           </div>
         </div>
       </div>
 
       {/* Dynamic Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {dynamicStats.map((stat, i) => (
           <StatCard key={stat.label} {...stat} icon={statIcons[i]} />
         ))}
       </div>
 
       {/* 📈 Sales Analytics & Quick Glance */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Sales Analytics Graph Card */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-border p-6 shadow-xs text-text-primary flex flex-col justify-between">
+        <div className="xl:col-span-2 bg-white rounded-2xl border border-gray-border p-6 shadow-xs text-text-primary flex flex-col justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center font-bold text-lg shadow-xs">
@@ -559,7 +556,7 @@ export const BrokerDashboard: React.FC = () => {
             <p className="text-xs text-gray-label">Top products will populate automatically when customers buy your listings.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
             {topSellingProducts.map((item, idx) => (
               <div key={item.name} className="bg-gray-50/80 rounded-xl border border-gray-200 p-4 space-y-3 flex flex-col justify-between">
                 <div className="flex items-center gap-3">

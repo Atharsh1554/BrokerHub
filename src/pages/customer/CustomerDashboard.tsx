@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -16,12 +16,38 @@ import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
 
 export const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { products, brokers, orders } = useApp();
+  const { products, brokers, orders, refreshProducts } = useApp();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
 
   const displayName = resolveUserDisplayName(user?.fullName, user?.email);
   const initials = getUserInitials(displayName);
+
+  // Sync products on mount and whenever deletions/updates occur
+  useEffect(() => {
+    refreshProducts();
+
+    const handleUpdate = () => {
+      refreshProducts();
+    };
+
+    window.addEventListener('brokerhub_products_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    return () => {
+      window.removeEventListener('brokerhub_products_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  // Guaranteed exclusion of deleted & inactive products in Customer Dashboard
+  const activeProducts = useMemo(() => {
+    let globalDeleted: string[] = [];
+    try {
+      globalDeleted = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
+    } catch {}
+    return products.filter((p) => !globalDeleted.includes(p.id) && p.isActive !== false);
+  }, [products]);
 
   // Helper to find broker info
   const getBrokerInfo = (brokerId?: string) => {
@@ -31,7 +57,7 @@ export const CustomerDashboard: React.FC = () => {
 
   // 1. Calculate Top Sale Product dynamically from actual orders data
   const topSaleInfo = useMemo(() => {
-    if (!orders || orders.length === 0 || !products || products.length === 0) return null;
+    if (!orders || orders.length === 0 || !activeProducts || activeProducts.length === 0) return null;
 
     const salesMap: Record<string, number> = {};
 
@@ -45,7 +71,7 @@ export const CustomerDashboard: React.FC = () => {
       if (order.items && order.items.length > 0) {
         for (const item of order.items) {
           const qty = item.quantity || 1;
-          const matched = products.find(
+          const matched = activeProducts.find(
             (p) => p.name.toLowerCase() === (item.productName || '').toLowerCase()
           );
           if (matched) {
@@ -54,7 +80,7 @@ export const CustomerDashboard: React.FC = () => {
         }
       } else if (order.productName || order.product) {
         const pName = order.productName || order.product || '';
-        const matched = products.find(
+        const matched = activeProducts.find(
           (p) =>
             pName.toLowerCase().includes(p.name.toLowerCase()) ||
             p.name.toLowerCase().includes(pName.toLowerCase())
@@ -78,21 +104,21 @@ export const CustomerDashboard: React.FC = () => {
 
     if (!topId || maxQty === 0) return null;
 
-    const topProduct = products.find((p) => p.id === topId);
+    const topProduct = activeProducts.find((p) => p.id === topId);
     if (!topProduct) return null;
 
     return {
       product: topProduct,
       totalSold: maxQty,
     };
-  }, [orders, products]);
+  }, [orders, activeProducts]);
 
   // 2. Filter products based on search term
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];
 
-    return products.filter((p) => {
+    return activeProducts.filter((p) => {
       const broker = getBrokerInfo(p.brokerId);
       const nameMatch = p.name.toLowerCase().includes(q);
       const categoryMatch = (p.category || '').toLowerCase().includes(q);
@@ -100,21 +126,21 @@ export const CustomerDashboard: React.FC = () => {
       const descMatch = (p.description || '').toLowerCase().includes(q);
       return nameMatch || categoryMatch || brokerMatch || descMatch;
     });
-  }, [searchQuery, products, brokers]);
+  }, [searchQuery, activeProducts, brokers]);
 
-  const latestProducts = [...products].slice(0, 4);
+  const latestProducts = activeProducts.slice(0, 8);
 
   return (
     <div className="space-y-8 pb-12">
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white text-xl font-bold shadow-sm">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white text-base sm:text-xl font-bold shadow-sm shrink-0">
             {initials}
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-text-primary">Welcome back, {displayName}</h1>
-            <p className="text-sm text-gray-text">Here's what's happening with your broker connections</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-text-primary truncate">Welcome back, {displayName}</h1>
+            <p className="text-xs sm:text-sm text-gray-text truncate">Here's what's happening with your broker connections</p>
           </div>
         </div>
       </div>
@@ -160,48 +186,40 @@ export const CustomerDashboard: React.FC = () => {
               <p className="text-xs text-gray-label">Try searching for another product name, category, or broker.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
               {searchResults.map((product) => {
                 const broker = getBrokerInfo(product.brokerId);
                 return (
                   <div
                     key={product.id}
                     onClick={() => navigate(`/customer/products/${product.id}`)}
-                    className="bg-white rounded-xl border border-gray-border overflow-hidden hover:shadow-md transition-all duration-200 group cursor-pointer flex flex-col justify-between"
+                    className="bg-white rounded-lg sm:rounded-xl border border-gray-border overflow-hidden hover:shadow-md hover:border-emerald-300 transition-all duration-200 group cursor-pointer flex flex-col justify-between"
                   >
-                    <div className="h-36 bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center overflow-hidden">
+                    <div className="relative aspect-square sm:h-36 w-full bg-white p-2 flex items-center justify-center overflow-hidden border-b border-gray-100">
                       {product.image ? (
                         <img
                           src={product.image}
                           alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
-                        <ShoppingBag size={36} className="text-gray-300" />
+                        <ShoppingBag size={28} className="text-gray-300 group-hover:scale-110 transition-transform duration-300" />
                       )}
                     </div>
-                    <div className="p-4 flex-1 flex flex-col justify-between space-y-2">
+                    <div className="p-2 sm:p-2.5 flex-1 flex flex-col justify-between space-y-1.5">
                       <div>
-                        <p className="text-[10px] text-gray-label uppercase tracking-wider mb-0.5">{product.category}</p>
-                        <h3 className="text-sm font-semibold text-text-primary line-clamp-1 mb-1">{product.name}</h3>
-                        <div className="flex items-center justify-between">
-                          <p className="text-base font-bold text-primary">₹{product.price.toLocaleString('en-IN')}</p>
+                        <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider truncate mb-0.5">{product.category}</p>
+                        <h3 className="text-xs sm:text-sm font-semibold text-text-primary line-clamp-2 leading-tight group-hover:text-primary transition-colors min-h-[1.8rem] sm:min-h-[2.2rem]">{product.name}</h3>
+                        <div className="flex items-baseline justify-between gap-1 pt-1">
+                          <p className="text-xs sm:text-sm font-extrabold text-primary">₹{product.price.toLocaleString('en-IN')}</p>
                           <StatusBadge status={product.status} size="sm" />
                         </div>
                       </div>
-                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
-                        <span className="text-gray-600 truncate font-medium">
-                          Broker: <strong>{broker.name}</strong>
+                      <div className="pt-1.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-500">
+                        <span className="truncate max-w-[70%]">
+                          By <strong>{broker.name}</strong>
                         </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/customer/products/${product.id}`);
-                          }}
-                          className="text-primary font-bold hover:underline"
-                        >
-                          View
-                        </button>
+                        <span className="text-primary font-bold">View</span>
                       </div>
                     </div>
                   </div>
@@ -293,7 +311,7 @@ export const CustomerDashboard: React.FC = () => {
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-text-primary">Latest Products</h2>
                 <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-0.5 rounded-full">
-                  {products.length} listings
+                  {activeProducts.length} listings
                 </span>
               </div>
               <Link
@@ -310,49 +328,49 @@ export const CustomerDashboard: React.FC = () => {
                 <p className="text-sm text-gray-text">No products yet. Check back when your brokers add listings.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
                 {latestProducts.map((product) => {
                   const broker = getBrokerInfo(product.brokerId);
                   return (
                     <div
                       key={product.id}
                       onClick={() => navigate(`/customer/products/${product.id}`)}
-                      className="bg-white rounded-xl border border-gray-border overflow-hidden hover:shadow-md transition-all duration-200 group relative cursor-pointer flex flex-col justify-between"
+                      className="bg-white rounded-lg sm:rounded-xl border border-gray-border overflow-hidden hover:shadow-md hover:border-emerald-300 transition-all duration-200 group relative cursor-pointer flex flex-col justify-between"
                     >
-                      <div className="h-32 bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center overflow-hidden">
+                      <div className="relative aspect-square sm:h-36 w-full bg-white p-2 flex items-center justify-center overflow-hidden border-b border-gray-100">
                         {product.image ? (
                           <img
                             src={product.image}
                             alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                           />
                         ) : (
-                          <ShoppingBag size={36} className="text-gray-300 group-hover:scale-110 transition-transform duration-300" />
+                          <ShoppingBag size={28} className="text-gray-300 group-hover:scale-110 transition-transform duration-300" />
                         )}
                       </div>
-                      <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
+                      <div className="p-2 sm:p-2.5 flex-1 flex flex-col justify-between space-y-1.5">
                         <div>
-                          <p className="text-[10px] text-gray-label uppercase tracking-wider mb-0.5">{product.category}</p>
-                          <h3 className="text-xs font-semibold text-text-primary line-clamp-1 mb-1">{product.name}</h3>
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-bold text-primary">₹{product.price.toLocaleString('en-IN')}</p>
+                          <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider truncate mb-0.5">{product.category}</p>
+                          <h3 className="text-xs sm:text-sm font-semibold text-text-primary line-clamp-2 leading-tight group-hover:text-primary transition-colors min-h-[1.8rem] sm:min-h-[2.2rem]">{product.name}</h3>
+                          <div className="flex items-baseline justify-between gap-1 pt-1">
+                            <p className="text-xs sm:text-sm font-extrabold text-primary">₹{product.price.toLocaleString('en-IN')}</p>
                             <StatusBadge status={product.status} size="sm" />
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
-                          <span className="text-gray-600 truncate font-medium">
-                            Broker: <strong>{broker.name}</strong>
+                        <div className="pt-1.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-500">
+                          <span className="truncate max-w-[65%]">
+                            By <strong>{broker.name}</strong>
                           </span>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/customer/messages?brokerId=${broker.id}`);
                             }}
-                            className="text-teal-600 hover:text-teal-700 font-bold flex items-center gap-1 hover:underline"
+                            className="text-teal-600 hover:text-teal-700 font-bold flex items-center gap-0.5 hover:underline shrink-0"
                           >
-                            <MessageSquare size={12} />
-                            Contact
+                            <MessageSquare size={11} />
+                            Chat
                           </button>
                         </div>
                       </div>
@@ -371,7 +389,7 @@ export const CustomerDashboard: React.FC = () => {
                 View All
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {brokers.slice(0, 3).map((broker) => (
                 <div key={broker.id} className="bg-white rounded-xl border border-gray-border p-5 hover:shadow-md transition-all duration-200">
                   <div className="flex items-start gap-3 mb-4">

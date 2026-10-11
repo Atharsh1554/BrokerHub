@@ -80,13 +80,15 @@ export const getBrokerProducts = async (brokerId: string): Promise<Product[]> =>
     // ignore
   }
 
-  // Exclude deleted product IDs for this broker
+  // Exclude deleted product IDs for this broker and global admin deleted IDs
   let deletedIds: string[] = [];
   try {
     const savedDeleted = localStorage.getItem(`brokerhub_deleted_products_${brokerId}`);
     if (savedDeleted) {
       deletedIds = JSON.parse(savedDeleted);
     }
+    const globalDeleted: string[] = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
+    deletedIds.push(...globalDeleted);
   } catch {
     // ignore
   }
@@ -141,12 +143,28 @@ export const getProducts = async (includeInactive: boolean = false): Promise<Pro
     // ignore
   }
 
+  // Load globally deleted product IDs (admin deletions)
+  let globalDeleted: string[] = [];
+  try {
+    globalDeleted = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
+  } catch {}
+
   // Combine DB products and broker custom products for the public marketplace
   const combined = [...allCustomProducts, ...dbProducts];
-  return combined.filter((p) => includeInactive || p.isActive !== false);
+  return combined
+    .filter((p) => !globalDeleted.includes(p.id))
+    .filter((p) => includeInactive || p.isActive !== false);
 };
 
 export const getProductById = async (id: string): Promise<Product | null> => {
+  // Check if product was deleted by admin
+  try {
+    const globalDeleted: string[] = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
+    if (globalDeleted.includes(id)) {
+      return null;
+    }
+  } catch {}
+
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   if (isUuid) {
     try {

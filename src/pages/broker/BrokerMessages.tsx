@@ -197,7 +197,7 @@ export const BrokerMessages: React.FC = () => {
 
           {/* Chat Panel */}
           <div
-            className={`flex-1 flex flex-col bg-gray-bg/40 ${
+            className={`flex-1 flex flex-col min-w-0 bg-gray-bg/40 ${
               !showMobileChat ? 'hidden md:flex' : 'flex'
             }`}
           >

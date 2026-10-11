@@ -439,12 +439,15 @@ export const updateBrokerStatus = async (brokerId: string, status: Broker['statu
 export const getAdminProducts = async (): Promise<Product[]> => {
   const allProducts = await getProducts(true);
   const savedAdminOverrides = JSON.parse(localStorage.getItem('brokerhub_product_admin_overrides') || '{}');
+  const savedDeleted: string[] = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
 
-  return allProducts.map((p) => ({
-    ...p,
-    isActive: savedAdminOverrides[p.id]?.isActive !== undefined ? savedAdminOverrides[p.id].isActive : (p.isActive ?? true),
-    ...savedAdminOverrides[p.id],
-  }));
+  return allProducts
+    .filter((p) => !savedDeleted.includes(p.id))
+    .map((p) => ({
+      ...p,
+      isActive: savedAdminOverrides[p.id]?.isActive !== undefined ? savedAdminOverrides[p.id].isActive : (p.isActive ?? true),
+      ...savedAdminOverrides[p.id],
+    }));
 };
 
 export const toggleProductActive = async (productId: string, currentActive: boolean) => {
@@ -461,23 +464,66 @@ export const toggleProductActive = async (productId: string, currentActive: bool
 };
 
 export const deleteAdminProduct = async (productId: string) => {
+  // 1. Attempt database deletion via Supabase
   try {
-    await supabase.from('products').delete().eq('id', productId);
-  } catch {
-    // Fallback
+    const { error } = await supabase.from('products').delete().eq('id', productId);
+    if (error) {
+      console.warn('Supabase product hard-delete note:', error.message);
+      // Soft-delete deactivate in Supabase as fallback
+      await supabase.from('products').update({ is_active: false }).eq('id', productId);
+    }
+  } catch (err) {
+    console.warn('Exception during Supabase delete:', err);
   }
-  const savedDeleted = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
+
+  // 2. Add to global deleted products list
+  const savedDeleted: string[] = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
   if (!savedDeleted.includes(productId)) {
     savedDeleted.push(productId);
     localStorage.setItem('brokerhub_deleted_products', JSON.stringify(savedDeleted));
   }
+
+  // 3. Remove from legacy custom products
   try {
     const customProds: Product[] = JSON.parse(localStorage.getItem('brokerhub_custom_products') || '[]');
     const updatedCustom = customProds.filter((p) => p.id !== productId);
     localStorage.setItem('brokerhub_custom_products', JSON.stringify(updatedCustom));
   } catch {}
 
+  // 4. Clean up across all broker-specific localStorage keys
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('brokerhub_custom_products_')) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const list: Product[] = JSON.parse(raw);
+          const filtered = list.filter((p) => p.id !== productId);
+          localStorage.setItem(key, JSON.stringify(filtered));
+        }
+      }
+      if (key && key.startsWith('brokerhub_deleted_products_')) {
+        const raw = localStorage.getItem(key);
+        const list: string[] = raw ? JSON.parse(raw) : [];
+        if (!list.includes(productId)) {
+          list.push(productId);
+          localStorage.setItem(key, JSON.stringify(list));
+        }
+      }
+    }
+  } catch {}
+
+  // 5. Clean up any admin overrides for this product
+  try {
+    const savedOverrides = JSON.parse(localStorage.getItem('brokerhub_product_admin_overrides') || '{}');
+    if (savedOverrides[productId]) {
+      delete savedOverrides[productId];
+      localStorage.setItem('brokerhub_product_admin_overrides', JSON.stringify(savedOverrides));
+    }
+  } catch {}
+
   await logAdminActivity('Product Delete', `Product ID: ${productId}`);
+  return true;
 };
 
 export const getAdminOrders = async (): Promise<Order[]> => {

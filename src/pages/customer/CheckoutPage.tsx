@@ -370,9 +370,9 @@ export const CheckoutPage: React.FC = () => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Customer & Delivery Address Form */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="xl:col-span-2 space-y-6">
           <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-700">
               <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -543,7 +543,7 @@ export const CheckoutPage: React.FC = () => {
         </div>
 
         {/* Order Summary & Submit Button */}
-        <div className="lg:col-span-1">
+        <div className="xl:col-span-1">
           <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 sticky top-6 space-y-4">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white pb-3 border-b border-gray-100 dark:border-slate-700">
               Items in Order

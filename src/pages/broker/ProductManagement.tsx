@@ -189,7 +189,7 @@ export const ProductManagement: React.FC = () => {
 
       {/* Products Grid or Loading or Empty State */}
       {brokerProductsLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {[1, 2, 3].map((n) => (
             <div key={n} className="bg-white rounded-2xl border border-zinc-200 p-5 animate-pulse space-y-4 shadow-xs">
               <div className="h-44 bg-zinc-100 rounded-xl" />
@@ -238,65 +238,67 @@ export const ProductManagement: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
           {filteredProducts.map((product) => (
           <div
             key={product.id}
-            className="bg-white rounded-2xl border border-zinc-200 shadow-xs flex flex-col justify-between hover:shadow-md transition-all overflow-hidden"
+            className="bg-white rounded-lg sm:rounded-xl border border-zinc-200 shadow-xs flex flex-col justify-between hover:shadow-md transition-all overflow-hidden"
           >
             {/* Product Image */}
-            <div className="h-44 bg-zinc-100 flex items-center justify-center relative overflow-hidden">
+            <div className="relative aspect-square sm:h-36 w-full bg-zinc-50 flex items-center justify-center p-2 overflow-hidden border-b border-zinc-100">
               {product.image ? (
                 <img
                   src={product.image}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               ) : (
-                <ShoppingBag className="w-10 h-10 text-zinc-300" />
+                <ShoppingBag className="w-8 h-8 text-zinc-300" />
               )}
-              <div className="absolute top-3 right-3">
-                <StatusBadge status={product.status} />
+              <div className="absolute top-2 right-2">
+                <StatusBadge status={product.status} size="sm" />
               </div>
             </div>
 
-            <div className="p-5">
-              <h3 className="font-bold text-zinc-900 text-base line-clamp-1">{product.name}</h3>
-              <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{product.description}</p>
+            <div className="p-2 sm:p-2.5 flex-1 flex flex-col justify-between space-y-1.5">
+              <div>
+                <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider truncate mb-0.5">{product.category}</p>
+                <h3 className="font-semibold text-zinc-900 text-xs sm:text-sm line-clamp-2 leading-tight min-h-[1.8rem] sm:min-h-[2.2rem]">{product.name}</h3>
+              </div>
 
-              <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between">
+              <div className="pt-1 border-t border-zinc-100 flex items-baseline justify-between gap-1">
                 <div>
-                  <p className="text-xs text-zinc-400 font-medium">Unit Price</p>
-                  <p className="text-lg font-bold text-zinc-900">₹{product.price.toLocaleString('en-IN')}</p>
+                  <p className="text-[10px] text-zinc-400 font-medium">Price</p>
+                  <p className="text-xs sm:text-sm font-bold text-zinc-900">₹{product.price.toLocaleString('en-IN')}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-zinc-400 font-medium">Available Stock</p>
-                  <p className="text-sm font-semibold text-zinc-700">{product.stock} units</p>
+                  <p className="text-[10px] text-zinc-400 font-medium">Stock</p>
+                  <p className="text-xs font-semibold text-zinc-700">{product.stock} units</p>
                 </div>
               </div>
             </div>
 
-            <div className="px-5 pb-5 pt-0 flex items-center gap-2">
+            <div className="p-2 pt-0 flex items-center gap-1.5 border-t border-zinc-50">
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full gap-1.5 text-xs text-zinc-700 border-zinc-200 hover:bg-zinc-50"
+                className="w-full gap-1 text-[11px] h-7 px-2 text-zinc-700 border-zinc-200 hover:bg-zinc-50"
                 onClick={() => handleEditClick(product)}
               >
-                <Edit2 className="w-3.5 h-3.5" />
+                <Edit2 className="w-3 h-3" />
                 Edit
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full gap-1.5 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                className="w-full gap-1 text-[11px] h-7 px-2 text-red-600 hover:bg-red-50 hover:text-red-700"
                 onClick={() => {
                   if (confirm(`Are you sure you want to delete "${product.name}"?`)) {
                     deleteProduct(product.id);
                   }
                 }}
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-3 h-3" />
                 Delete
               </Button>
             </div>

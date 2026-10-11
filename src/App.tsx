@@ -12,6 +12,7 @@ import { AdminThemeProvider } from './context/AdminThemeContext';
 
 // Public & Auth Pages
 import { LandingPage } from './pages/LandingPage';
+import { AboutBrokerHubPage } from './pages/AboutBrokerHubPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { SignUpPage } from './pages/auth/SignUpPage';
 import { BrokerAuthPage } from './pages/auth/BrokerAuthPage';
@@ -81,6 +82,8 @@ export const App: React.FC = () => {
       <Routes>
         {/* Public & Initiative Routes */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/about" element={<AboutBrokerHubPage />} />
+        <Route path="/about-brokerhub" element={<AboutBrokerHubPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/broker/auth" element={<BrokerAuthPage />} />
@@ -156,9 +159,15 @@ export const App: React.FC = () => {
               <main className="flex-1 p-4 sm:p-6 w-full max-w-7xl mx-auto">
                 <BrokerProfilePage />
               </main>
-              <footer className="px-6 py-4 border-t border-gray-border text-center text-xs text-gray-text">
-                <p className="font-semibold text-text-primary">BROKER HUB</p>
-                <p className="italic text-gray-label">A MYSTRIO Product · © 2026 MYSTRIO. All rights reserved.</p>
+              <footer className="px-6 py-4 border-t border-gray-border text-center text-xs text-gray-text space-y-2">
+                <div>
+                  <p className="font-semibold text-text-primary">BROKER HUB</p>
+                  <p className="italic text-gray-label">A MYSTRIO Product</p>
+                </div>
+                <p className="text-[10px] text-gray-label max-w-2xl mx-auto leading-relaxed">
+                  BrokerHub is a digital marketplace connecting customers with independent sellers and service providers. BrokerHub does not provide stock trading, investment advice, securities brokerage, portfolio management, or other financial services.
+                </p>
+                <p className="text-[11px] text-gray-label">© 2026 MYSTRIO. All rights reserved.</p>
               </footer>
             </div>
           }

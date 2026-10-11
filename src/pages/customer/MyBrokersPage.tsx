@@ -101,7 +101,7 @@ export const MyBrokersPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-border">
+            <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-border">
               <Link to={`/customer/brokers/${broker.id}`} className="w-full">
                 <Button variant="primary" size="sm" className="w-full text-xs gap-1">
                   <ExternalLink size={14} />

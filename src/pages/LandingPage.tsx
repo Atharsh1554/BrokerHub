@@ -10,6 +10,7 @@ export const LandingPage: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
+    document.title = 'BrokerHub – Online Marketplace for Customers & Sellers';
     const state = location.state as { scrollTo?: string } | null;
     if (state?.scrollTo) {
       // Small delay to allow the page to fully render before scrolling
@@ -35,18 +36,18 @@ export const LandingPage: React.FC = () => {
       avatar: 'AV',
       rating: 5,
       quote:
-        'BROKER HUB saved us weeks when sourcing specialized industrial hardware brokers. We got matched in 12 hours and finalized our multi-state distribution deal smoothly.',
+        'BrokerHub saved us weeks when sourcing specialized industrial hardware suppliers. We got matched in 12 hours and placed our bulk equipment order smoothly.',
     },
     {
       id: 2,
       name: 'Marcus Chen',
-      role: 'Senior Commercial Broker',
-      company: 'Apex Realty Group',
+      role: 'Commercial Supplier',
+      company: 'Apex Commercial Supplies',
       category: 'broker',
       avatar: 'MC',
       rating: 5,
       quote:
-        'As a broker, BROKER HUB provides the highest quality verified buyer leads. The appointment scheduling and live client chat desk have doubled my closing rate.',
+        'BrokerHub connects our supply business with genuine buyers looking for verified merchandise. Managing inquiries and order requests in one place has streamlined our sales pipeline.',
     },
     {
       id: 3,
@@ -57,18 +58,18 @@ export const LandingPage: React.FC = () => {
       avatar: 'DP',
       rating: 5,
       quote:
-        'The transparency of verified reviews and order tracking makes high-value deals completely stress-free. Another stellar product by MYSTRIO!',
+        'The transparency of verified product listings and shipment tracking makes bulk purchasing stress-free. A reliable and highly efficient marketplace!',
     },
     {
       id: 4,
       name: 'Elena Rodriguez',
-      role: 'Principal Advisor',
-      company: 'SecureLife Partners',
+      role: 'Wholesale Merchandise Broker',
+      company: 'Global Trade Partners',
       category: 'broker',
       avatar: 'ER',
       rating: 5,
       quote:
-        'The interface is sleek, responsive, and intuitive. Managing client portfolios, tracking payouts, and accepting call requests has never been this seamless.',
+        'The interface is sleek, responsive, and intuitive. Managing product inventory, responding to buyer inquiries, and fulfilling orders has never been this seamless.',
     },
   ];
 
@@ -87,49 +88,47 @@ export const LandingPage: React.FC = () => {
             <div>
               <div className="inline-flex items-center gap-2 bg-primary-50 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
                 <Zap size={16} />
-                <span>Verified Connections in Under 24 Hours</span>
+                <span>Verified Marketplace Connections</span>
               </div>
-              <h1 className="text-4xl sm:text-5xl font-bold text-text-primary leading-tight mb-6">
-                Find the perfect broker for your{' '}
-                <span className="text-primary">required deals</span>
+              <h1 className="text-3xl sm:text-5xl font-bold text-text-primary leading-tight mb-6">
+                BrokerHub – Connect with Sellers. <span className="text-primary">Discover Products.</span> Get Things Done.
               </h1>
-              <p className="text-lg text-gray-text leading-relaxed mb-8 max-w-lg">
-                Connect with trusted, verified brokers who understand your business needs. 
-                Get matched, compare reviews, and start collaborating in real-time.
+              <p className="text-base sm:text-lg text-gray-text leading-relaxed mb-8 max-w-lg">
+                Connect with independent sellers and service providers. Discover products, compare prices, connect with sellers and place orders online.
               </p>
-              <div className="flex flex-wrap gap-4">
-                <Link to="/signup">
-                  <Button variant="primary" size="lg">
+              <div className="flex flex-wrap gap-3 sm:gap-4">
+                <Link to="/signup" className="w-full sm:w-auto">
+                  <Button variant="primary" size="lg" className="w-full sm:w-auto justify-center">
                     Get Matched Now
                     <ArrowRight size={18} className="ml-2" />
                   </Button>
                 </Link>
-                <a href="#how-it-works">
-                  <Button variant="secondary" size="lg">
-                    Learn More
+                <a href="#about" className="w-full sm:w-auto">
+                  <Button variant="secondary" size="lg" className="w-full sm:w-auto justify-center">
+                    About BrokerHub
                   </Button>
                 </a>
               </div>
             </div>
 
             {/* Hero Image Placeholder */}
-            <div className="relative">
+            <div className="relative mt-4 lg:mt-0">
               <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-primary-50 via-teal-50 to-emerald-50 flex items-center justify-center overflow-hidden shadow-xl border border-gray-border">
                 <div className="text-center p-8">
                   <div className="w-24 h-24 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center">
                     <Users size={48} className="text-primary" />
                   </div>
-                  <p className="text-lg font-semibold text-text-primary">Business Handshake</p>
-                  <p className="text-xs text-primary font-bold italic mt-0.5">A MYSTRIO Product</p>
+                  <p className="text-lg font-semibold text-text-primary">Digital Marketplace</p>
+                  <p className="text-xs text-primary font-bold italic mt-0.5">Online Digital Marketplace</p>
                 </div>
               </div>
               {/* Floating badge */}
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg p-4 border border-gray-border">
+              <div className="absolute -bottom-4 left-2 sm:-left-4 right-2 sm:right-auto bg-white rounded-xl shadow-lg p-3 sm:p-4 border border-gray-border">
                 <div className="flex items-center gap-3">
-                  <CheckCircle size={24} className="text-primary" />
+                  <CheckCircle size={24} className="text-primary shrink-0" />
                   <div>
-                    <p className="text-sm font-bold text-text-primary">500+ Verified Brokers</p>
-                    <p className="text-xs text-gray-text">Over ₹100 Cr in deals powered</p>
+                    <p className="text-xs sm:text-sm font-bold text-text-primary">500+ Verified Sellers</p>
+                    <p className="text-[11px] sm:text-xs text-gray-text">50,000+ Marketplace Orders Fulfilled</p>
                   </div>
                 </div>
               </div>
@@ -138,15 +137,127 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* About BrokerHub Section (Digital Marketplace Clarification) */}
+      <section id="about" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-bg border-t border-b border-gray-border">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 text-primary text-xs font-semibold uppercase tracking-wider mb-3">
+              <span>Official Platform Clarification</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-text-primary mb-3">
+              About <span className="text-primary">BrokerHub</span>
+            </h2>
+            <p className="text-gray-text max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
+              BrokerHub is a digital marketplace connecting customers with independent commercial sellers and service providers.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 items-stretch">
+            {/* What BrokerHub Is */}
+            <div className="bg-white rounded-2xl border border-gray-border p-8 shadow-xs flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">
+                    <CheckCircle size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-text-primary">What BrokerHub Is</h3>
+                    <p className="text-xs text-gray-text">Digital Marketplace · E-commerce</p>
+                  </div>
+                </div>
+
+                <ul className="space-y-3 pt-2 text-sm text-text-primary">
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle size={17} className="text-emerald-600 shrink-0 mt-0.5" />
+                    <span><strong>Digital Marketplace:</strong> BrokerHub is an online marketplace connecting customers with independent sellers and service providers.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle size={17} className="text-emerald-600 shrink-0 mt-0.5" />
+                    <span><strong>Product Discovery:</strong> Discover products, compare transparent prices, and connect directly with sellers.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle size={17} className="text-emerald-600 shrink-0 mt-0.5" />
+                    <span><strong>Marketplace Transactions:</strong> Facilitates order placement, seller communications, and catalog management online.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <CheckCircle size={17} className="text-emerald-600 shrink-0 mt-0.5" />
+                    <span><strong>Platform Operations:</strong> Built as a dedicated digital commerce marketplace for verified trading and buyer-seller trust.</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="pt-6 mt-6 border-t border-gray-100 flex items-center justify-between text-xs text-gray-text">
+                <span>Product: <strong className="text-text-primary">BrokerHub</strong></span>
+                <span>Type: <strong className="text-text-primary">Digital Marketplace</strong></span>
+              </div>
+            </div>
+
+            {/* What BrokerHub Is NOT */}
+            <div className="bg-white rounded-2xl border border-gray-border p-8 shadow-xs flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-800 text-white flex items-center justify-center font-bold">
+                    <Shield size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-text-primary">Important Clarifications</h3>
+                    <p className="text-xs text-gray-text">Not a Financial Platform</p>
+                  </div>
+                </div>
+
+                <ul className="space-y-3 pt-2 text-sm text-gray-text">
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1.5" />
+                    <span>BrokerHub is <strong>NOT</strong> a stock broker.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1.5" />
+                    <span>BrokerHub is <strong>NOT</strong> an investment platform.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1.5" />
+                    <span>BrokerHub does <strong>NOT</strong> provide securities trading.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1.5" />
+                    <span>BrokerHub does <strong>NOT</strong> provide investment advice.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1.5" />
+                    <span>BrokerHub does <strong>NOT</strong> provide portfolio management.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 mt-1.5" />
+                    <span>BrokerHub is <strong>NOT</strong> a financial services platform.</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="pt-6 mt-6 border-t border-gray-100 flex items-center justify-between text-xs text-gray-text">
+                <span>Industry: <strong className="text-text-primary">E-commerce / Digital Marketplace</strong></span>
+                <span>Type: <strong className="text-text-primary">Online Commerce</strong></span>
+              </div>
+            </div>
+          </div>
+
+          {/* Mandatory Disclaimer Box */}
+          <div className="mt-8 bg-white border border-gray-border rounded-2xl p-6 text-center shadow-xs">
+            <p className="text-xs sm:text-sm text-gray-text leading-relaxed max-w-3xl mx-auto">
+              <strong className="text-text-primary">Disclaimer:</strong> BrokerHub is a digital marketplace connecting customers with independent sellers and service providers. BrokerHub does not provide stock trading, investment advice, securities brokerage, portfolio management, or other financial services.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-bg">
+      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="text-3xl font-bold text-text-primary mb-4">
               Why choose <span className="text-primary">BROKER HUB</span>?
             </h2>
             <p className="text-gray-text max-w-2xl mx-auto">
-              Engineered by MYSTRIO to make finding the right broker simple, transparent, and reliable.
+              Engineered to make finding the right sellers and products simple, transparent, and reliable.
             </p>
           </div>
 
@@ -189,7 +300,7 @@ export const LandingPage: React.FC = () => {
           <div className="text-center mb-14">
             <h2 className="text-3xl font-bold text-text-primary mb-4">How it works</h2>
             <p className="text-gray-text max-w-2xl mx-auto">
-              Three simple steps to find your perfect broker match.
+              Three simple steps to find your perfect seller and product match.
             </p>
           </div>
 
@@ -274,7 +385,7 @@ export const LandingPage: React.FC = () => {
                       ))}
                     </div>
                     <span className="px-2.5 py-1 rounded-full bg-gray-50 text-gray-label text-xs font-medium uppercase tracking-wider">
-                      {t.category === 'client' ? 'Buyer Partner' : 'Licensed Broker'}
+                      {t.category === 'client' ? 'Customer / Buyer' : 'Independent Seller'}
                     </span>
                   </div>
 
@@ -307,14 +418,14 @@ export const LandingPage: React.FC = () => {
               Simple, <span className="text-primary">transparent pricing</span>
             </h2>
             <p className="text-gray-text max-w-2xl mx-auto">
-              No hidden fees. Choose the plan that works best for your business needs.
+              No hidden fees. Choose the plan that works best for your digital marketplace needs.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {[
-              { plan: 'Starter', price: '₹0', period: '/month', desc: 'Perfect for individuals exploring broker connections.', features: ['Up to 3 broker matches', 'Basic messaging', 'Public broker profiles'] },
-              { plan: 'Growth', price: '₹2,999', period: '/month', desc: 'For growing businesses needing consistent broker access.', features: ['Unlimited broker matches', 'Priority support', 'Advanced analytics', 'Appointment scheduling'], highlight: true },
-              { plan: 'Enterprise', price: 'Custom', period: '', desc: 'Tailored solutions for large-scale operations.', features: ['Dedicated account manager', 'Custom integrations', 'SLA guarantee', 'Bulk deal management'] },
+              { plan: 'Starter', price: '₹0', period: '/month', desc: 'Perfect for individuals exploring seller connections.', features: ['Up to 3 seller matches', 'Basic messaging', 'Public seller profiles'] },
+              { plan: 'Growth', price: '₹2,999', period: '/month', desc: 'For growing businesses needing consistent marketplace access.', features: ['Unlimited seller matches', 'Priority support', 'Advanced analytics', 'Inquiry scheduling'], highlight: true },
+              { plan: 'Enterprise', price: 'Custom', period: '', desc: 'Tailored solutions for large-scale operations.', features: ['Dedicated account manager', 'Custom integrations', 'SLA guarantee', 'Bulk order management'] },
             ].map((tier) => (
               <div key={tier.plan} className={`rounded-2xl border p-8 flex flex-col gap-6 ${
                 tier.highlight ? 'border-primary bg-primary/5 shadow-lg' : 'border-gray-border bg-gray-bg'
@@ -352,10 +463,10 @@ export const LandingPage: React.FC = () => {
           </div>
           <div className="space-y-4">
             {[
-              { q: 'How does broker matching work?', a: 'Our algorithm analyses your business requirements and matches you with verified brokers who specialize in your industry and deal type.' },
-              { q: 'Are brokers verified and vetted?', a: 'Yes. Every broker on BROKER HUB goes through a thorough verification process including identity checks, license validation, and reference reviews.' },
+              { q: 'How does seller matching work?', a: 'Our algorithm analyses your business requirements and matches you with verified commercial sellers who specialize in your specific product categories and supply requirements.' },
+              { q: 'Are sellers verified and vetted?', a: 'Yes. Every seller and provider on BROKER HUB goes through an onboarding verification process including identity checks, business verification, and reference reviews.' },
               { q: 'How quickly can I get matched?', a: 'Most matches are delivered within 24 hours of submitting your requirements. Priority plan users get matches within 4 hours.' },
-              { q: 'Is there a free plan available?', a: 'Yes, our Starter plan is completely free and lets you explore up to 3 broker matches with basic messaging.' },
+              { q: 'Is there a free plan available?', a: 'Yes, our Starter plan is completely free and lets you explore up to 3 seller matches with basic messaging.' },
               { q: 'Can I switch plans later?', a: 'Absolutely. You can upgrade, downgrade, or cancel your plan at any time from your account settings.' },
             ].map((item, i) => (
               <div key={i} className="bg-white rounded-xl border border-gray-border p-6">
@@ -370,9 +481,9 @@ export const LandingPage: React.FC = () => {
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-primary via-teal-600 to-emerald-600">
         <div className="max-w-3xl mx-auto text-center text-white space-y-6">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Ready to find your perfect broker?</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Ready to find your perfect seller?</h2>
           <p className="text-lg opacity-90 leading-relaxed">
-            Join thousands of businesses who have found their ideal broker through BROKER HUB.
+            Join thousands of customers who have found their ideal products through BROKER HUB.
           </p>
           <div>
             <Link to="/signup">

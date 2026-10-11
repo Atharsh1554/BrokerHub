@@ -67,9 +67,9 @@ export const CartPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Cart List */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="xl:col-span-2 space-y-4">
           {cart.map((item) => (
             <div
               key={item.productId}
@@ -136,7 +136,7 @@ export const CartPage: React.FC = () => {
         </div>
 
         {/* Summary Side Card */}
-        <div className="lg:col-span-1">
+        <div className="xl:col-span-1">
           <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 sticky top-6 space-y-5">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white pb-3 border-b border-gray-100 dark:border-slate-700">
               Order Summary

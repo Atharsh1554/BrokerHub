@@ -221,7 +221,7 @@ export const MessagesPage: React.FC = () => {
 
           {/* Active Chat Panel */}
           <div
-            className={`flex-1 flex flex-col bg-gray-50/40 dark:bg-slate-900/40 ${
+            className={`flex-1 flex flex-col min-w-0 bg-gray-50/40 dark:bg-slate-900/40 ${
               !showMobileChat ? 'hidden md:flex' : 'flex'
             }`}
           >

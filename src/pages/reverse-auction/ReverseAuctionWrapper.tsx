@@ -23,7 +23,7 @@ export const ReverseAuctionWrapper: React.FC = () => {
   const role = user?.role || 'customer';
 
   return (
-    <div className="min-h-screen bg-gray-bg flex flex-col">
+    <div className="min-h-screen bg-gray-bg flex w-full overflow-x-hidden">
       {/* Sidebar depending on user role */}
       {role === 'broker' ? (
         <BrokerSidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
@@ -31,10 +31,10 @@ export const ReverseAuctionWrapper: React.FC = () => {
         <CustomerSidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       )}
 
-      <div className="lg:ml-64 min-h-screen flex flex-col justify-between flex-1">
+      <div className="lg:ml-64 min-h-screen flex flex-col justify-between flex-1 min-w-0 overflow-x-hidden">
         <TopHeader onMenuClick={() => setIsMobileMenuOpen((prev) => !prev)} />
         
-        <main className="p-4 sm:p-6 flex-1 w-full max-w-7xl mx-auto">
+        <main className="p-3.5 sm:p-6 flex-1 min-w-0 overflow-x-hidden">
           <ReverseAuctionPage />
         </main>
 

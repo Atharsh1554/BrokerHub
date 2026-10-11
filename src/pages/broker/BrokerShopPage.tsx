@@ -232,14 +232,14 @@ export const BrokerShopPage: React.FC = () => {
             <p className="text-xs text-gray-text mt-0.5">
               Share this link with customers so they can view your shop and products directly
             </p>
-            <div className="flex items-center gap-2 mt-3 flex-wrap">
-              <div className="flex items-center gap-2 bg-white border border-gray-border rounded-xl px-3 py-2 flex-1 min-w-0 max-w-md">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3 w-full max-w-xl">
+              <div className="flex items-center gap-2 bg-white border border-gray-border rounded-xl px-3 py-2 flex-1 min-w-0">
                 <Store size={13} className="text-primary shrink-0" />
                 <span className="text-xs text-gray-text font-mono truncate">{shopUrl}</span>
               </div>
               <button
                 onClick={handleCopyLink}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shrink-0 cursor-pointer ${
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shrink-0 cursor-pointer w-full sm:w-auto ${
                   copied
                     ? 'bg-emerald-500 text-white shadow-sm'
                     : 'bg-primary text-white hover:bg-primary-dark shadow-md'
@@ -277,7 +277,7 @@ export const BrokerShopPage: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {shopStats.map(({ label, value, icon, bg }) => (
           <div
             key={label}

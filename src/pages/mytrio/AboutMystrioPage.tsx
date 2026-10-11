@@ -85,7 +85,7 @@ export const AboutMystrioPage: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  A digital platform designed to simplify broker-related workflows, deal management, and business interactions between buyers and certified brokers.
+                  A digital marketplace designed to simplify workflows, product discovery, and business interactions between customers and independent sellers or service providers.
                 </p>
               </div>
 
@@ -129,7 +129,7 @@ export const AboutMystrioPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-slate-900/80 border border-slate-800 p-8 rounded-3xl space-y-4">
               <p className="text-slate-300 text-sm leading-relaxed italic">
-                "MYSTRIO’s product philosophy shines in BROKER HUB. The workflow is fast, intuitive, and eliminates 90% of manual back-and-forth when dealing with brokers."
+                "MYSTRIO’s product philosophy shines in BROKER HUB. The workflow is fast, intuitive, and eliminates 90% of manual back-and-forth when dealing with independent sellers."
               </p>
               <div className="flex items-center gap-3 pt-2 border-t border-slate-800/80">
                 <div className="w-10 h-10 rounded-full bg-teal-500/20 text-teal-400 font-bold flex items-center justify-center text-xs">
@@ -157,6 +157,22 @@ export const AboutMystrioPage: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* BrokerHub Clarification / Disclaimer */}
+        <div className="bg-slate-900/80 border border-slate-800 p-8 rounded-3xl space-y-4 shadow-lg text-slate-300 text-sm leading-relaxed">
+          <h2 className="text-2xl font-extrabold text-white mb-4">About BrokerHub</h2>
+          <p>
+            <strong>BrokerHub is a digital marketplace.</strong> It connects customers with independent sellers and service providers, enabling product discovery, seller connections, orders, and marketplace transactions.
+          </p>
+          <ul className="list-disc pl-5 space-y-2 mt-4 text-slate-400">
+            <li>BrokerHub is <strong>NOT</strong> a stock broker.</li>
+            <li>BrokerHub is <strong>NOT</strong> an investment platform.</li>
+            <li>BrokerHub does <strong>NOT</strong> provide securities trading.</li>
+            <li>BrokerHub does <strong>NOT</strong> provide investment advice.</li>
+            <li>BrokerHub does <strong>NOT</strong> provide portfolio management.</li>
+            <li>BrokerHub is <strong>NOT</strong> a financial services platform.</li>
+          </ul>
         </div>
 
         {/* Tagline / Manifesto Banner */}

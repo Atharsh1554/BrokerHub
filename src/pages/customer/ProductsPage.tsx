@@ -2,20 +2,44 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, Star, Package, Sparkles, ShoppingCart, MapPin, Plus, Check, MessageSquare } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { StatusBadge } from '../../components/ui/StatusBadge';
 
 export const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, brokers, cart, addToCart } = useApp();
+  const { products, brokers, cart, addToCart, refreshProducts } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('All');
   const [addedIds, setAddedIds] = useState<{ [key: string]: boolean }>({});
 
-  const categories = ['All', ...Array.from(new Set(products.map((p) => p.category)))];
+  // Sync products on mount and whenever deletions/updates occur
+  React.useEffect(() => {
+    refreshProducts();
+
+    const handleUpdate = () => {
+      refreshProducts();
+    };
+
+    window.addEventListener('brokerhub_products_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    return () => {
+      window.removeEventListener('brokerhub_products_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  const activeProducts = React.useMemo(() => {
+    let globalDeleted: string[] = [];
+    try {
+      globalDeleted = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
+    } catch {}
+    return products.filter((p) => !globalDeleted.includes(p.id) && p.isActive !== false);
+  }, [products]);
+
+  const categories = ['All', ...Array.from(new Set(activeProducts.map((p) => p.category)))];
 
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const filtered = products.filter((p) => {
+  const filtered = activeProducts.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = category === 'All' || p.category === category;
     return matchesSearch && matchesCategory;
@@ -59,12 +83,12 @@ export const ProductsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Browse Products</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Explore products available from verified brokers — <span className="font-semibold text-emerald-600 dark:text-emerald-400">{products.length} listings</span>
+            Explore products available from verified brokers — <span className="font-semibold text-emerald-600 dark:text-emerald-400">{activeProducts.length} listings</span>
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          {products.some((p) => isNew(p.id)) && (
+          {activeProducts.some((p) => isNew(p.id)) && (
             <div className="hidden sm:flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-semibold px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800">
               <Sparkles size={12} />
               New listings
@@ -117,7 +141,7 @@ export const ProductsPage: React.FC = () => {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Try adjusting your search or check back later.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-4">
           {filtered.map((product) => {
             const broker = getBrokerInfo(product.brokerId);
             const isAdded = addedIds[product.id];
@@ -126,107 +150,94 @@ export const ProductsPage: React.FC = () => {
               <div
                 key={product.id}
                 onClick={() => navigate(`/customer/products/${product.id}`)}
-                className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden hover:shadow-lg transition-all duration-200 group relative flex flex-col cursor-pointer"
+                className="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl border border-gray-200 dark:border-slate-700/80 overflow-hidden hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-500/50 transition-all duration-200 group relative flex flex-col justify-between cursor-pointer"
               >
-                {/* New badge */}
-                {isNew(product.id) && (
-                  <div className="absolute top-3 left-3 z-10 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                    NEW
-                  </div>
-                )}
+                {/* Product Image Area */}
+                <div className="relative aspect-square sm:h-40 w-full bg-white dark:bg-slate-900/40 p-2 sm:p-2.5 flex items-center justify-center overflow-hidden border-b border-gray-100 dark:border-slate-700/60">
+                  {/* Badges */}
+                  {isNew(product.id) && (
+                    <span className="absolute top-2 left-2 z-10 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs tracking-wider">
+                      NEW
+                    </span>
+                  )}
 
-                {/* Product Image */}
-                <div className="h-52 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center relative overflow-hidden">
                   {product.image ? (
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
-                    <ShoppingBag size={48} className="text-gray-300 group-hover:scale-110 transition-transform duration-300" />
-                  )}
-                  {product.status !== 'In Stock' && (
-                    <div className="absolute top-3 right-3 z-10">
-                      <StatusBadge status={product.status} size="sm" />
-                    </div>
+                    <ShoppingBag size={32} className="text-gray-300 group-hover:scale-110 transition-transform duration-300" />
                   )}
 
-                  {/* Quick add floating button on hover */}
+                  {product.status !== 'In Stock' && (
+                    <span className="absolute top-2 right-2 z-10 bg-amber-500/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                      {product.status}
+                    </span>
+                  )}
+
+                  {/* Quick Add Floating Button */}
                   <button
                     onClick={(e) => handleQuickAdd(e, product)}
-                    className="absolute bottom-3 right-3 bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-full shadow-md transition-all opacity-90 hover:opacity-100 hover:scale-110"
+                    className="absolute bottom-2 right-2 bg-emerald-600 hover:bg-emerald-700 text-white p-1.5 sm:p-2 rounded-full shadow-md transition-all hover:scale-110 z-10 opacity-90 hover:opacity-100"
                     title="Add to Cart"
                   >
-                    {isAdded ? <Check size={18} /> : <Plus size={18} />}
+                    {isAdded ? <Check size={14} /> : <Plus size={14} />}
                   </button>
                 </div>
 
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                      <span className="uppercase tracking-wider font-semibold text-emerald-600 dark:text-emerald-400">
+                {/* Product Details Area (Flipkart / Amazon Style) */}
+                <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between space-y-1.5">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-gray-400 dark:text-gray-500">
+                      <span className="uppercase tracking-wider font-semibold text-emerald-600 dark:text-emerald-400 truncate max-w-[65%]">
                         {product.category}
                       </span>
                       {broker.location && (
-                        <span className="flex items-center gap-1 text-gray-400">
-                          <MapPin size={12} />
+                        <span className="flex items-center gap-0.5 truncate text-[10px] text-gray-400">
+                          <MapPin size={10} />
                           {broker.location}
                         </span>
                       )}
                     </div>
-                    <h3 className="font-bold text-gray-900 dark:text-white text-base group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors line-clamp-1">
+
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm line-clamp-2 leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors min-h-[2rem] sm:min-h-[2.5rem]">
                       {product.name}
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                      {product.description}
-                    </p>
+
+                    {/* Flipkart/Amazon-style Rating Badge */}
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      <span className="inline-flex items-center gap-0.5 bg-emerald-700 text-white font-bold px-1.5 py-0.5 rounded text-[10px] leading-none">
+                        {product.rating || 4.8} <Star size={9} className="fill-white text-white" />
+                      </span>
+                      <span className="text-[10px] text-gray-400">
+                        ({product.reviewCount || 18})
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="pt-2 border-t border-gray-100 dark:border-slate-700/80 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs text-gray-400 block">Price</span>
-                        <span className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
-                          ₹{product.price.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-
-                      <div className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Star size={14} className="fill-amber-400 text-amber-400" />
-                          <span className="text-xs font-bold text-gray-900 dark:text-white">
-                            {product.rating || 4.8}
-                          </span>
-                        </div>
-                        <span className="text-[11px] text-gray-400 font-medium">
-                          Stock: {product.stock} units
-                        </span>
-                      </div>
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-baseline justify-between gap-1">
+                      <span className="text-sm sm:text-base font-extrabold text-gray-900 dark:text-white">
+                        ₹{product.price.toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-medium truncate">
+                        {product.stock > 0 ? `${product.stock} left` : 'Out of stock'}
+                      </span>
                     </div>
 
-                    {/* Uploaded Broker Info & Contact Broker Action */}
-                    <div className="flex items-center justify-between bg-gray-50 dark:bg-slate-900/60 p-2.5 rounded-lg border border-gray-100 dark:border-slate-700/60">
-                      <div className="flex items-center gap-2 min-w-0 pr-2">
-                        <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
-                          {broker.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
-                        </div>
-                        <div className="truncate">
-                          <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                            Broker: {broker.name}
-                          </p>
-                          <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
-                            {broker.company || 'Verified Broker'}
-                          </p>
-                        </div>
-                      </div>
-
+                    {/* Broker Snippet with Contact Action */}
+                    <div className="pt-1.5 border-t border-gray-100 dark:border-slate-700/60 flex items-center justify-between text-[10px] sm:text-[11px]">
+                      <span className="text-gray-500 truncate max-w-[65%] font-medium">
+                        By <strong className="text-gray-800 dark:text-gray-200">{broker.name}</strong>
+                      </span>
                       <button
                         onClick={(e) => handleContactBroker(e, broker.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-xs font-semibold shadow-xs transition-colors shrink-0"
+                        className="text-teal-600 hover:text-teal-700 font-bold flex items-center gap-0.5 hover:underline shrink-0"
                         title={`Chat with ${broker.name}`}
                       >
-                        <MessageSquare size={13} />
+                        <MessageSquare size={11} />
                         Contact
                       </button>
                     </div>

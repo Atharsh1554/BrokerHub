@@ -314,7 +314,7 @@ export const AdminDashboard: React.FC = () => {
     <div className="space-y-8 pb-12">
       {/* Header Banner */}
       <div
-        className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 rounded-3xl relative overflow-hidden shadow-xl ${
+        className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-6 rounded-3xl relative overflow-hidden shadow-xl ${
           isLight
             ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-slate-800 text-white border border-emerald-500/20'
             : 'bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950 border border-slate-800 text-white'
@@ -325,15 +325,15 @@ export const AdminDashboard: React.FC = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="text-xs font-bold text-emerald-300 tracking-wider uppercase">Live Real-Time Control Center</span>
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">BROKER HUB Admin Control Center</h1>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">BROKER HUB Admin Control Center</h1>
           <p className="text-xs text-emerald-100/80">Monitoring platform revenue, broker performance, products, and customer orders.</p>
         </div>
 
-        <div className="flex items-center space-x-3 relative z-10">
+        <div className="flex items-center space-x-3 relative z-10 flex-wrap">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer disabled:opacity-50 ${
+            className={`flex items-center space-x-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer disabled:opacity-50 ${
               isLight
                 ? 'bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md'
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
@@ -344,7 +344,7 @@ export const AdminDashboard: React.FC = () => {
           </button>
           <Link
             to="/admin/analytics"
-            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-xs font-bold text-slate-950 shadow-lg transition-all"
+            className="flex items-center space-x-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-xs font-bold text-slate-950 shadow-lg transition-all"
           >
             <TrendingUp className="w-3.5 h-3.5" />
             <span>Sales Analytics</span>
@@ -358,25 +358,25 @@ export const AdminDashboard: React.FC = () => {
           <DollarSign className="w-4 h-4 text-emerald-500" />
           <span>Platform Revenue & Order Metrics</span>
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           {revenueCards.map((card, idx) => {
             const Icon = card.icon;
             return (
               <div
                 key={idx}
-                className={`p-4 rounded-2xl border transition-all hover:scale-[1.02] flex flex-col justify-between space-y-2 ${
+                className={`p-3.5 sm:p-4 rounded-2xl border transition-all hover:scale-[1.02] flex flex-col justify-between space-y-2 min-w-0 ${
                   isLight ? 'bg-white border-slate-200 shadow-xs' : 'bg-slate-900 border-slate-800'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className={`text-[11px] font-bold uppercase tracking-wider truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                <div className="flex items-center justify-between gap-1">
+                  <span className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-wider truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                     {card.label}
                   </span>
-                  <div className={`p-1.5 rounded-lg bg-emerald-50 ${card.color}`}>
-                    <Icon className="w-4 h-4" />
+                  <div className={`p-1.5 rounded-lg bg-emerald-50 shrink-0 ${card.color}`}>
+                    <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
                 </div>
-                <div className={`text-xl font-extrabold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                <div className={`text-base sm:text-xl font-extrabold tracking-tight truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>
                   {card.value}
                 </div>
               </div>

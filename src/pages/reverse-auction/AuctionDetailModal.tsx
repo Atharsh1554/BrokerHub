@@ -242,11 +242,11 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
   const savingsPct = Math.max(0, ((totalSavings / startingVal) * 100)).toFixed(1);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
       <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-gray-border flex flex-col max-h-[92vh] overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-border flex items-center justify-between bg-gray-50/80 sticky top-0 z-10">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-border flex items-center justify-between bg-gray-50/80 sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <span
               className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${
@@ -391,8 +391,8 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                     <h4 className="text-xs font-semibold text-gray-label mb-2 uppercase tracking-wider">
                       Technical Specifications & Commercial Terms
                     </h4>
-                    <div className="border border-gray-border rounded-xl overflow-hidden text-xs">
-                      <table className="w-full text-left">
+                    <div className="border border-gray-border rounded-xl overflow-x-auto text-xs">
+                      <table className="w-full text-left min-w-[340px]">
                         <tbody className="divide-y divide-gray-border">
                           {Object.entries(auction.specifications).map(([k, v]) => (
                             <tr key={k} className="hover:bg-gray-50/50">
@@ -601,8 +601,8 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                 No bids have been submitted yet for this requirement.
               </div>
             ) : (
-              <div className="border border-gray-border rounded-xl overflow-hidden text-xs">
-                <table className="w-full text-left">
+              <div className="border border-gray-border rounded-xl overflow-x-auto text-xs">
+                <table className="w-full text-left min-w-[560px]">
                   <thead className="bg-gray-50 border-b border-gray-border text-gray-label font-bold uppercase tracking-wider">
                     <tr>
                       <th className="px-4 py-3">Rank</th>

@@ -46,8 +46,19 @@ export const ProductDetailPage: React.FC = () => {
       if (!productId) return;
       setLoading(true);
 
+      // If product was marked deleted by admin, do not display
+      let globalDeleted: string[] = [];
+      try {
+        globalDeleted = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
+      } catch {}
+      if (globalDeleted.includes(productId)) {
+        setProduct(null);
+        setLoading(false);
+        return;
+      }
+
       // Try context first (already loaded), then API
-      let prod = products.find((p) => p.id === productId) || null;
+      let prod = products.find((p) => p.id === productId && p.isActive !== false) || null;
       if (!prod) {
         prod = await getProductById(productId);
       }
@@ -185,28 +196,33 @@ export const ProductDetailPage: React.FC = () => {
                 <span className="bg-red-500 text-white font-bold text-lg px-6 py-2 rounded-full">Out of Stock</span>
               </div>
             )}
-            {isLowStock && !isOutOfStock && (
-              <div className="absolute top-4 right-4 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                <AlertTriangle size={12} />
-                Low Stock
-              </div>
-            )}
+            {/* Left Badges (NEW & Low Stock) */}
+            <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
+              {product.id.startsWith('p_') && (
+                <span className="bg-emerald-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-xs">NEW</span>
+              )}
+              {isLowStock && !isOutOfStock && (
+                <span className="bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-xs">
+                  <AlertTriangle size={11} />
+                  Low Stock
+                </span>
+              )}
+            </div>
 
-            {/* New badge */}
-            {product.id.startsWith('p_') && (
-              <div className="absolute top-4 left-4 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full">NEW</div>
-            )}
-
-            {/* Wishlist + Share */}
-            <div className="absolute top-4 right-4 flex flex-col gap-2">
+            {/* Wishlist + Share on top-right */}
+            <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
               <button
                 onClick={() => setWishlist((w) => !w)}
-                className={`w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center transition-all hover:scale-110 cursor-pointer ${wishlist ? 'text-red-500' : 'text-gray-400'}`}
+                className={`w-9 h-9 rounded-full bg-white/95 backdrop-blur-xs shadow-md flex items-center justify-center transition-all hover:scale-110 cursor-pointer ${wishlist ? 'text-red-500' : 'text-gray-400'}`}
+                aria-label="Save to Wishlist"
               >
-                <Heart size={18} fill={wishlist ? 'currentColor' : 'none'} />
+                <Heart size={17} fill={wishlist ? 'currentColor' : 'none'} />
               </button>
-              <button className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center text-gray-400 hover:text-primary hover:scale-110 transition-all cursor-pointer">
-                <Share2 size={16} />
+              <button
+                className="w-9 h-9 rounded-full bg-white/95 backdrop-blur-xs shadow-md flex items-center justify-center text-gray-400 hover:text-primary hover:scale-110 transition-all cursor-pointer"
+                aria-label="Share Product"
+              >
+                <Share2 size={15} />
               </button>
             </div>
           </div>
@@ -543,24 +559,29 @@ export const ProductDetailPage: React.FC = () => {
             <Package size={18} className="text-primary" />
             Related Products
           </h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
             {related.map((rp) => (
               <Link
                 to={`/customer/products/${rp.id}`}
                 key={rp.id}
-                className="bg-white rounded-xl border border-gray-border overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
+                className="bg-white rounded-lg sm:rounded-xl border border-gray-border overflow-hidden hover:shadow-md hover:border-emerald-300 transition-all duration-200 group flex flex-col justify-between"
               >
-                <div className="h-36 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
+                <div className="relative aspect-square sm:h-36 w-full bg-white p-2 flex items-center justify-center overflow-hidden border-b border-gray-100">
                   {rp.image ? (
-                    <img src={rp.image} alt={rp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <img src={rp.image} alt={rp.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
                   ) : (
-                    <ShoppingCart size={32} className="text-gray-300" />
+                    <ShoppingCart size={28} className="text-gray-300 group-hover:scale-110 transition-transform duration-300" />
                   )}
                 </div>
-                <div className="p-3">
-                  <p className="text-[10px] text-primary font-bold uppercase tracking-wider">{rp.category}</p>
-                  <p className="text-xs font-semibold text-text-primary line-clamp-2 mt-0.5">{rp.name}</p>
-                  <p className="text-sm font-bold text-primary mt-1">{formatINR(rp.price)}</p>
+                <div className="p-2 sm:p-2.5 flex-1 flex flex-col justify-between space-y-1">
+                  <div>
+                    <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider truncate mb-0.5">{rp.category}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-text-primary line-clamp-2 leading-tight group-hover:text-primary transition-colors min-h-[1.8rem] sm:min-h-[2.2rem]">{rp.name}</p>
+                  </div>
+                  <div className="pt-1 flex items-baseline justify-between">
+                    <p className="text-xs sm:text-sm font-extrabold text-primary">{formatINR(rp.price)}</p>
+                    <span className="text-[10px] text-emerald-600 font-bold">View</span>
+                  </div>
                 </div>
               </Link>
             ))}

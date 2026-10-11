@@ -36,13 +36,13 @@ export const brokers: Broker[] = [
   {
     id: 'b2',
     name: 'Sarah Williams',
-    specialty: 'Financial Services',
-    company: 'Sterling Advisors',
+    specialty: 'IT Procurement',
+    company: 'Sterling Tech Advisors',
     location: 'Bangalore, Karnataka',
     status: 'Under Review',
     rating: 4.7,
     reviewCount: 89,
-    description: 'Expert in portfolio management and wealth planning strategies.',
+    description: 'Expert in IT hardware procurement and enterprise solutions.',
   },
   {
     id: 'b3',
@@ -464,9 +464,9 @@ export const appointments: Appointment[] = [
     brokerName: 'Sarah Williams',
     date: 'Jan 22, 2026',
     time: '2:30 PM',
-    type: 'Portfolio Review',
+    type: 'Procurement Review',
     status: 'Pending',
-    notes: 'Annual investment portfolio review session.',
+    notes: 'Annual IT procurement strategy review session.',
   },
   {
     id: 'a3',

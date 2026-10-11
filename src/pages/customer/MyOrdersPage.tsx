@@ -219,7 +219,7 @@ export const MyOrdersPage: React.FC = () => {
       </div>
 
       {/* 2. Order Statistics Cards Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">Total Orders</p>
@@ -607,7 +607,7 @@ export const MyOrdersPage: React.FC = () => {
                 <h3 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-400">
                   Ordered Items Breakdown
                 </h3>
-                <div className="border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden">
+                <div className="border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden overflow-x-auto">
                   <table className="w-full text-left text-xs sm:text-sm">
                     <thead className="bg-gray-100 dark:bg-slate-900 text-gray-600 dark:text-gray-300 font-bold uppercase tracking-wider text-[11px]">
                       <tr>

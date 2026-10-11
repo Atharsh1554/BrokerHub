@@ -4,8 +4,9 @@ import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { updateBrokerProfile, uploadBrokerAvatar } from '../../lib/api/brokers';
-import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
+import { resolveUserDisplayName } from '../../lib/userUtils';
 import { BrokerPaymentSetup } from '../../components/broker/BrokerPaymentSetup';
+import { UserAvatar } from '../../components/ui/UserAvatar';
 
 const PRODUCT_TYPE_OPTIONS = [
   'Electronics & Hardware',
@@ -79,7 +80,6 @@ export const BrokerSettings: React.FC = () => {
   }, [user, currentBroker]);
 
   const displayName = resolveUserDisplayName(fullName || user?.fullName, email || user?.email);
-  const initials = getUserInitials(displayName);
 
   // Handle Photo selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -224,7 +224,7 @@ export const BrokerSettings: React.FC = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* Navigation Tabs */}
         <div className="bg-white p-3 rounded-2xl border border-gray-border shadow-xs space-y-1 h-fit">
           <button
@@ -278,7 +278,7 @@ export const BrokerSettings: React.FC = () => {
         </div>
 
         {/* Settings Form Panel */}
-        <div className="lg:col-span-3 bg-white p-6 sm:p-7 rounded-2xl border border-gray-border shadow-xs">
+        <div className="xl:col-span-3 bg-white p-6 sm:p-7 rounded-2xl border border-gray-border shadow-xs">
           {activeTab === 'payouts' ? (
             <BrokerPaymentSetup />
           ) : (
@@ -319,17 +319,14 @@ export const BrokerSettings: React.FC = () => {
                     </label>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-4 bg-gray-bg rounded-2xl border border-gray-border">
                       <div className="relative group shrink-0">
-                        {avatarPreview ? (
-                          <img
-                            src={avatarPreview}
-                            alt={displayName}
-                            className="w-20 h-20 rounded-2xl object-cover border-2 border-primary/30 shadow-md"
-                          />
-                        ) : (
-                          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-teal-500 text-white font-black text-2xl flex items-center justify-center shadow-md">
-                            {initials}
-                          </div>
-                        )}
+                        <UserAvatar
+                          src={avatarPreview}
+                          name={displayName}
+                          alt={displayName}
+                          className="w-20 h-20 border-2 border-primary/30 shadow-md"
+                          roundedClassName="rounded-2xl"
+                          fallbackClassName="bg-gradient-to-br from-primary to-teal-500 text-white font-black text-2xl"
+                        />
                       </div>
 
                       <div className="flex-1 space-y-1.5">

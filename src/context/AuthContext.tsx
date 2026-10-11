@@ -269,9 +269,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGoogle = async (role: 'customer' | 'broker' = 'customer') => {
     // Store role before redirect so we can provision profile on return
     localStorage.setItem(GOOGLE_ROLE_KEY, role);
-    // Always use the canonical production domain so Supabase redirects
-    // back to the correct custom domain regardless of which URL the user accessed.
-    const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+    // When running locally, redirect back to local dev server rather than production domain
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const appUrl = isLocalhost ? window.location.origin : (import.meta.env.VITE_APP_URL || window.location.origin);
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {

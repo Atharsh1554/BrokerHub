@@ -142,9 +142,9 @@ export const AdminReports: React.FC = () => {
       </div>
 
       {/* Main Form & Configuration */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Report Selection Cards */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="xl:col-span-2 space-y-4">
           <h2 className={`text-xs font-bold uppercase tracking-wider ${isLight ? 'text-slate-800' : 'text-slate-300'}`}>1. Select Report Domain</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {reportTypes.map((item) => (

@@ -56,6 +56,7 @@ interface AppContextType {
   updateCartQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   clearConversationUnread: (convId: string) => void;
+  refreshProducts: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -353,11 +354,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
   };
 
-  // Listen for real-time product updates (BroadcastChannel, storage event)
+  const refreshProducts = async () => {
+    const freshProducts = await getProducts();
+    let globalDeleted: string[] = [];
+    try {
+      globalDeleted = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
+    } catch {}
+    setProducts(freshProducts.filter((p) => !globalDeleted.includes(p.id)));
+  };
+
+  // Listen for real-time product updates (BroadcastChannel, storage event, window custom events)
   useEffect(() => {
     const handleProductsReload = async (eventBrokerId?: string) => {
       const freshProducts = await getProducts();
-      setProducts(freshProducts);
+      let globalDeleted: string[] = [];
+      try {
+        globalDeleted = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
+      } catch {}
+      setProducts(freshProducts.filter((p) => !globalDeleted.includes(p.id)));
 
       if (user?.id && (!eventBrokerId || eventBrokerId === user.id)) {
         await loadBrokerProducts(user.id);
@@ -373,11 +387,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
 
     const handleStorage = (e: StorageEvent) => {
-      if (e.key && e.key.startsWith('brokerhub_custom_products_')) {
+      if (
+        e.key === 'brokerhub_deleted_products' ||
+        e.key === 'brokerhub_custom_products' ||
+        (e.key && e.key.startsWith('brokerhub_custom_products_'))
+      ) {
         handleProductsReload();
       }
     };
     window.addEventListener('storage', handleStorage);
+
+    const handleCustomEvent = () => {
+      handleProductsReload();
+    };
+    window.addEventListener('brokerhub_products_updated', handleCustomEvent);
 
     // Supabase Realtime subscription for products table across devices
     const productsRealtime = supabase
@@ -395,6 +418,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => {
       bc?.close();
       window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('brokerhub_products_updated', handleCustomEvent);
       supabase.removeChannel(productsRealtime);
     };
   }, [user]);
@@ -874,6 +898,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateCartQuantity,
         clearCart,
         clearConversationUnread,
+        refreshProducts,
       }}
     >
       {children}

@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
-import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
+import { resolveUserDisplayName } from '../../lib/userUtils';
+import { UserAvatar } from '../ui/UserAvatar';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/broker/dashboard' },
@@ -45,7 +46,6 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const displayName = resolveUserDisplayName(user?.fullName, user?.email);
-  const initials = getUserInitials(displayName);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -196,17 +196,12 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
               {/* User info */}
               <div className="px-4 py-3 border-b border-gray-100">
                 <div className="flex items-center gap-2.5">
-                  {user?.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={displayName}
-                      className="w-9 h-9 rounded-full object-cover shrink-0"
-                    />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-bold text-xs shrink-0">
-                      {initials}
-                    </div>
-                  )}
+                  <UserAvatar
+                    src={user?.avatar}
+                    name={displayName}
+                    alt={displayName}
+                    className="w-9 h-9 shrink-0"
+                  />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-text-primary truncate">{displayName}</p>
                     <p className="text-[11px] text-gray-text capitalize">{user?.role || 'Broker'}</p>
@@ -244,17 +239,12 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
             aria-expanded={showDropdown}
             title="Account Menu"
           >
-            {user?.avatar ? (
-              <img
-                src={user.avatar}
-                alt={displayName}
-                className="w-8 h-8 rounded-full object-cover shadow-xs shrink-0"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white font-bold text-xs shadow-xs shrink-0">
-                {initials}
-              </div>
-            )}
+            <UserAvatar
+              src={user?.avatar}
+              name={displayName}
+              alt={displayName}
+              className="w-8 h-8 shadow-xs shrink-0"
+            />
             <div className="flex-1 flex flex-col text-left min-w-0">
               <span className="text-xs font-semibold text-text-primary group-hover:text-primary transition-colors truncate leading-tight">
                 {displayName}

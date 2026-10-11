@@ -111,7 +111,7 @@ export const OrderTracking: React.FC = () => {
       </div>
 
       {/* Stats Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Total Received</p>
@@ -185,9 +185,9 @@ export const OrderTracking: React.FC = () => {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Orders Table List */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-xs overflow-hidden flex flex-col justify-between">
+        <div className="xl:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-xs overflow-hidden flex flex-col justify-between">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-semibold text-xs uppercase tracking-wider">
@@ -564,8 +564,8 @@ export const OrderTracking: React.FC = () => {
             </div>
 
             {/* Items Table */}
-            <div className="border border-zinc-200 rounded-xl overflow-hidden mb-4">
-              <table className="w-full text-left text-xs">
+            <div className="border border-zinc-200 rounded-xl overflow-x-auto mb-4">
+              <table className="w-full text-left text-xs min-w-[420px]">
                 <thead className="bg-zinc-100 text-zinc-600 font-bold uppercase tracking-wider border-b border-zinc-200">
                   <tr>
                     <th className="p-3">Item Description</th>
