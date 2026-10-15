@@ -227,9 +227,9 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
                )}
             </div>
 
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm">
-              <h3 className="font-bold text-lg mb-4">Project Requirements</h3>
-              <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed mb-6 bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-100">{selectedAuction.description}</p>
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Project Requirements</h3>
+              <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed mb-6 bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-100 dark:border-slate-700">{selectedAuction.description}</p>
               
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-teal-50 dark:bg-teal-950/40 p-4 rounded-xl border border-teal-100 dark:border-teal-800/60">
@@ -252,8 +252,8 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
             </div>
 
             {isActive && (
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm">
-                <h3 className="font-bold text-lg mb-5">Project Progress</h3>
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm">
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-5">Project Progress</h3>
                 
                 {/* Horizontal Order-Tracking Timeline */}
                 <div className="timeline-track mb-6">
@@ -301,12 +301,12 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
                     
                     {/* File upload area */}
                     <div
-                      className="border-2 border-dashed border-teal-300 rounded-xl p-5 flex flex-col items-center justify-center bg-white dark:bg-slate-800 cursor-pointer hover:border-teal-400 transition"
+                      className="border-2 border-dashed border-teal-300 dark:border-teal-700 rounded-xl p-5 flex flex-col items-center justify-center bg-white dark:bg-slate-900 cursor-pointer hover:border-teal-400 dark:hover:border-teal-600 transition"
                       onClick={() => proofFileInputRef.current?.click()}
                     >
-                      <UploadCloud size={28} className="text-teal-400 mb-2" />
-                      <p className="text-sm font-bold text-teal-700">Click to select delivery photos</p>
-                      <p className="text-xs text-teal-500 mt-1">{proofFiles.length > 0 ? `${proofFiles.length} file(s) selected` : 'JPG, PNG, WEBP accepted'}</p>
+                      <UploadCloud size={28} className="text-teal-500 dark:text-teal-400 mb-2" />
+                      <p className="text-sm font-bold text-teal-700 dark:text-teal-300">Click to select delivery photos</p>
+                      <p className="text-xs text-teal-600 dark:text-teal-400 mt-1">{proofFiles.length > 0 ? `${proofFiles.length} file(s) selected` : 'JPG, PNG, WEBP accepted'}</p>
                     </div>
                     <input
                       ref={proofFileInputRef}
@@ -323,7 +323,7 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
                     {proofFiles.length > 0 && (
                       <div className="grid grid-cols-3 gap-2">
                         {proofFiles.map((f, i) => (
-                          <div key={i} className="aspect-square rounded-lg overflow-hidden border border-teal-200">
+                          <div key={i} className="aspect-square rounded-lg overflow-hidden border border-teal-200 dark:border-teal-700">
                             <img src={URL.createObjectURL(f)} alt={`Proof ${i+1}`} className="w-full h-full object-cover" />
                           </div>
                         ))}
@@ -354,7 +354,7 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
                   <button 
                     onClick={() => handleUpdateLevel(selectedAuction, nextLevel)}
                     disabled={loading}
-                    className="w-full py-4 bg-slate-800 hover:bg-slate-900 transition text-white rounded-xl font-bold shadow-sm"
+                    className="w-full py-4 bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 transition text-white rounded-xl font-bold shadow-sm"
                   >
                     Mark {TIMELINE_STEPS.find(s => s.key === nextLevel)?.label || nextLevel} Completed
                   </button>
@@ -364,8 +364,8 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
           </div>
 
           <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm sticky top-6 space-y-4">
-              <h3 className="font-bold text-lg">Actions</h3>
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm sticky top-6 space-y-4">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white">Actions</h3>
               {isAvailable && (
                 <button 
                   onClick={() => handleAcceptAuction(selectedAuction)}
@@ -377,7 +377,7 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
               )}
               <button 
                 onClick={() => onNavigateToMessages?.(selectedAuction.customerId)}
-                className="w-full py-3 border-2 border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-bold rounded-xl flex justify-center items-center gap-2 transition"
+                className="w-full py-3 border-2 border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500 text-slate-700 dark:text-slate-300 font-bold rounded-xl flex justify-center items-center gap-2 transition"
               >
                 <MessageSquare size={18} /> Message Customer
               </button>
@@ -439,7 +439,7 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-slate-600">
+      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-slate-700">
         <button 
           onClick={() => setActiveTab('available')}
           className={`px-5 py-4 font-bold border-b-2 transition-colors ${activeTab === 'available' ? 'border-teal-600 text-teal-700 dark:text-teal-400 dark:border-teal-400' : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-100'}`}
@@ -448,13 +448,13 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
         </button>
         <button 
           onClick={() => setActiveTab('active')}
-          className={`px-5 py-4 font-bold border-b-2 transition-colors ${activeTab === 'active' ? 'border-teal-700 text-teal-800' : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:text-slate-100'}`}
+          className={`px-5 py-4 font-bold border-b-2 transition-colors ${activeTab === 'active' ? 'border-teal-600 text-teal-700 dark:text-teal-400 dark:border-teal-400' : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-100'}`}
         >
           My Active Projects ({activeAuctions.length})
         </button>
         <button 
           onClick={() => setActiveTab('completed')}
-          className={`px-5 py-4 font-bold border-b-2 transition-colors ${activeTab === 'completed' ? 'border-teal-700 text-teal-800' : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:text-slate-100'}`}
+          className={`px-5 py-4 font-bold border-b-2 transition-colors ${activeTab === 'completed' ? 'border-teal-600 text-teal-700 dark:text-teal-400 dark:border-teal-400' : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-100'}`}
         >
           Completed ({completedAuctions.length})
         </button>

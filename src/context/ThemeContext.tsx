@@ -35,15 +35,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const resolvedTheme: 'light' | 'dark' =
     theme === 'system' ? (systemIsDark ? 'dark' : 'light') : theme;
 
-  // Apply or remove the `dark` class on <html>
-  useEffect(() => {
-    const root = document.documentElement;
-    if (resolvedTheme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  }, [resolvedTheme]);
+  // Theme classList is managed by RouteThemeManager in App.tsx based on active route and resolvedTheme
 
   const setTheme = (newTheme: ThemeMode) => {
     setThemeState(newTheme);

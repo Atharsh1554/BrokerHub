@@ -23,7 +23,7 @@ export const ReverseAuctionWrapper: React.FC = () => {
   const role = user?.role || 'customer';
 
   return (
-    <div className="min-h-screen bg-gray-bg flex w-full overflow-x-hidden">
+    <div className="min-h-screen bg-gray-bg dark:bg-slate-900 flex w-full overflow-x-hidden transition-colors duration-300">
       {/* Sidebar depending on user role */}
       {role === 'broker' ? (
         <BrokerSidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
@@ -38,10 +38,10 @@ export const ReverseAuctionWrapper: React.FC = () => {
           <ReverseAuctionPage />
         </main>
 
-        <footer className="px-4 sm:px-6 py-4 border-t border-gray-border text-center text-xs text-gray-text space-y-0.5">
-          <p className="font-semibold text-text-primary">BROKER HUB</p>
-          <p className="italic text-gray-label">A MYSTRIO Product · Reverse Auction Marketplace</p>
-          <p className="text-[11px] text-gray-label">© 2026 MYSTRIO. All rights reserved.</p>
+        <footer className="px-4 sm:px-6 py-4 border-t border-gray-border dark:border-slate-800 text-center text-xs text-gray-text dark:text-slate-400 space-y-0.5">
+          <p className="font-semibold text-text-primary dark:text-white">BROKER HUB</p>
+          <p className="italic text-gray-label dark:text-slate-400">A MYSTRIO Product · Reverse Auction Marketplace</p>
+          <p className="text-[11px] text-gray-label dark:text-slate-500">© 2026 MYSTRIO. All rights reserved.</p>
         </footer>
       </div>
     </div>

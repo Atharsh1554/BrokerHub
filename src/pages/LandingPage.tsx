@@ -9,6 +9,8 @@ export const LandingPage: React.FC = () => {
   const [filterRole, setFilterRole] = useState<'all' | 'client' | 'broker'>('all');
   const location = useLocation();
 
+
+
   useEffect(() => {
     document.title = 'BrokerHub – Online Marketplace for Customers & Sellers';
     const state = location.state as { scrollTo?: string } | null;
@@ -78,7 +80,7 @@ export const LandingPage: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white text-slate-900 [color-scheme:light] [--color-text-primary:#1E293B] [--color-text-secondary:#64748B] [--color-gray-text:#64748B] [--color-gray-border:#E5E7EB] [--color-gray-bg:#F5F7FA] [--color-gray-label:#94A3B8]">
       <Navbar />
 
       {/* Hero Section */}
@@ -487,7 +489,7 @@ export const LandingPage: React.FC = () => {
           </p>
           <div>
             <Link to="/signup">
-              <Button variant="outline" size="lg" className="!border-white !text-white hover:!bg-white/10 shadow-lg">
+              <Button variant="outline" size="lg" className="!border-white !text-white !bg-transparent hover:!bg-white/10 shadow-lg">
                 Get Started Free
                 <ArrowRight size={18} className="ml-2" />
               </Button>

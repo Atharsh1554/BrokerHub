@@ -145,7 +145,7 @@ export const LoginPage: React.FC = () => {
     : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500';
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50 text-slate-900 [color-scheme:light]">
       {/* ── Left Panel (Hero) ── */}
       <div
         className={`hidden lg:flex lg:w-[52%] relative overflow-hidden items-center justify-center transition-all duration-700 ${
@@ -317,7 +317,7 @@ export const LoginPage: React.FC = () => {
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           placeholder="+91 98765 43210"
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          className="w-full pl-10 pr-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                           required
                         />
                       </div>
@@ -360,7 +360,7 @@ export const LoginPage: React.FC = () => {
                           value={otp}
                           onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                           placeholder="• • • • • •"
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-sm text-center tracking-[0.5em] font-bold focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          className="w-full pl-10 pr-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-xl text-sm text-center tracking-[0.5em] font-bold placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                           required
                         />
                       </div>

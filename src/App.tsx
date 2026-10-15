@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 // Layouts
 import { CustomerLayout } from './components/layout/CustomerLayout';
@@ -76,9 +76,54 @@ import { AdminSearch } from './pages/admin/AdminSearch';
 import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminCommissions } from './pages/admin/AdminCommissions';
 
+import { useTheme } from './context/ThemeContext';
+
+// Enforce standard light theme on home, public landing pages, and auth pages (login, signup)
+const RouteThemeManager: React.FC = () => {
+  const location = useLocation();
+  const { resolvedTheme } = useTheme();
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    const path = location.pathname;
+
+    const isLightOnlyPage =
+      path === '/' ||
+      path === '/about' ||
+      path === '/about-brokerhub' ||
+      path === '/login' ||
+      path === '/signup' ||
+      path === '/broker/auth' ||
+      path === '/admin/login' ||
+      path === '/auth/callback' ||
+      path.startsWith('/about-') ||
+      path === '/careers' ||
+      path === '/blog' ||
+      path === '/contact' ||
+      path === '/terms' ||
+      path === '/privacy' ||
+      path === '/cookies' ||
+      path === '/compliance';
+
+    if (isLightOnlyPage) {
+      root.classList.remove('dark');
+      root.style.colorScheme = 'light';
+    } else if (resolvedTheme === 'dark') {
+      root.classList.add('dark');
+      root.style.colorScheme = 'dark';
+    } else {
+      root.classList.remove('dark');
+      root.style.colorScheme = 'light';
+    }
+  }, [location.pathname, resolvedTheme]);
+
+  return null;
+};
+
 export const App: React.FC = () => {
   return (
     <Router>
+      <RouteThemeManager />
       <Routes>
         {/* Public & Initiative Routes */}
         <Route path="/" element={<LandingPage />} />

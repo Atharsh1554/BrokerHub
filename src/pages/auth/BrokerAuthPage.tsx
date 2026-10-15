@@ -65,7 +65,7 @@ export const BrokerAuthPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-white text-slate-900 [color-scheme:light]">
       {/* Left - Purple Gradient Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-secondary via-indigo-500 to-purple-700 items-center justify-center p-12 relative overflow-hidden">
         {/* Background decorations */}

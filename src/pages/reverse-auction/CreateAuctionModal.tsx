@@ -141,14 +141,14 @@ export const CreateAuctionModal: React.FC<CreateAuctionModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
       <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl border border-gray-border dark:border-slate-700 flex flex-col max-h-[90vh] overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-border dark:border-slate-700 flex items-center justify-between bg-gray-50 dark:bg-slate-900/50/80 sticky top-0 z-10">
+        <div className="px-6 py-4 border-b border-gray-border dark:border-slate-700 flex items-center justify-between bg-gray-50 dark:bg-slate-900/80 sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold">
               <Gavel size={22} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-text-primary">Create Reverse Auction Request</h2>
-              <p className="text-xs text-gray-label">Publish your requirement for verified brokers to bid lower prices</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Create Reverse Auction Request</h2>
+              <p className="text-xs text-gray-500 dark:text-slate-400">Publish your requirement for verified brokers to bid lower prices</p>
             </div>
           </div>
           <button
@@ -171,7 +171,7 @@ export const CreateAuctionModal: React.FC<CreateAuctionModalProps> = ({
           {/* Title & Category */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-text-primary mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
                 Requirement / Product Title <span className="text-red-500">*</span>
               </label>
               <input
@@ -179,17 +179,17 @@ export const CreateAuctionModal: React.FC<CreateAuctionModalProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Bulk Combed Cotton Yarn 40s (5,000 kg)"
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-gray-border dark:border-slate-700 rounded-xl text-sm placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-text-primary mb-1.5">Category</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Category</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-gray-border dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               >
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -203,7 +203,7 @@ export const CreateAuctionModal: React.FC<CreateAuctionModalProps> = ({
           {/* Quantity, Unit & Starting Price */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-text-primary mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
                 Quantity <span className="text-red-500">*</span>
               </label>
               <input
@@ -212,24 +212,24 @@ export const CreateAuctionModal: React.FC<CreateAuctionModalProps> = ({
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value ? Number(e.target.value) : '')}
                 placeholder="e.g. 100"
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-gray-border dark:border-slate-700 rounded-xl text-sm placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-text-primary mb-1.5">Unit</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Unit</label>
               <input
                 type="text"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
                 placeholder="e.g. kg, units, meters"
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-gray-border dark:border-slate-700 rounded-xl text-sm placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-text-primary mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
                 Max Target Budget (₹) <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -240,7 +240,7 @@ export const CreateAuctionModal: React.FC<CreateAuctionModalProps> = ({
                   value={startingPrice}
                   onChange={(e) => setStartingPrice(e.target.value ? Number(e.target.value) : '')}
                   placeholder="350000"
-                  className="w-full pl-8 pr-3.5 py-2.5 bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  className="w-full pl-8 pr-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-gray-border dark:border-slate-700 rounded-xl text-sm placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                   required
                 />
               </div>
@@ -275,7 +275,7 @@ export const CreateAuctionModal: React.FC<CreateAuctionModalProps> = ({
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-semibold text-text-primary mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
               Requirement Description & Details <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -283,27 +283,27 @@ export const CreateAuctionModal: React.FC<CreateAuctionModalProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Detail your requirements, acceptable quality standards, delivery timeline, or commercial terms..."
-              className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-gray-border dark:border-slate-700 rounded-xl text-sm placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               required
             />
           </div>
 
           {/* Image URL optional */}
           <div>
-            <label className="block text-xs font-semibold text-text-primary mb-1.5">Product Image URL (Optional)</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Product Image URL (Optional)</label>
             <input
               type="url"
               value={productImage}
               onChange={(e) => setProductImage(e.target.value)}
               placeholder="https://images.unsplash.com/..."
-              className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-gray-border dark:border-slate-700 rounded-xl text-sm placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
           </div>
 
           {/* Specifications Key-Value Pairs */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-text-primary">Key Specifications & Terms</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-200">Key Specifications & Terms</label>
               <button
                 type="button"
                 onClick={handleAddSpec}
@@ -320,14 +320,14 @@ export const CreateAuctionModal: React.FC<CreateAuctionModalProps> = ({
                     placeholder="Attribute (e.g. Material)"
                     value={pair.key}
                     onChange={(e) => handleSpecChange(idx, 'key', e.target.value)}
-                    className="w-1/2 px-3 py-2 bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-lg text-xs focus:outline-none focus:border-primary"
+                    className="w-1/2 px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-gray-border dark:border-slate-700 rounded-lg text-xs placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary"
                   />
                   <input
                     type="text"
                     placeholder="Value (e.g. 100% Organic)"
                     value={pair.value}
                     onChange={(e) => handleSpecChange(idx, 'value', e.target.value)}
-                    className="w-1/2 px-3 py-2 bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-lg text-xs focus:outline-none focus:border-primary"
+                    className="w-1/2 px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-gray-border dark:border-slate-700 rounded-lg text-xs placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary"
                   />
                   {specPairs.length > 1 && (
                     <button

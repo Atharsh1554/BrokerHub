@@ -193,7 +193,7 @@ export const Navbar: React.FC = () => {
               </div>
             ) : (
               <>
-                <Link to="/login"><Button variant="ghost" size="sm">Login</Button></Link>
+                <Link to="/login"><Button variant="ghost" size="sm" className="!bg-transparent text-gray-700 hover:text-gray-900 hover:!bg-gray-100">Login</Button></Link>
                 <Link to="/signup"><Button variant="primary" size="sm">Sign Up</Button></Link>
               </>
             )}
@@ -251,7 +251,7 @@ export const Navbar: React.FC = () => {
             ) : (
               <>
                 <Link to="/login" onClick={() => setMobileOpen(false)}>
-                  <Button variant="ghost" size="sm" fullWidth>Login</Button>
+                  <Button variant="ghost" size="sm" fullWidth className="!bg-transparent text-gray-700 hover:text-gray-900 hover:!bg-gray-100">Login</Button>
                 </Link>
                 <Link to="/signup" onClick={() => setMobileOpen(false)}>
                   <Button variant="primary" size="sm" fullWidth>Sign Up</Button>
