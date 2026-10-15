@@ -23,6 +23,8 @@ import { useApp } from '../../context/AppContext';
 import { getBrokerById } from '../../lib/api/brokers';
 import { getProductsByBrokerId } from '../../lib/api/products';
 import type { Broker, Product } from '../../types';
+import { BrokerReviewsSection } from '../../components/reviews/BrokerReviewsSection';
+import type { RatingStats } from '../../lib/api/reviews';
 
 const formatINR = (amount: number) =>
   '₹' + amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -38,6 +40,10 @@ export const BrokerProfilePage: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [liveStats, setLiveStats] = useState<RatingStats | null>(null);
+
+  const displayedRating = liveStats ? liveStats.average : (broker?.rating ?? 0);
+  const displayedReviewCount = liveStats ? liveStats.totalReviews : (broker?.reviewCount ?? 0);
 
   useEffect(() => {
     const load = async () => {
@@ -131,19 +137,19 @@ export const BrokerProfilePage: React.FC = () => {
       <div className="flex items-center gap-2 text-sm">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-gray-text hover:text-primary transition-colors font-medium cursor-pointer group"
+          className="flex items-center gap-1.5 text-gray-text dark:text-slate-400 hover:text-primary dark:hover:text-emerald-400 transition-colors font-medium cursor-pointer group"
         >
           <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
           Back
         </button>
-        <ChevronRight size={14} className="text-gray-label" />
-        <span className="text-gray-text">Brokers</span>
-        <ChevronRight size={14} className="text-gray-label" />
-        <span className="text-text-primary font-semibold">{broker.company || broker.name}</span>
+        <ChevronRight size={14} className="text-gray-label dark:text-slate-500" />
+        <span className="text-gray-text dark:text-slate-400">Brokers</span>
+        <ChevronRight size={14} className="text-gray-label dark:text-slate-500" />
+        <span className="text-text-primary dark:text-white font-semibold">{broker.company || broker.name}</span>
       </div>
 
       {/* Hero Card */}
-      <div className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs relative">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 overflow-hidden shadow-xs relative">
         {/* Cover Banner */}
         <div className="h-36 sm:h-40 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 relative">
           <div className="absolute inset-0">
@@ -175,42 +181,42 @@ export const BrokerProfilePage: React.FC = () => {
                   <img
                     src={broker.avatar}
                     alt={broker.name}
-                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-4 border-white shadow-lg"
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-4 border-white dark:border-slate-800 shadow-lg"
                   />
                 ) : (
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-black text-2xl sm:text-3xl shadow-lg border-4 border-white">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-black text-2xl sm:text-3xl shadow-lg border-4 border-white dark:border-slate-800">
                     {initials(broker.name)}
                   </div>
                 )}
               </div>
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl font-black text-text-primary">
+                  <h1 className="text-xl sm:text-2xl font-black text-text-primary dark:text-white">
                     {broker.name}
                   </h1>
                   {broker.company && (
-                    <span className="text-xs font-bold text-primary bg-primary-50 px-2.5 py-0.5 rounded-lg border border-primary/20">
+                    <span className="text-xs font-bold text-primary dark:text-emerald-400 bg-primary-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-lg border border-primary/20 dark:border-emerald-800">
                       {broker.company}
                     </span>
                   )}
                 </div>
-                <p className="text-xs sm:text-sm text-gray-text mt-1">
-                  Brand: <span className="font-semibold text-text-primary">{broker.company || 'MYTRIO'}</span> · Product Focus: <span className="font-semibold text-primary">{broker.specialty || 'General Products'}</span>
+                <p className="text-xs sm:text-sm text-gray-text dark:text-slate-400 mt-1">
+                  Brand: <span className="font-semibold text-text-primary dark:text-slate-200">{broker.company || 'MYTRIO'}</span> · Product Focus: <span className="font-semibold text-primary dark:text-emerald-400">{broker.specialty || 'General Products'}</span>
                 </p>
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   {broker.location && (
-                    <span className="flex items-center gap-1 text-xs text-gray-text bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
-                      <MapPin size={11} className="text-primary" />
+                    <span className="flex items-center gap-1 text-xs text-gray-text dark:text-slate-300 bg-gray-50 dark:bg-slate-900 px-2.5 py-1 rounded-full border border-gray-100 dark:border-slate-700">
+                      <MapPin size={11} className="text-primary dark:text-emerald-400" />
                       {broker.location}
                     </span>
                   )}
-                  <span className="flex items-center gap-1 text-xs text-gray-text bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
-                    <Package size={11} className="text-primary" />
+                  <span className="flex items-center gap-1 text-xs text-gray-text dark:text-slate-300 bg-gray-50 dark:bg-slate-900 px-2.5 py-1 rounded-full border border-gray-100 dark:border-slate-700">
+                    <Package size={11} className="text-primary dark:text-emerald-400" />
                     {brokerProducts.length} Products Listed
                   </span>
-                  <span className="flex items-center gap-1.5 text-xs font-medium bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full border border-amber-100">
+                  <span className="flex items-center gap-1.5 text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-full border border-amber-100 dark:border-amber-800">
                     <Star size={11} className="fill-amber-500 text-amber-500" />
-                    {broker.rating.toFixed(1)} · {broker.reviewCount} reviews
+                    {displayedRating > 0 ? displayedRating.toFixed(1) : '0.0'} · {displayedReviewCount} reviews
                   </span>
                 </div>
               </div>
@@ -222,8 +228,8 @@ export const BrokerProfilePage: React.FC = () => {
                 onClick={handleCopyShopLink}
                 className={`flex items-center gap-2 px-3.5 py-2 border rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   copied
-                    ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
-                    : 'border-gray-border bg-white text-text-primary hover:bg-gray-50'
+                    ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
+                    : 'border-gray-border dark:border-slate-700 bg-white dark:bg-slate-800 text-text-primary dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700'
                 }`}
               >
                 {copied ? <Check size={14} /> : <Share2 size={14} />}
@@ -231,7 +237,7 @@ export const BrokerProfilePage: React.FC = () => {
               </button>
               <button
                 onClick={handleConnect}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-primary-dark transition-all shadow-md cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 bg-primary dark:bg-emerald-600 text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-primary-dark dark:hover:bg-emerald-700 transition-all shadow-md cursor-pointer"
               >
                 <MessageSquare size={14} />
                 Message
@@ -248,41 +254,41 @@ export const BrokerProfilePage: React.FC = () => {
             label: 'Products Listed',
             value: brokerProducts.length,
             icon: Package,
-            color: 'text-primary',
-            bg: 'bg-primary-50',
+            color: 'text-primary dark:text-emerald-400',
+            bg: 'bg-primary-50 dark:bg-emerald-950/40',
           },
           {
             label: 'Rating',
-            value: `${broker.rating.toFixed(1)} ★`,
+            value: `${displayedRating > 0 ? displayedRating.toFixed(1) : '0.0'} ★`,
             icon: Star,
-            color: 'text-amber-600',
-            bg: 'bg-amber-50',
+            color: 'text-amber-600 dark:text-amber-400',
+            bg: 'bg-amber-50 dark:bg-amber-950/40',
           },
           {
             label: 'Reviews',
-            value: broker.reviewCount,
+            value: displayedReviewCount,
             icon: MessageSquare,
-            color: 'text-violet-600',
-            bg: 'bg-violet-50',
+            color: 'text-violet-600 dark:text-violet-400',
+            bg: 'bg-violet-50 dark:bg-violet-950/40',
           },
           {
             label: 'Status',
             value: broker.status,
             icon: CheckCircle,
-            color: 'text-emerald-600',
-            bg: 'bg-emerald-50',
+            color: 'text-emerald-600 dark:text-emerald-400',
+            bg: 'bg-emerald-50 dark:bg-emerald-950/40',
           },
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <div
             key={label}
-            className="bg-white rounded-2xl border border-gray-border p-4 shadow-xs flex items-center gap-3"
+            className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 p-4 shadow-xs flex items-center gap-3"
           >
             <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
               <Icon size={16} className={color} />
             </div>
             <div>
-              <p className="text-sm font-black text-text-primary">{value}</p>
-              <p className="text-[10px] text-gray-text">{label}</p>
+              <p className="text-sm font-black text-text-primary dark:text-white">{value}</p>
+              <p className="text-[10px] text-gray-text dark:text-slate-400">{label}</p>
             </div>
           </div>
         ))}
@@ -293,56 +299,56 @@ export const BrokerProfilePage: React.FC = () => {
         {/* Left sidebar — Broker Info */}
         <div className="space-y-4">
           {/* About */}
-          <div className="bg-white rounded-2xl border border-gray-border p-5 shadow-xs">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-label mb-3">About</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 p-5 shadow-xs">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 mb-3">About</h3>
             {broker.description ? (
-              <p className="text-sm text-gray-text leading-relaxed">{broker.description}</p>
+              <p className="text-sm text-gray-text dark:text-slate-300 leading-relaxed">{broker.description}</p>
             ) : (
-              <p className="text-sm text-gray-text italic">No description provided.</p>
+              <p className="text-sm text-gray-text dark:text-slate-400 italic">No description provided.</p>
             )}
           </div>
 
           {/* Contact */}
-          <div className="bg-white rounded-2xl border border-gray-border p-5 shadow-xs">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-label mb-3">Contact</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 p-5 shadow-xs">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 mb-3">Contact</h3>
             <div className="space-y-2.5">
               {broker.email && (
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-                    <Mail size={13} className="text-gray-text" />
+                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-slate-900 flex items-center justify-center shrink-0">
+                    <Mail size={13} className="text-gray-text dark:text-slate-400" />
                   </div>
-                  <p className="text-sm text-text-primary truncate">{broker.email}</p>
+                  <p className="text-sm text-text-primary dark:text-slate-200 truncate">{broker.email}</p>
                 </div>
               )}
               {broker.phone && (
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-                    <Phone size={13} className="text-gray-text" />
+                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-slate-900 flex items-center justify-center shrink-0">
+                    <Phone size={13} className="text-gray-text dark:text-slate-400" />
                   </div>
-                  <p className="text-sm text-text-primary">{broker.phone}</p>
+                  <p className="text-sm text-text-primary dark:text-slate-200">{broker.phone}</p>
                 </div>
               )}
               {broker.location && (
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-                    <MapPin size={13} className="text-primary" />
+                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-slate-900 flex items-center justify-center shrink-0">
+                    <MapPin size={13} className="text-primary dark:text-emerald-400" />
                   </div>
-                  <p className="text-sm text-text-primary">{broker.location}</p>
+                  <p className="text-sm text-text-primary dark:text-slate-200">{broker.location}</p>
                 </div>
               )}
               {!broker.email && !broker.phone && !broker.location && (
-                <p className="text-sm text-gray-text italic">Contact info not provided.</p>
+                <p className="text-sm text-gray-text dark:text-slate-400 italic">Contact info not provided.</p>
               )}
             </div>
           </div>
 
           {/* Share Shop Link */}
-          <div className="bg-gradient-to-br from-primary/5 to-teal-50 rounded-2xl border border-primary/20 p-5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-2 flex items-center gap-1.5">
+          <div className="bg-gradient-to-br from-primary/5 to-teal-50 dark:from-slate-800 dark:to-emerald-950/20 rounded-2xl border border-primary/20 dark:border-slate-700 p-5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary dark:text-emerald-400 mb-2 flex items-center gap-1.5">
               <ExternalLink size={11} />
               Shop Link
             </h3>
-            <p className="text-xs text-gray-text mb-3">
+            <p className="text-xs text-gray-text dark:text-slate-400 mb-3">
               Share this broker's shop with others
             </p>
             <button
@@ -350,7 +356,7 @@ export const BrokerProfilePage: React.FC = () => {
               className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
                 copied
                   ? 'bg-emerald-500 text-white'
-                  : 'bg-primary text-white hover:bg-primary-dark'
+                  : 'bg-primary dark:bg-emerald-600 text-white hover:bg-primary-dark dark:hover:bg-emerald-700'
               }`}
             >
               {copied ? (
@@ -368,8 +374,8 @@ export const BrokerProfilePage: React.FC = () => {
           </div>
 
           {/* Quick Stats */}
-          <div className="bg-white rounded-2xl border border-gray-border p-5 shadow-xs">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-label mb-3">Quick Stats</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 p-5 shadow-xs">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 mb-3">Quick Stats</h3>
             {[
               { label: 'Brand Name', value: broker.company || 'MYTRIO' },
               { label: 'Product Focus', value: broker.specialty || 'General' },
@@ -378,10 +384,10 @@ export const BrokerProfilePage: React.FC = () => {
             ].map(({ label, value }) => (
               <div
                 key={label}
-                className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
+                className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-slate-700 last:border-0"
               >
-                <span className="text-sm text-gray-text">{label}</span>
-                <span className="text-sm font-semibold text-text-primary">{value}</span>
+                <span className="text-sm text-gray-text dark:text-slate-400">{label}</span>
+                <span className="text-sm font-semibold text-text-primary dark:text-slate-200">{value}</span>
               </div>
             ))}
           </div>
@@ -389,14 +395,14 @@ export const BrokerProfilePage: React.FC = () => {
 
         {/* Right — Products */}
         <div className="xl:col-span-2">
-          <div className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 overflow-hidden shadow-xs">
             {/* Products Header with Search */}
-            <div className="px-5 py-4 border-b border-gray-border">
+            <div className="px-5 py-4 border-b border-gray-border dark:border-slate-700">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-bold text-text-primary flex items-center gap-2">
-                  <Store size={16} className="text-primary" />
+                <h2 className="font-bold text-text-primary dark:text-white flex items-center gap-2">
+                  <Store size={16} className="text-primary dark:text-emerald-400" />
                   {broker.company || broker.name}'s Shop
-                  <span className="ml-1 text-xs font-normal text-gray-label bg-gray-100 px-2 py-0.5 rounded-full">
+                  <span className="ml-1 text-xs font-normal text-gray-label dark:text-slate-400 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
                     {brokerProducts.length} listings
                   </span>
                 </h2>
@@ -405,24 +411,24 @@ export const BrokerProfilePage: React.FC = () => {
               {/* Search + Filter */}
               <div className="flex gap-2 flex-wrap">
                 <div className="relative flex-1 min-w-48">
-                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" />
                   <input
                     type="text"
                     placeholder="Search products..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 text-sm border border-gray-border rounded-xl bg-gray-bg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    className="w-full pl-8 pr-3 py-2 text-sm border border-gray-border dark:border-slate-700 rounded-xl bg-gray-bg dark:bg-slate-900 text-text-primary dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-primary dark:focus:border-emerald-500 focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
-                <div className="flex items-center gap-1.5 overflow-x-auto">
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                   {categories.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition-colors cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
                         selectedCategory === cat
-                          ? 'bg-primary text-white'
-                          : 'bg-gray-100 text-gray-text hover:bg-gray-200'
+                          ? 'bg-primary dark:bg-emerald-600 text-white'
+                          : 'bg-gray-100 dark:bg-slate-700 text-gray-text dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                       }`}
                     >
                       {cat}
@@ -435,11 +441,11 @@ export const BrokerProfilePage: React.FC = () => {
             {/* Products Grid */}
             {filteredProducts.length === 0 ? (
               <div className="p-16 text-center">
-                <Package size={40} className="text-gray-300 mx-auto mb-3" />
-                <p className="text-sm font-semibold text-text-primary">
+                <Package size={40} className="text-gray-300 dark:text-slate-600 mx-auto mb-3" />
+                <p className="text-sm font-semibold text-text-primary dark:text-white">
                   {brokerProducts.length === 0 ? 'No products listed yet' : 'No products match your search'}
                 </p>
-                <p className="text-xs text-gray-text mt-1">
+                <p className="text-xs text-gray-text dark:text-slate-400 mt-1">
                   {brokerProducts.length === 0
                     ? 'This broker has not listed any products yet.'
                     : 'Try a different search term or category.'}
@@ -451,10 +457,10 @@ export const BrokerProfilePage: React.FC = () => {
                   <Link
                     to={`/customer/products/${prod.id}`}
                     key={prod.id}
-                    className="border border-gray-border rounded-xl overflow-hidden hover:shadow-md hover:border-primary/30 transition-all group cursor-pointer"
+                    className="border border-gray-border dark:border-slate-700 rounded-xl overflow-hidden hover:shadow-md hover:border-primary/30 dark:hover:border-emerald-500/50 transition-all group cursor-pointer bg-white dark:bg-slate-900"
                   >
                     {/* Image */}
-                    <div className="h-36 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden relative">
+                    <div className="h-36 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center overflow-hidden relative">
                       {prod.image ? (
                         <img
                           src={prod.image}
@@ -462,7 +468,7 @@ export const BrokerProfilePage: React.FC = () => {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
-                        <ShoppingCart size={28} className="text-gray-300" />
+                        <ShoppingCart size={28} className="text-gray-300 dark:text-slate-600" />
                       )}
                       <span
                         className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -479,25 +485,15 @@ export const BrokerProfilePage: React.FC = () => {
 
                     {/* Info */}
                     <div className="p-3.5">
-                      <p className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                      <p className="text-[10px] font-bold text-primary dark:text-emerald-400 uppercase tracking-wider">
                         {prod.category}
                       </p>
-                      <p className="text-sm font-semibold text-text-primary line-clamp-2 leading-tight mt-0.5">
+                      <h4 className="text-sm font-bold text-text-primary dark:text-white truncate mt-0.5 group-hover:text-primary dark:group-hover:text-emerald-400 transition-colors">
                         {prod.name}
+                      </h4>
+                      <p className="text-xs text-primary dark:text-emerald-400 font-extrabold mt-1">
+                        {formatINR(prod.price)}
                       </p>
-                      <div className="flex items-center justify-between mt-2">
-                        <p className="text-base font-black text-primary">{formatINR(prod.price)}</p>
-                        <span className="text-xs text-gray-text font-medium">
-                          Stock: {prod.stock}
-                        </span>
-                      </div>
-
-                      {/* CTA */}
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <span className="text-xs font-bold text-primary flex items-center gap-1 group-hover:underline">
-                          View Details <ChevronRight size={12} />
-                        </span>
-                      </div>
                     </div>
                   </Link>
                 ))}
@@ -506,6 +502,15 @@ export const BrokerProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Live Client Reviews & Ratings Section */}
+      {broker && (
+        <BrokerReviewsSection
+          brokerId={broker.id}
+          brokerName={broker.company || broker.name}
+          onStatsChange={setLiveStats}
+        />
+      )}
     </div>
   );
 };

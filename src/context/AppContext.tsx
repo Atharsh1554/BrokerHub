@@ -177,8 +177,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const fetchedAppointments = await getAppointments(user.id, userRole);
         setAppointments(fetchedAppointments);
 
-        // Fetch conversations
-        const dbConvs = await getUserConversations(user.id);
+        // Fetch conversations (filtered by opposite role)
+        const dbConvs = await getUserConversations(user.id, userRole);
         if (dbConvs.length > 0) {
           setConversations(dbConvs);
           // Load messages for initial conversations
@@ -615,19 +615,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
     if (user && isUuid(senderId) && isUuid(receiverId)) {
-      const dbMsg = await sendDBMessage(senderId, receiverId, text);
-      if (dbMsg) {
-        await supabase.from('broker_notifications').insert({
-          broker_id: user.role === 'customer' ? receiverId : senderId,
-          customer_id: user.role === 'customer' ? senderId : receiverId,
-          customer_name: user.fullName || 'User',
-          type: 'message',
-          title: `New message from ${user.fullName || 'Client'}`,
-          description: text,
-          is_read: false,
-          status: 'pending',
-        });
-      }
+      await sendDBMessage(senderId, receiverId, text);
     } else {
       // Demo auto-reply simulation for testing
       setTimeout(() => {
@@ -816,13 +804,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCart((prev) => {
       const existing = prev.find((c) => c.productId === item.productId);
       if (existing) {
+        const maxQty = item.stock || existing.stock;
+        const newQty = Math.min(existing.quantity + item.quantity, maxQty);
+        if (existing.quantity >= maxQty) {
+          showToast(`Only ${maxQty} unit${maxQty !== 1 ? 's' : ''} available — limit reached`, 'warning');
+          return prev;
+        }
         return prev.map((c) =>
           c.productId === item.productId
-            ? { ...c, quantity: c.quantity + item.quantity, totalPrice: (c.quantity + item.quantity) * c.price }
+            ? { ...c, stock: maxQty, quantity: newQty, totalPrice: newQty * c.price }
             : c
         );
       }
-      return [...prev, item];
+      return [...prev, { ...item, stock: item.stock ?? 9999 }];
     });
   };
 
@@ -831,11 +825,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateCartQuantity = (productId: string, quantity: number) => {
-    if (quantity < 1) return;
+    if (quantity < 1) {
+      removeFromCart(productId);
+      return;
+    }
     setCart((prev) =>
-      prev.map((c) =>
-        c.productId === productId ? { ...c, quantity, totalPrice: quantity * c.price } : c
-      )
+      prev.map((c) => {
+        if (c.productId !== productId) return c;
+        const maxQty = c.stock;
+        if (quantity > maxQty) {
+          showToast(`Only ${maxQty} unit${maxQty !== 1 ? 's' : ''} available in stock`, 'warning');
+          return { ...c, quantity: maxQty, totalPrice: maxQty * c.price };
+        }
+        return { ...c, quantity, totalPrice: quantity * c.price };
+      })
     );
   };
 

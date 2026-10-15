@@ -226,6 +226,7 @@ export const createBrokerProduct = async (
           name: prodData.name,
           price: prodData.price,
           image: prodData.image,
+          images: prodData.images || [],
           category: prodData.category,
           stock: prodData.stock,
           status: prodData.status,
@@ -274,6 +275,7 @@ export const updateBrokerProduct = async (
       if (updatedFields.name !== undefined) payload.name = updatedFields.name;
       if (updatedFields.price !== undefined) payload.price = updatedFields.price;
       if (updatedFields.image !== undefined) payload.image = updatedFields.image;
+      if (updatedFields.images !== undefined) payload.images = updatedFields.images;
       if (updatedFields.category !== undefined) payload.category = updatedFields.category;
       if (updatedFields.stock !== undefined) payload.stock = updatedFields.stock;
       if (updatedFields.status !== undefined) payload.status = updatedFields.status;

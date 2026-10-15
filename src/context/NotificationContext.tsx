@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { BrokerNotification, NotificationStatus, CustomerProfile } from '../types';
-import { INITIAL_NOTIFICATIONS, MOCK_CUSTOMER_PROFILES } from '../lib/seedNotifications';
+import type { BrokerNotification, NotificationStatus, CustomerProfile, BrokerNotificationType } from '../types';
+import { MOCK_CUSTOMER_PROFILES } from '../lib/seedNotifications';
 import { useAuth } from './AuthContext';
 
 interface NotificationContextType {
@@ -13,6 +13,9 @@ interface NotificationContextType {
   markAllAsRead: () => Promise<void>;
   updateStatus: (id: string, status: NotificationStatus) => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
+  deleteAllNotifications: () => Promise<void>;
+  deleteReadNotifications: () => Promise<void>;
+  deleteNotificationsByType: (type: BrokerNotificationType) => Promise<void>;
   getCustomerProfile: (customerId: string) => CustomerProfile | null;
   refreshNotifications: () => Promise<void>;
   createNotification: (notification: Omit<BrokerNotification, 'id' | 'created_at'>) => Promise<void>;
@@ -33,7 +36,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch {
       // fallback
     }
-    return INITIAL_NOTIFICATIONS;
+    return [];
   });
   const [loading, setLoading] = useState(false);
 
@@ -65,22 +68,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
 
-      if (data && data.length > 0) {
+      if (data) {
         setNotifications(data as BrokerNotification[]);
-      } else if (user && user.role === 'broker') {
-        // Seed initial notifications into Supabase for this broker
-        const seedPayload = INITIAL_NOTIFICATIONS.map(({ id: _, ...rest }) => ({
-          ...rest,
-          broker_id: user.id,
-        }));
-        const { data: inserted, error: seedErr } = await supabase
-          .from('broker_notifications')
-          .insert(seedPayload)
-          .select();
-
-        if (!seedErr && inserted) {
-          setNotifications(inserted as BrokerNotification[]);
-        }
       }
     } catch (err) {
       console.warn('Supabase connection error:', err);
@@ -193,6 +182,52 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  const deleteAllNotifications = async () => {
+    const ids = notifications.map((n) => n.id);
+    setNotifications([]);
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    if (isSupabaseConfigured && ids.length > 0) {
+      try {
+        await supabase
+          .from('broker_notifications')
+          .delete()
+          .in('id', ids);
+      } catch (err) {
+        console.warn('Failed to delete all notifications in Supabase:', err);
+      }
+    }
+  };
+
+  const deleteReadNotifications = async () => {
+    const readIds = notifications.filter((n) => n.is_read).map((n) => n.id);
+    setNotifications((prev) => prev.filter((n) => !n.is_read));
+    if (isSupabaseConfigured && readIds.length > 0) {
+      try {
+        await supabase
+          .from('broker_notifications')
+          .delete()
+          .in('id', readIds);
+      } catch (err) {
+        console.warn('Failed to delete read notifications in Supabase:', err);
+      }
+    }
+  };
+
+  const deleteNotificationsByType = async (type: BrokerNotificationType) => {
+    const typeIds = notifications.filter((n) => n.type === type).map((n) => n.id);
+    setNotifications((prev) => prev.filter((n) => n.type !== type));
+    if (isSupabaseConfigured && typeIds.length > 0) {
+      try {
+        await supabase
+          .from('broker_notifications')
+          .delete()
+          .in('id', typeIds);
+      } catch (err) {
+        console.warn('Failed to delete notifications by type in Supabase:', err);
+      }
+    }
+  };
+
   const createNotification = async (
     notificationData: Omit<BrokerNotification, 'id' | 'created_at'>
   ) => {
@@ -256,6 +291,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         markAllAsRead,
         updateStatus,
         deleteNotification,
+        deleteAllNotifications,
+        deleteReadNotifications,
+        deleteNotificationsByType,
         getCustomerProfile,
         refreshNotifications: fetchSupabaseNotifications,
         createNotification,

@@ -114,25 +114,25 @@ export const BrokerShopPage: React.FC = () => {
       label: 'Total Products',
       value: myProducts.length,
       icon: <Package size={18} className="text-primary" />,
-      bg: 'bg-primary-50',
+      bg: 'bg-primary-50 dark:bg-primary-900/20',
     },
     {
       label: 'Total Orders',
       value: totalOrders,
       icon: <ShoppingBag size={18} className="text-violet-600" />,
-      bg: 'bg-violet-50',
+      bg: 'bg-violet-50 dark:bg-violet-900/20',
     },
     {
       label: 'Revenue',
       value: formatINR(totalRevenue),
       icon: <TrendingUp size={18} className="text-emerald-600" />,
-      bg: 'bg-emerald-50',
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
     },
     {
       label: 'Avg Rating',
       value: avgRating.toFixed(1),
       icon: <Star size={18} className="text-amber-500" />,
-      bg: 'bg-amber-50',
+      bg: 'bg-amber-50 dark:bg-amber-900/20',
     },
   ];
 
@@ -147,7 +147,7 @@ export const BrokerShopPage: React.FC = () => {
       </div>
 
       {/* ── Broker Info Card ── */}
-      <div className="bg-white rounded-2xl border border-gray-border shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 shadow-xs overflow-hidden">
         {/* Top accent strip */}
         <div className="h-1.5 bg-gradient-to-r from-primary via-teal-400 to-emerald-400" />
         <div className="p-6">
@@ -171,11 +171,11 @@ export const BrokerShopPage: React.FC = () => {
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-xl font-black text-text-primary">{displayName}</h1>
                 {brandName && (
-                  <span className="text-xs font-bold text-primary bg-primary-50 px-2.5 py-0.5 rounded-lg border border-primary/20">
+                  <span className="text-xs font-bold text-primary bg-primary-50 dark:bg-primary-900/30 px-2.5 py-0.5 rounded-lg border border-primary/20 dark:border-primary/40">
                     {brandName}
                   </span>
                 )}
-                <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
+                <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800">
                   <CheckCircle size={10} />
                   Verified Broker
                 </span>
@@ -212,7 +212,7 @@ export const BrokerShopPage: React.FC = () => {
             {/* Edit Profile shortcut */}
             <button
               onClick={() => navigate('/broker/settings')}
-              className="shrink-0 flex items-center gap-2 px-3.5 py-2 border border-gray-border bg-white text-text-primary rounded-xl text-xs font-semibold hover:bg-gray-50 hover:border-primary/40 transition-all cursor-pointer self-start"
+              className="shrink-0 flex items-center gap-2 px-3.5 py-2 border border-gray-border dark:border-slate-700 bg-white dark:bg-slate-800 text-text-primary rounded-xl text-xs font-semibold hover:bg-gray-50 dark:bg-slate-900/60 hover:border-primary/40 transition-all cursor-pointer self-start"
             >
               <Edit3 size={13} />
               Edit Profile
@@ -222,7 +222,7 @@ export const BrokerShopPage: React.FC = () => {
       </div>
 
       {/* Shareable Link Banner */}
-      <div className="bg-gradient-to-r from-primary/5 via-teal-50 to-emerald-50 rounded-2xl border border-primary/20 p-5">
+      <div className="bg-gradient-to-r from-primary/5 via-teal-50 to-emerald-50 dark:from-primary/10 dark:via-slate-800 dark:to-slate-800 rounded-2xl border border-primary/20 dark:border-primary/30 p-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-md">
             <Share2 size={20} className="text-white" />
@@ -233,7 +233,7 @@ export const BrokerShopPage: React.FC = () => {
               Share this link with customers so they can view your shop and products directly
             </p>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3 w-full max-w-xl">
-              <div className="flex items-center gap-2 bg-white border border-gray-border rounded-xl px-3 py-2 flex-1 min-w-0">
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-xl px-3 py-2 flex-1 min-w-0">
                 <Store size={13} className="text-primary shrink-0" />
                 <span className="text-xs text-gray-text font-mono truncate">{shopUrl}</span>
               </div>
@@ -281,7 +281,7 @@ export const BrokerShopPage: React.FC = () => {
         {shopStats.map(({ label, value, icon, bg }) => (
           <div
             key={label}
-            className="bg-white rounded-2xl border border-gray-border p-5 shadow-xs flex items-center gap-4"
+            className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 p-5 shadow-xs flex items-center gap-4"
           >
             <div className={`w-11 h-11 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
               {icon}
@@ -295,9 +295,9 @@ export const BrokerShopPage: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 overflow-hidden shadow-xs">
         {/* Tab Header */}
-        <div className="flex border-b border-gray-border bg-gray-50/50">
+        <div className="flex border-b border-gray-border dark:border-slate-700 bg-gray-50 dark:bg-slate-900/60">
           {[
             { id: 'products', label: 'Product Listings', icon: Package },
             { id: 'analytics', label: 'Shop Analytics', icon: TrendingUp },
@@ -308,8 +308,8 @@ export const BrokerShopPage: React.FC = () => {
               onClick={() => setActiveTab(id as typeof activeTab)}
               className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold transition-all cursor-pointer border-b-2 ${
                 activeTab === id
-                  ? 'text-primary border-primary bg-white'
-                  : 'text-gray-text border-transparent hover:text-text-primary hover:bg-white/50'
+                  ? 'text-primary border-primary bg-white dark:bg-slate-800'
+                  : 'text-gray-text border-transparent hover:text-text-primary hover:bg-white dark:bg-slate-800/50'
               }`}
             >
               <Icon size={15} />
@@ -346,7 +346,7 @@ export const BrokerShopPage: React.FC = () => {
                 placeholder="Search products by name, category, or description..."
                 value={shopSearchQuery}
                 onChange={(e) => setShopSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-9 py-2.5 border border-gray-border rounded-xl bg-gray-bg text-sm text-text-primary placeholder-gray-label focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors"
+                className="w-full pl-10 pr-9 py-2.5 border border-gray-border dark:border-slate-700 rounded-xl bg-gray-bg text-sm text-text-primary placeholder-gray-label focus:bg-white dark:bg-slate-800 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors"
               />
               {shopSearchQuery && (
                 <button
@@ -393,10 +393,10 @@ export const BrokerShopPage: React.FC = () => {
                 {searchFilteredProducts.map((prod) => (
                   <div
                     key={prod.id}
-                    className="border border-gray-border rounded-xl overflow-hidden hover:shadow-md hover:border-primary/30 transition-all group"
+                    className="border border-gray-border dark:border-slate-700 rounded-xl overflow-hidden hover:shadow-md hover:border-primary/30 transition-all group"
                   >
                     {/* Product Image */}
-                    <div className="h-40 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden relative">
+                    <div className="h-40 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center overflow-hidden relative">
                       {prod.image ? (
                         <img
                           src={prod.image}
@@ -435,10 +435,10 @@ export const BrokerShopPage: React.FC = () => {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
                         <Link
                           to="/broker/products"
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary-50 text-primary text-xs font-bold rounded-lg hover:bg-primary/10 transition-colors"
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary dark:text-primary-light text-xs font-bold rounded-lg hover:bg-primary/10 dark:hover:bg-primary/40 transition-colors"
                         >
                           <Edit3 size={11} />
                           Edit
@@ -447,7 +447,7 @@ export const BrokerShopPage: React.FC = () => {
                           href={`${window.location.origin}/customer/products/${prod.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-text text-xs font-bold rounded-lg hover:bg-gray-100 transition-colors"
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-slate-900/60 text-gray-text text-xs font-bold rounded-lg hover:bg-gray-100 dark:bg-slate-700 transition-colors"
                         >
                           <Eye size={11} />
                           Preview
@@ -474,7 +474,7 @@ export const BrokerShopPage: React.FC = () => {
               ].map(({ label, value, sub, icon: Icon }) => (
                 <div
                   key={label}
-                  className="flex items-center gap-4 p-4 border border-gray-border rounded-xl bg-gray-50/50"
+                  className="flex items-center gap-4 p-4 border border-gray-border dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900/60"
                 >
                   <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
                     <Icon size={18} className="text-primary" />
@@ -487,7 +487,7 @@ export const BrokerShopPage: React.FC = () => {
                 </div>
               ))}
             </div>
-            <div className="p-4 bg-primary-50 rounded-xl border border-primary/20 text-center">
+            <div className="p-4 bg-primary-50 dark:bg-slate-900/60 rounded-xl border border-primary/20 dark:border-slate-700 text-center">
               <TrendingUp size={28} className="text-primary mx-auto mb-2" />
               <p className="text-sm font-bold text-text-primary">Full Analytics Dashboard Coming Soon</p>
               <p className="text-xs text-gray-text mt-1">
@@ -544,9 +544,9 @@ export const BrokerShopPage: React.FC = () => {
               ].map(({ label, value, icon: Icon }) => (
                 <div
                   key={label}
-                  className="flex items-center gap-3 p-4 border border-gray-border rounded-xl"
+                  className="flex items-center gap-3 p-4 border border-gray-border dark:border-slate-700 rounded-xl"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-slate-900/60 flex items-center justify-center shrink-0">
                     <Icon size={16} className="text-gray-text" />
                   </div>
                   <div className="min-w-0">
@@ -560,8 +560,8 @@ export const BrokerShopPage: React.FC = () => {
             </div>
 
             {/* Completeness */}
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-              <p className="text-sm font-bold text-amber-800 flex items-center gap-2">
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl">
+              <p className="text-sm font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
                 <span>💡</span> Improve your shop profile
               </p>
               <ul className="mt-2 space-y-1.5">
@@ -571,7 +571,7 @@ export const BrokerShopPage: React.FC = () => {
                   'Add your business location',
                   'Upload product images for better conversions',
                 ].map((tip) => (
-                  <li key={tip} className="flex items-center gap-2 text-xs text-amber-700">
+                  <li key={tip} className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300/80">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
                     {tip}
                   </li>
@@ -579,7 +579,7 @@ export const BrokerShopPage: React.FC = () => {
               </ul>
               <Link
                 to="/broker/settings"
-                className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 hover:underline"
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300 hover:underline"
               >
                 Go to Settings <ChevronRight size={12} />
               </Link>

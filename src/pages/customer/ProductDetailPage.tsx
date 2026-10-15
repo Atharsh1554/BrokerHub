@@ -8,7 +8,8 @@ import {
 import { useApp } from '../../context/AppContext';
 import { getBrokerById } from '../../lib/api/brokers';
 import { getProductById } from '../../lib/api/products';
-import type { Broker, Product, ProductReview } from '../../types';
+import type { Broker, Product } from '../../types';
+import { getBrokerReviews, calculateRatingStats, type Review } from '../../lib/api/reviews';
 
 // Helpers
 const formatINR = (amount: number) =>
@@ -39,7 +40,7 @@ export const ProductDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
   const [wishlist, setWishlist] = useState(false);
-  const [reviews] = useState<ProductReview[]>([]);
+  const [liveReviews, setLiveReviews] = useState<Review[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -68,6 +69,11 @@ export const ProductDetailPage: React.FC = () => {
         let bk = brokers.find((b) => b.id === prod!.brokerId) || null;
         if (!bk) bk = await getBrokerById(prod.brokerId);
         setBroker(bk);
+
+        try {
+          const revs = await getBrokerReviews(prod.brokerId);
+          setLiveReviews(revs);
+        } catch {}
       }
 
       setLoading(false);
@@ -108,8 +114,9 @@ export const ProductDetailPage: React.FC = () => {
   const allImages = [product.image, ...(product.images || [])].filter(Boolean);
   const isOutOfStock = product.stock === 0 || product.status === 'Out of Stock';
   const isLowStock = !isOutOfStock && (product.stock <= 5 || product.status === 'Low Stock');
-  const rating = product.rating ?? 0;
-  const reviewCount = product.reviewCount ?? 0;
+  const liveStats = calculateRatingStats(liveReviews);
+  const rating = liveStats.totalReviews > 0 ? liveStats.average : (product.rating ?? 0);
+  const reviewCount = liveStats.totalReviews > 0 ? liveStats.totalReviews : (product.reviewCount ?? 0);
 
   // Related products — same category, excluding current
   const related = products
@@ -119,6 +126,8 @@ export const ProductDetailPage: React.FC = () => {
   const handleAddToCart = () => {
     if (isOutOfStock) return;
     setAddingToCart(true);
+    const maxQty = product.stock ?? 1;
+    const safeQty = Math.min(quantity, maxQty);
     addToCart({
       productId: product.id,
       productName: product.name,
@@ -126,8 +135,9 @@ export const ProductDetailPage: React.FC = () => {
       brokerId: product.brokerId || broker?.id || '',
       brokerName: broker?.company || broker?.name || 'Unknown Broker',
       price: product.price,
-      quantity,
-      totalPrice: product.price * quantity,
+      quantity: safeQty,
+      stock: maxQty,
+      totalPrice: product.price * safeQty,
     });
     setTimeout(() => {
       setAddingToCart(false);
@@ -227,7 +237,7 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Thumbnails */}
+              {/* Thumbnails */}
           {allImages.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {allImages.map((img, idx) => (
@@ -235,14 +245,14 @@ export const ProductDetailPage: React.FC = () => {
                   key={idx}
                   onClick={() => setActiveImage(idx)}
                   className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                    activeImage === idx ? 'border-primary shadow-md' : 'border-gray-border hover:border-gray-300'
+                    activeImage === idx ? 'border-primary shadow-md' : 'border-gray-border dark:border-slate-700 hover:border-gray-300'
                   }`}
                 >
                   {img ? (
                     <img src={img} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                      <Package size={20} className="text-gray-300" />
+                    <div className="w-full h-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
+                      <Package size={20} className="text-gray-300 dark:text-slate-600" />
                     </div>
                   )}
                 </button>
@@ -256,24 +266,24 @@ export const ProductDetailPage: React.FC = () => {
           {/* Category + Name + Uploaded by Broker */}
           <div>
             <div className="flex items-center gap-2 flex-wrap mb-2">
-              <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary-50 px-3 py-1 rounded-full">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary dark:text-emerald-400 bg-primary-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full">
                 {product.category}
               </span>
               {broker && (
-                <span className="text-xs font-medium text-gray-600 bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full flex items-center gap-1 border border-gray-200 dark:border-slate-700">
-                  <User size={12} className="text-primary" />
+                <span className="text-xs font-medium text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full flex items-center gap-1 border border-gray-200 dark:border-slate-700">
+                  <User size={12} className="text-primary dark:text-emerald-400" />
                   Uploaded by: <strong className="text-gray-900 dark:text-white">{broker.name}</strong> ({broker.company || 'Verified Broker'})
                 </span>
               )}
             </div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-text-primary leading-tight">{product.name}</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold text-text-primary dark:text-white leading-tight">{product.name}</h1>
 
             {/* Rating */}
             <div className="flex items-center gap-3 mt-2">
               <StarRating rating={rating} size={18} />
-              <span className="text-sm font-bold text-text-primary">{rating > 0 ? rating.toFixed(1) : 'No ratings'}</span>
+              <span className="text-sm font-bold text-text-primary dark:text-slate-200">{rating > 0 ? rating.toFixed(1) : 'No ratings'}</span>
               {reviewCount > 0 && (
-                <a href="#reviews" className="text-xs text-primary underline underline-offset-2 hover:text-primary-dark">
+                <a href="#reviews" className="text-xs text-primary dark:text-emerald-400 underline underline-offset-2 hover:text-primary-dark">
                   ({reviewCount} reviews)
                 </a>
               )}
@@ -281,26 +291,26 @@ export const ProductDetailPage: React.FC = () => {
           </div>
 
           {/* Price */}
-          <div className="bg-gradient-to-r from-primary-50 to-emerald-50 rounded-2xl p-4 border border-emerald-100">
-            <p className="text-xs text-gray-text font-medium mb-1">Unit Price</p>
-            <p className="text-4xl font-black text-primary tracking-tight">{formatINR(product.price)}</p>
-            <p className="text-xs text-gray-text mt-1">Inclusive of all taxes</p>
+          <div className="bg-gradient-to-r from-primary-50 to-emerald-50 dark:from-slate-800 dark:to-emerald-950/30 rounded-2xl p-4 border border-emerald-100 dark:border-slate-700">
+            <p className="text-xs text-gray-text dark:text-slate-400 font-medium mb-1">Unit Price</p>
+            <p className="text-4xl font-black text-primary dark:text-emerald-400 tracking-tight">{formatINR(product.price)}</p>
+            <p className="text-xs text-gray-text dark:text-slate-400 mt-1">Inclusive of all taxes</p>
           </div>
 
           {/* Stock Status */}
           <div className="flex items-center gap-2">
             {isOutOfStock ? (
-              <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm font-semibold">
+              <div className="flex items-center gap-2 text-red-600 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 text-sm font-semibold">
                 <AlertTriangle size={16} />
                 Out of Stock
               </div>
             ) : isLowStock ? (
-              <div className="flex items-center gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm font-semibold">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 text-sm font-semibold">
                 <AlertTriangle size={14} />
                 Only {product.stock} left in stock!
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-sm font-semibold">
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2 text-sm font-semibold">
                 <CheckCircle size={16} />
                 Available: {product.stock} units
               </div>
@@ -309,36 +319,36 @@ export const ProductDetailPage: React.FC = () => {
 
           {/* Description */}
           {product.description && (
-            <p className="text-sm text-gray-text leading-relaxed">{product.description}</p>
+            <p className="text-sm text-gray-text dark:text-slate-300 leading-relaxed">{product.description}</p>
           )}
 
           {/* Quantity Selector */}
           {!isOutOfStock && (
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-text-primary">Quantity</label>
+              <label className="text-sm font-semibold text-text-primary dark:text-white">Quantity</label>
               <div className="flex items-center gap-4">
-                <div className="flex items-center border border-gray-border rounded-xl overflow-hidden bg-white shadow-xs">
+                <div className="flex items-center border border-gray-border dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-800 shadow-xs">
                   <button
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                     disabled={quantity <= 1}
-                    className="w-11 h-11 flex items-center justify-center text-gray-text hover:bg-gray-50 disabled:opacity-30 transition-colors cursor-pointer"
+                    className="w-11 h-11 flex items-center justify-center text-gray-text dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors cursor-pointer"
                   >
                     <Minus size={16} />
                   </button>
-                  <span className="w-12 text-center font-bold text-text-primary text-lg border-x border-gray-border">
+                  <span className="w-12 text-center font-bold text-text-primary dark:text-white text-lg border-x border-gray-border dark:border-slate-700">
                     {quantity}
                   </span>
                   <button
                     onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
                     disabled={quantity >= product.stock}
-                    className="w-11 h-11 flex items-center justify-center text-gray-text hover:bg-gray-50 disabled:opacity-30 transition-colors cursor-pointer"
+                    className="w-11 h-11 flex items-center justify-center text-gray-text dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors cursor-pointer"
                   >
                     <Plus size={16} />
                   </button>
                 </div>
-                <div className="text-sm text-gray-text">
+                <div className="text-sm text-gray-text dark:text-slate-400">
                   Subtotal:{' '}
-                  <span className="font-bold text-text-primary text-base">{formatINR(product.price * quantity)}</span>
+                  <span className="font-bold text-text-primary dark:text-white text-base">{formatINR(product.price * quantity)}</span>
                 </div>
               </div>
             </div>
@@ -351,8 +361,8 @@ export const ProductDetailPage: React.FC = () => {
               disabled={isOutOfStock || addingToCart}
               className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-semibold text-sm transition-all duration-200 cursor-pointer ${
                 isOutOfStock
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-white border-2 border-primary text-primary hover:bg-primary-50 hover:shadow-md active:scale-98'
+                  ? 'bg-gray-100 dark:bg-slate-800 text-gray-400 cursor-not-allowed'
+                  : 'bg-white dark:bg-slate-800 border-2 border-primary dark:border-emerald-500 text-primary dark:text-emerald-400 hover:bg-primary-50 dark:hover:bg-slate-700 hover:shadow-md active:scale-98'
               }`}
             >
               <ShoppingCart size={18} className={addingToCart ? 'animate-bounce' : ''} />
@@ -363,8 +373,8 @@ export const ProductDetailPage: React.FC = () => {
               disabled={isOutOfStock}
               className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer shadow-md ${
                 isOutOfStock
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-primary text-white hover:bg-primary-dark hover:shadow-lg active:scale-98'
+                  ? 'bg-gray-100 dark:bg-slate-800 text-gray-400 cursor-not-allowed'
+                  : 'bg-primary dark:bg-emerald-600 text-white hover:bg-primary-dark dark:hover:bg-emerald-700 hover:shadow-lg active:scale-98'
               }`}
             >
               <Zap size={18} />
@@ -386,9 +396,9 @@ export const ProductDetailPage: React.FC = () => {
               { icon: Package, text: 'Secure Delivery' },
               { icon: CheckCircle, text: 'Quality Assured' },
             ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex flex-col items-center gap-1 bg-gray-50 rounded-xl p-2.5 text-center border border-gray-border">
-                <Icon size={18} className="text-primary" />
-                <span className="text-[10px] font-semibold text-gray-text leading-tight">{text}</span>
+              <div key={text} className="flex flex-col items-center gap-1 bg-gray-50 dark:bg-slate-800 rounded-xl p-2.5 text-center border border-gray-border dark:border-slate-700">
+                <Icon size={18} className="text-primary dark:text-emerald-400" />
+                <span className="text-[10px] font-semibold text-gray-text dark:text-slate-300 leading-tight">{text}</span>
               </div>
             ))}
           </div>
@@ -397,8 +407,8 @@ export const ProductDetailPage: React.FC = () => {
 
       {/* ─── Broker Section ─── */}
       {broker && (
-        <div className="bg-white rounded-2xl border border-gray-border p-6 shadow-xs">
-          <h2 className="text-sm font-bold text-gray-label uppercase tracking-wider mb-4">Posted by Broker</h2>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 p-6 shadow-xs">
+          <h2 className="text-sm font-bold text-gray-label dark:text-slate-400 uppercase tracking-wider mb-4">Posted by Broker</h2>
           <div className="flex flex-col sm:flex-row gap-5 items-start">
             {/* Avatar */}
             <div className="shrink-0">
@@ -415,46 +425,46 @@ export const ProductDetailPage: React.FC = () => {
             <div className="flex-1 space-y-2">
               <div className="flex items-start justify-between gap-2 flex-wrap">
                 <div>
-                  <h3 className="text-lg font-bold text-text-primary leading-tight">{broker.company || broker.name}</h3>
-                  <p className="text-sm text-gray-text">{broker.specialty}</p>
+                  <h3 className="text-lg font-bold text-text-primary dark:text-white leading-tight">{broker.company || broker.name}</h3>
+                  <p className="text-sm text-gray-text dark:text-slate-400">{broker.specialty}</p>
                 </div>
-                <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full border border-emerald-200">
+                <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800">
                   <CheckCircle size={12} />
                   Verified Broker
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3 text-sm text-gray-text">
+              <div className="flex flex-wrap gap-3 text-sm text-gray-text dark:text-slate-400">
                 {broker.location && (
                   <div className="flex items-center gap-1.5">
-                    <MapPin size={14} className="text-primary shrink-0" />
+                    <MapPin size={14} className="text-primary dark:text-emerald-400 shrink-0" />
                     <span>{broker.location}</span>
                   </div>
                 )}
                 {broker.rating > 0 && (
                   <div className="flex items-center gap-1.5">
                     <Star size={14} className="fill-yellow-400 text-yellow-400 shrink-0" />
-                    <span className="font-semibold text-text-primary">{broker.rating.toFixed(1)}</span>
-                    {broker.reviewCount > 0 && <span className="text-gray-label">({broker.reviewCount} reviews)</span>}
+                    <span className="font-semibold text-text-primary dark:text-white">{broker.rating.toFixed(1)}</span>
+                    {broker.reviewCount > 0 && <span className="text-gray-label dark:text-slate-500">({broker.reviewCount} reviews)</span>}
                   </div>
                 )}
               </div>
 
               {broker.description && (
-                <p className="text-xs text-gray-text leading-relaxed line-clamp-2">{broker.description}</p>
+                <p className="text-xs text-gray-text dark:text-slate-300 leading-relaxed line-clamp-2">{broker.description}</p>
               )}
 
               <div className="flex flex-wrap gap-2 pt-1">
                 <button
                   onClick={handleViewBrokerProfile}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-border rounded-xl text-sm font-semibold text-text-primary hover:bg-gray-50 hover:border-primary transition-all cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-border dark:border-slate-700 rounded-xl text-sm font-semibold text-text-primary dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-primary transition-all cursor-pointer"
                 >
                   <User size={15} />
                   View Profile
                 </button>
                 <button
                   onClick={handleConnectBroker}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-dark transition-all shadow-sm cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary dark:bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-dark dark:hover:bg-emerald-700 transition-all shadow-sm cursor-pointer"
                 >
                   <MessageSquare size={15} />
                   Connect with Broker
@@ -467,18 +477,18 @@ export const ProductDetailPage: React.FC = () => {
 
       {/* ─── Product Specifications ─── */}
       {product.specifications && Object.keys(product.specifications).length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs">
-          <div className="px-6 py-4 border-b border-gray-border bg-gray-50/50">
-            <h2 className="font-bold text-text-primary flex items-center gap-2">
-              <Tag size={16} className="text-primary" />
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 overflow-hidden shadow-xs">
+          <div className="px-6 py-4 border-b border-gray-border dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/50">
+            <h2 className="font-bold text-text-primary dark:text-white flex items-center gap-2">
+              <Tag size={16} className="text-primary dark:text-emerald-400" />
               Product Specifications
             </h2>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-slate-700">
             {Object.entries(product.specifications).map(([key, val]) => (
-              <div key={key} className="flex px-6 py-3 hover:bg-gray-50/50 transition-colors">
-                <span className="w-1/3 text-sm font-semibold text-gray-text">{key}</span>
-                <span className="flex-1 text-sm text-text-primary">{val}</span>
+              <div key={key} className="flex px-6 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors">
+                <span className="w-1/3 text-sm font-semibold text-gray-text dark:text-slate-400">{key}</span>
+                <span className="flex-1 text-sm text-text-primary dark:text-slate-200">{val}</span>
               </div>
             ))}
           </div>
@@ -486,32 +496,39 @@ export const ProductDetailPage: React.FC = () => {
       )}
 
       {/* ─── Customer Reviews ─── */}
-      <div id="reviews" className="bg-white rounded-2xl border border-gray-border overflow-hidden shadow-xs">
-        <div className="px-6 py-4 border-b border-gray-border bg-gray-50/50">
-          <h2 className="font-bold text-text-primary flex items-center gap-2">
-            <Star size={16} className="text-primary" />
+      <div id="reviews" className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 overflow-hidden shadow-xs">
+        <div className="px-6 py-4 border-b border-gray-border dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/50">
+          <h2 className="font-bold text-text-primary dark:text-white flex items-center gap-2">
+            <Star size={16} className="text-primary dark:text-emerald-400" />
             Customer Reviews
           </h2>
         </div>
         <div className="p-6">
           {/* Summary */}
-          <div className="flex items-center gap-6 mb-6 pb-6 border-b border-gray-100">
-            <div className="text-center">
-              <p className="text-5xl font-black text-text-primary">{rating > 0 ? rating.toFixed(1) : '—'}</p>
-              <StarRating rating={rating} size={20} />
-              <p className="text-xs text-gray-label mt-1">Based on {reviewCount} reviews</p>
+          <div className="flex items-center gap-6 mb-6 pb-6 border-b border-gray-100 dark:border-slate-700">
+            <div className="text-center min-w-28">
+              <p className="text-5xl font-black text-text-primary dark:text-white">{rating > 0 ? rating.toFixed(1) : '0.0'}</p>
+              <div className="flex justify-center my-1.5">
+                <StarRating rating={rating} size={20} />
+              </div>
+              <p className="text-xs text-gray-label dark:text-slate-400 mt-1">Based on {reviewCount} reviews</p>
             </div>
             <div className="flex-1 space-y-1.5">
               {[5, 4, 3, 2, 1].map((star) => {
-                const pct = star === 5 ? 55 : star === 4 ? 25 : star === 3 ? 12 : star === 2 ? 5 : 3;
+                const pct = liveStats.starPercentages[star as 1 | 2 | 3 | 4 | 5];
+                const count = liveStats.starCounts[star as 1 | 2 | 3 | 4 | 5];
                 return (
                   <div key={star} className="flex items-center gap-2">
-                    <span className="text-xs text-gray-text w-4">{star}</span>
+                    <span className="text-xs text-gray-text w-4 font-bold">{star}</span>
                     <Star size={12} className="fill-yellow-400 text-yellow-400 shrink-0" />
                     <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                      <div className="bg-yellow-400 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      <div
+                        className="bg-yellow-400 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
-                    <span className="text-xs text-gray-label w-6">{pct}%</span>
+                    <span className="text-xs text-gray-label w-8 text-right font-medium">{pct}%</span>
+                    <span className="text-[11px] text-gray-400 w-8">({count})</span>
                   </div>
                 );
               })}
@@ -519,32 +536,59 @@ export const ProductDetailPage: React.FC = () => {
           </div>
 
           {/* Review Cards or Empty State */}
-          {reviews.length === 0 ? (
-            <div className="text-center py-6 bg-gray-50/50 rounded-xl border border-gray-100">
+          {liveReviews.length === 0 ? (
+            <div className="text-center py-8 bg-gray-50/50 rounded-xl border border-gray-100">
               <Star size={32} className="text-gray-300 mx-auto mb-2" />
               <p className="text-sm font-semibold text-text-primary">No reviews yet</p>
               <p className="text-xs text-gray-label mt-0.5">Reviews from verified buyers will appear here.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {reviews.map((review) => (
-                <div key={review.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                  <div className="flex items-start gap-3 mb-2">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-secondary to-purple-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                      {review.customerName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
-                    </div>
+              {liveReviews.map((review) => (
+                <div key={review.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
+                  <div className="flex items-start gap-3">
+                    {review.customerAvatar ? (
+                      <img
+                        src={review.customerAvatar}
+                        alt={review.customerName}
+                        className="w-9 h-9 rounded-full object-cover border border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {review.customerName
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .toUpperCase()
+                          .slice(0, 2)}
+                      </div>
+                    )}
                     <div className="flex-1">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <p className="text-sm font-bold text-text-primary">{review.customerName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-text-primary">{review.customerName}</p>
+                          {review.orderId && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                              Verified Buyer
+                            </span>
+                          )}
+                        </div>
                         <span className="text-xs text-gray-label flex items-center gap-1">
                           <Calendar size={11} />
-                          {new Date(review.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {new Date(review.createdAt).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
                         </span>
                       </div>
-                      <StarRating rating={review.rating} size={13} />
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <StarRating rating={review.rating} size={13} />
+                        <span className="text-xs font-bold text-gray-700 ml-1">{review.rating}.0</span>
+                      </div>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-text leading-relaxed pl-12">{review.comment}</p>
+                  <p className="text-sm text-gray-700 leading-relaxed pl-12">{review.comment}</p>
                 </div>
               ))}
             </div>

@@ -20,7 +20,7 @@ import type { ShippingAddress } from '../../types';
 export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { cart, clearCart, products, updateProduct, addOrder } = useApp();
+  const { cart, clearCart, addOrder } = useApp();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -164,27 +164,7 @@ export const CheckoutPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // 1. Properly reduce product inventory stock & status for each item bought
-      for (const item of cart) {
-        const targetProd = products.find((p) => p.id === item.productId);
-        if (targetProd) {
-          const currentStock = targetProd.stock ?? 0;
-          const newStock = Math.max(0, currentStock - item.quantity);
-          const newStatus =
-            newStock === 0
-              ? 'Out of Stock'
-              : newStock <= 10
-              ? 'Low Stock'
-              : 'In Stock';
-
-          await updateProduct(item.productId, {
-            stock: newStock,
-            status: newStatus,
-          });
-        }
-      }
-
-      // 2. Prepare Order Address Snapshot
+      // Prepare Order Address Snapshot
       const shippingAddressSnapshot: ShippingAddress = {
         fullName: formData.fullName || user?.fullName || 'Customer',
         phone: formData.phone || user?.phone || '',

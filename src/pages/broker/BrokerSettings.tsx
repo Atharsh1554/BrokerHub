@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Building, CreditCard, Bell, Save, Check, Upload, AlertCircle, Trash2, ShieldCheck, Loader2 } from 'lucide-react';
+import { User, Building, CreditCard, Bell, Save, Check, Upload, AlertCircle, Trash2, ShieldCheck, Loader2, Palette, Sun, Moon, Monitor } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
+import { useTheme } from '../../context/ThemeContext';
 import { updateBrokerProfile, uploadBrokerAvatar } from '../../lib/api/brokers';
 import { resolveUserDisplayName } from '../../lib/userUtils';
 import { BrokerPaymentSetup } from '../../components/broker/BrokerPaymentSetup';
@@ -22,9 +23,10 @@ const PRODUCT_TYPE_OPTIONS = [
 export const BrokerSettings: React.FC = () => {
   const { user, updateUserLocal, refreshUser } = useAuth();
   const { brokers, refreshBrokers, showToast } = useApp();
+  const { theme, setTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'payouts' | 'notifications'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'business' | 'payouts' | 'notifications' | 'appearance'>('profile');
 
   // Broker details from context or overrides
   const currentBroker = brokers.find((b) => b.id === user?.id || b.id === 'b1');
@@ -209,16 +211,16 @@ export const BrokerSettings: React.FC = () => {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-border shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-border dark:border-slate-700 shadow-xs">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Broker Profile & Settings</h1>
-          <p className="text-sm text-gray-text mt-1">
+          <h1 className="text-2xl font-bold text-text-primary dark:text-white">Broker Profile & Settings</h1>
+          <p className="text-sm text-gray-text dark:text-slate-400 dark:text-slate-500 mt-1">
             Manage your verified public profile, brand credentials, product categories, and buyer preferences
           </p>
         </div>
         {saveSuccess && (
-          <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-200 animate-fade-in">
-            <Check className="w-4 h-4 text-emerald-600" />
+          <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-bold border border-emerald-200 dark:border-emerald-800 animate-fade-in">
+            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             Profile updated successfully.
           </div>
         )}
@@ -226,14 +228,14 @@ export const BrokerSettings: React.FC = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* Navigation Tabs */}
-        <div className="bg-white p-3 rounded-2xl border border-gray-border shadow-xs space-y-1 h-fit">
+        <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-gray-border dark:border-slate-700 shadow-xs space-y-1 h-fit">
           <button
             type="button"
             onClick={() => setActiveTab('profile')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
               activeTab === 'profile'
-                ? 'bg-primary-50 text-primary'
-                : 'text-gray-text hover:bg-gray-50 hover:text-text-primary'
+                ? 'bg-primary-50 dark:bg-emerald-900/30 text-primary dark:text-emerald-400'
+                : 'text-gray-text dark:text-slate-400 dark:text-slate-500 hover:bg-gray-50 dark:bg-slate-900/50 dark:hover:bg-slate-700 hover:text-text-primary dark:hover:text-white'
             }`}
           >
             <User className="w-4 h-4" />
@@ -244,8 +246,8 @@ export const BrokerSettings: React.FC = () => {
             onClick={() => setActiveTab('business')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
               activeTab === 'business'
-                ? 'bg-primary-50 text-primary'
-                : 'text-gray-text hover:bg-gray-50 hover:text-text-primary'
+                ? 'bg-primary-50 dark:bg-emerald-900/30 text-primary dark:text-emerald-400'
+                : 'text-gray-text dark:text-slate-400 dark:text-slate-500 hover:bg-gray-50 dark:bg-slate-900/50 dark:hover:bg-slate-700 hover:text-text-primary dark:hover:text-white'
             }`}
           >
             <Building className="w-4 h-4" />
@@ -256,8 +258,8 @@ export const BrokerSettings: React.FC = () => {
             onClick={() => setActiveTab('payouts')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
               activeTab === 'payouts'
-                ? 'bg-primary-50 text-primary'
-                : 'text-gray-text hover:bg-gray-50 hover:text-text-primary'
+                ? 'bg-primary-50 dark:bg-emerald-900/30 text-primary dark:text-emerald-400'
+                : 'text-gray-text dark:text-slate-400 dark:text-slate-500 hover:bg-gray-50 dark:bg-slate-900/50 dark:hover:bg-slate-700 hover:text-text-primary dark:hover:text-white'
             }`}
           >
             <CreditCard className="w-4 h-4" />
@@ -268,17 +270,29 @@ export const BrokerSettings: React.FC = () => {
             onClick={() => setActiveTab('notifications')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
               activeTab === 'notifications'
-                ? 'bg-primary-50 text-primary'
-                : 'text-gray-text hover:bg-gray-50 hover:text-text-primary'
+                ? 'bg-primary-50 dark:bg-emerald-900/30 text-primary dark:text-emerald-400'
+                : 'text-gray-text dark:text-slate-400 dark:text-slate-500 hover:bg-gray-50 dark:bg-slate-900/50 dark:hover:bg-slate-700 hover:text-text-primary dark:hover:text-white'
             }`}
           >
             <Bell className="w-4 h-4" />
             Notifications
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('appearance')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+              activeTab === 'appearance'
+                ? 'bg-primary-50 dark:bg-emerald-900/30 text-primary dark:text-emerald-400'
+                : 'text-gray-text dark:text-slate-400 dark:text-slate-500 hover:bg-gray-50 dark:bg-slate-900/50 dark:hover:bg-slate-700 hover:text-text-primary dark:hover:text-white'
+            }`}
+          >
+            <Palette className="w-4 h-4" />
+            Aesthetic Theme
+          </button>
         </div>
 
         {/* Settings Form Panel */}
-        <div className="xl:col-span-3 bg-white p-6 sm:p-7 rounded-2xl border border-gray-border shadow-xs">
+        <div className="xl:col-span-3 bg-white dark:bg-slate-800 p-6 sm:p-7 rounded-2xl border border-gray-border dark:border-slate-700 shadow-xs">
           {activeTab === 'payouts' ? (
             <BrokerPaymentSetup />
           ) : (
@@ -297,16 +311,16 @@ export const BrokerSettings: React.FC = () => {
               {/* TAB 1: BROKER PROFILE */}
               {activeTab === 'profile' && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between border-b border-gray-border pb-3">
+                  <div className="flex items-center justify-between border-b border-gray-border dark:border-slate-700 pb-3">
                     <div>
-                      <h3 className="text-lg font-bold text-text-primary">
+                      <h3 className="text-lg font-bold text-text-primary dark:text-white">
                         Broker Public Profile
                       </h3>
-                      <p className="text-xs text-gray-text mt-0.5">
+                      <p className="text-xs text-gray-text dark:text-slate-400 dark:text-slate-500 mt-0.5">
                         Information displayed on your public store, customer broker profile, and shared links
                       </p>
                     </div>
-                    <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
+                    <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 rounded-full border border-emerald-200 dark:border-emerald-800">
                       <ShieldCheck size={12} />
                       Verified Broker Record
                     </span>
@@ -314,10 +328,10 @@ export const BrokerSettings: React.FC = () => {
 
                   {/* 1. Profile Photo / Avatar */}
                   <div className="space-y-2">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-label">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 dark:text-slate-500">
                       Profile Photo
                     </label>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-4 bg-gray-bg rounded-2xl border border-gray-border">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-4 bg-gray-bg dark:bg-slate-900/60 rounded-2xl border border-gray-border dark:border-slate-700">
                       <div className="relative group shrink-0">
                         <UserAvatar
                           src={avatarPreview}
@@ -356,14 +370,14 @@ export const BrokerSettings: React.FC = () => {
                               variant="ghost"
                               size="sm"
                               onClick={handleRemoveAvatar}
-                              className="text-xs text-status-red hover:bg-red-50 gap-1"
+                              className="text-xs text-status-red hover:bg-red-50 dark:hover:bg-red-950/40 gap-1"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                               Remove
                             </Button>
                           )}
                         </div>
-                        <p className="text-xs text-gray-label">
+                        <p className="text-xs text-gray-label dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">
                           Supported formats: JPG, JPEG, PNG, or WebP. Max file size: 5MB.
                         </p>
                       </div>
@@ -373,7 +387,7 @@ export const BrokerSettings: React.FC = () => {
                   {/* 2. Full Name & 3. Brand Name */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 dark:text-slate-500 mb-1.5">
                         Full Name <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -381,13 +395,13 @@ export const BrokerSettings: React.FC = () => {
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="e.g. Atharsh S"
-                        className="w-full px-3.5 py-2.5 bg-white border border-gray-border rounded-xl text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-border dark:border-slate-700 rounded-xl text-sm text-text-primary dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-emerald-500 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 dark:text-slate-500 mb-1.5">
                         Brand Name / Company
                       </label>
                       <input
@@ -395,7 +409,7 @@ export const BrokerSettings: React.FC = () => {
                         value={brandName}
                         onChange={(e) => setBrandName(e.target.value)}
                         placeholder="e.g. MYTRIO"
-                        className="w-full px-3.5 py-2.5 bg-white border border-gray-border rounded-xl text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-border dark:border-slate-700 rounded-xl text-sm text-text-primary dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-emerald-500 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                       />
                     </div>
                   </div>
@@ -403,7 +417,7 @@ export const BrokerSettings: React.FC = () => {
                   {/* 4. Email ID & 5. Phone Number */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 dark:text-slate-500 mb-1.5">
                         Email Address <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -411,13 +425,13 @@ export const BrokerSettings: React.FC = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="e.g. jithuatharsh123@gmail.com"
-                        className="w-full px-3.5 py-2.5 bg-white border border-gray-border rounded-xl text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-border dark:border-slate-700 rounded-xl text-sm text-text-primary dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-emerald-500 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 dark:text-slate-500 mb-1.5">
                         Phone Number
                       </label>
                       <input
@@ -425,27 +439,27 @@ export const BrokerSettings: React.FC = () => {
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="e.g. +91 98765 43210"
-                        className="w-full px-3.5 py-2.5 bg-white border border-gray-border rounded-xl text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-border dark:border-slate-700 rounded-xl text-sm text-text-primary dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-emerald-500 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                       />
                     </div>
                   </div>
 
                   {/* 6. Product Type */}
                   <div className="space-y-2">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-label">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 dark:text-slate-500">
                       Product Type / Category Focus <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={productType}
                       onChange={(e) => setProductType(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-white border border-gray-border rounded-xl text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                      className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-border dark:border-slate-700 rounded-xl text-sm text-text-primary dark:text-white focus:border-primary dark:focus:border-emerald-500 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                     >
                       {PRODUCT_TYPE_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
+                        <option key={opt} value={opt} className="bg-white dark:bg-slate-900 text-text-primary dark:text-white">
                           {opt}
                         </option>
                       ))}
-                      <option value="Custom">Other (Specify Custom Category)</option>
+                      <option value="Custom" className="bg-white dark:bg-slate-900 text-text-primary dark:text-white">Other (Specify Custom Category)</option>
                     </select>
 
                     {productType === 'Custom' && (
@@ -454,18 +468,18 @@ export const BrokerSettings: React.FC = () => {
                         value={customProductType}
                         onChange={(e) => setCustomProductType(e.target.value)}
                         placeholder="Enter custom product type/categories..."
-                        className="w-full mt-2 px-3.5 py-2.5 bg-white border border-gray-border rounded-xl text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                        className="w-full mt-2 px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-border dark:border-slate-700 rounded-xl text-sm text-text-primary dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-emerald-500 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                         required
                       />
                     )}
-                    <p className="text-xs text-gray-label">
+                    <p className="text-xs text-gray-label dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">
                       Buyers use product type filters to find and connect with specialized brokers.
                     </p>
                   </div>
 
                   {/* 7. About */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-label">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 dark:text-slate-500">
                       About / Business Specialization
                     </label>
                     <textarea
@@ -473,9 +487,9 @@ export const BrokerSettings: React.FC = () => {
                       value={about}
                       onChange={(e) => setAbout(e.target.value)}
                       placeholder="Describe your brokerage services, verified products, brand background, supply chain network, and client commitments..."
-                      className="w-full p-3.5 bg-white border border-gray-border rounded-xl text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all leading-relaxed"
+                      className="w-full p-3.5 bg-white dark:bg-slate-900 border border-gray-border dark:border-slate-700 rounded-xl text-sm text-text-primary dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-emerald-500 focus:ring-2 focus:ring-primary/20 outline-none transition-all leading-relaxed"
                     />
-                    <div className="flex justify-between items-center text-[11px] text-gray-label">
+                    <div className="flex justify-between items-center text-[11px] text-gray-label dark:text-slate-500 dark:text-slate-400 dark:text-slate-500">
                       <span>This description appears on your customer profile and shop link.</span>
                       <span>{about.length} characters</span>
                     </div>
@@ -486,52 +500,52 @@ export const BrokerSettings: React.FC = () => {
               {/* TAB 2: BUSINESS */}
               {activeTab === 'business' && (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-text-primary border-b border-gray-border pb-3">
+                  <h3 className="text-lg font-bold text-text-primary dark:text-white border-b border-gray-border dark:border-slate-700 pb-3">
                     Business & Commission Configuration
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 dark:text-slate-500 mb-1.5">
                         Registered Entity Name
                       </label>
                       <input
                         type="text"
                         defaultValue={brandName || "MYTRIO Commercial Services LLC"}
-                        className="w-full px-3.5 py-2.5 bg-white border border-gray-border rounded-xl text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-border dark:border-slate-700 rounded-xl text-sm text-text-primary dark:text-white focus:border-primary dark:focus:border-emerald-500 focus:ring-2 focus:ring-primary/20 outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 dark:text-slate-500 mb-1.5">
                         GSTIN / Business Registration ID
                       </label>
                       <input
                         type="text"
                         defaultValue="33AAAAA0000A1Z5"
-                        className="w-full px-3.5 py-2.5 bg-white border border-gray-border rounded-xl text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-border dark:border-slate-700 rounded-xl text-sm text-text-primary dark:text-white focus:border-primary dark:focus:border-emerald-500 focus:ring-2 focus:ring-primary/20 outline-none"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 dark:text-slate-500 mb-1.5">
                         Standard Brokerage Margin (%)
                       </label>
                       <input
                         type="text"
                         defaultValue="3.5%"
-                        className="w-full px-3.5 py-2.5 bg-white border border-gray-border rounded-xl text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-border dark:border-slate-700 rounded-xl text-sm text-text-primary dark:text-white focus:border-primary dark:focus:border-emerald-500 focus:ring-2 focus:ring-primary/20 outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-label dark:text-slate-400 dark:text-slate-500 mb-1.5">
                         Minimum Bulk Order Threshold (₹)
                       </label>
                       <input
                         type="text"
                         defaultValue="₹1,00,000"
-                        className="w-full px-3.5 py-2.5 bg-white border border-gray-border rounded-xl text-sm text-text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-border dark:border-slate-700 rounded-xl text-sm text-text-primary dark:text-white focus:border-primary dark:focus:border-emerald-500 focus:ring-2 focus:ring-primary/20 outline-none"
                       />
                     </div>
                   </div>
@@ -541,7 +555,7 @@ export const BrokerSettings: React.FC = () => {
               {/* TAB 4: NOTIFICATIONS */}
               {activeTab === 'notifications' && (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-bold text-text-primary border-b border-gray-border pb-3">
+                  <h3 className="text-lg font-bold text-text-primary dark:text-white border-b border-gray-border dark:border-slate-700 pb-3">
                     Broker Alert & Notification Preferences
                   </h3>
 
@@ -551,10 +565,10 @@ export const BrokerSettings: React.FC = () => {
                       { title: 'Order & Shipment Status Changes', desc: 'Receive notifications when orders are placed, accepted, or delivered' },
                       { title: 'Weekly Trade & Commission Report', desc: 'Receive performance summaries of active listings and monthly revenue' },
                     ].map((item, idx) => (
-                      <label key={idx} className="flex items-center justify-between p-3.5 rounded-xl border border-gray-border hover:bg-gray-50 cursor-pointer transition-colors">
+                      <label key={idx} className="flex items-center justify-between p-3.5 rounded-xl border border-gray-border dark:border-slate-700 hover:bg-gray-50 dark:bg-slate-900/50 dark:hover:bg-slate-700/60 cursor-pointer transition-colors">
                         <div>
-                          <p className="font-semibold text-sm text-text-primary">{item.title}</p>
-                          <p className="text-xs text-gray-text mt-0.5">{item.desc}</p>
+                          <p className="font-semibold text-sm text-text-primary dark:text-white">{item.title}</p>
+                          <p className="text-xs text-gray-text dark:text-slate-400 dark:text-slate-500 mt-0.5">{item.desc}</p>
                         </div>
                         <input type="checkbox" defaultChecked className="w-4 h-4 accent-primary rounded cursor-pointer" />
                       </label>
@@ -563,9 +577,62 @@ export const BrokerSettings: React.FC = () => {
                 </div>
               )}
 
+              {/* TAB 5: AESTHETIC THEME */}
+              {activeTab === 'appearance' && (
+                <div className="space-y-6">
+                  <div className="border-b border-gray-border dark:border-slate-700 pb-3">
+                    <h3 className="text-lg font-bold text-text-primary dark:text-white">
+                      Aesthetic Theme
+                    </h3>
+                    <p className="text-xs text-gray-text dark:text-slate-400 dark:text-slate-500 mt-0.5">
+                      Choose your preferred interface theme for your broker workspace
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTheme('light')}
+                      className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all border cursor-pointer ${
+                        theme === 'light'
+                          ? 'bg-emerald-50 dark:bg-emerald-900/30 text-primary dark:text-emerald-400 border-primary dark:border-emerald-500 shadow-xs'
+                          : 'bg-white dark:bg-slate-900 text-gray-600 dark:text-slate-400 dark:text-slate-500 border-gray-border dark:border-slate-700 hover:bg-gray-50 dark:bg-slate-900/50 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <Sun size={18} />
+                      Light
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTheme('dark')}
+                      className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all border cursor-pointer ${
+                        theme === 'dark'
+                          ? 'bg-emerald-50 dark:bg-emerald-900/30 text-primary dark:text-emerald-400 border-primary dark:border-emerald-500 shadow-xs'
+                          : 'bg-white dark:bg-slate-900 text-gray-600 dark:text-slate-400 dark:text-slate-500 border-gray-border dark:border-slate-700 hover:bg-gray-50 dark:bg-slate-900/50 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <Moon size={18} />
+                      Dark
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTheme('system')}
+                      className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all border cursor-pointer ${
+                        theme === 'system'
+                          ? 'bg-emerald-50 dark:bg-emerald-900/30 text-primary dark:text-emerald-400 border-primary dark:border-emerald-500 shadow-xs'
+                          : 'bg-white dark:bg-slate-900 text-gray-600 dark:text-slate-400 dark:text-slate-500 border-gray-border dark:border-slate-700 hover:bg-gray-50 dark:bg-slate-900/50 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <Monitor size={18} />
+                      Auto (System)
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Form Action Footer (Only shown for profile, business, notifications tabs) */}
-              <div className="border-t border-gray-border pt-5 flex items-center justify-between flex-wrap gap-3">
-                <p className="text-xs text-gray-label">
+              <div className="border-t border-gray-border dark:border-slate-700 pt-5 flex items-center justify-between flex-wrap gap-3">
+                <p className="text-xs text-gray-label dark:text-slate-400 dark:text-slate-500">
                   All changes are permanently saved and synchronized across your public profile.
                 </p>
                 <Button

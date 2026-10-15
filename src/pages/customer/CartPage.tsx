@@ -99,22 +99,34 @@ export const CartPage: React.FC = () => {
 
               {/* Quantity controls */}
               <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-2 sm:mt-0 pt-3 sm:pt-0 border-t border-gray-100 dark:border-slate-700 sm:border-0">
-                <div className="flex items-center border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-900">
-                  <button
-                    onClick={() => updateCartQuantity(item.productId, item.quantity - 1)}
-                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-800 rounded-l-lg text-gray-600 dark:text-gray-300 transition-colors"
-                  >
-                    <Minus size={16} />
-                  </button>
-                  <span className="w-10 text-center font-semibold text-gray-900 dark:text-white text-sm">
-                    {item.quantity}
-                  </span>
-                  <button
-                    onClick={() => updateCartQuantity(item.productId, item.quantity + 1)}
-                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-800 rounded-r-lg text-gray-600 dark:text-gray-300 transition-colors"
-                  >
-                    <Plus size={16} />
-                  </button>
+                <div className="flex flex-col items-start gap-1">
+                  <div className="flex items-center border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-900">
+                    <button
+                      onClick={() => updateCartQuantity(item.productId, item.quantity - 1)}
+                      className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-800 rounded-l-lg text-gray-600 dark:text-gray-300 transition-colors"
+                      title="Decrease quantity"
+                    >
+                      <Minus size={16} />
+                    </button>
+                    <span className="w-10 text-center font-semibold text-gray-900 dark:text-white text-sm">
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => updateCartQuantity(item.productId, item.quantity + 1)}
+                      disabled={item.quantity >= (item.stock ?? 9999)}
+                      className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-800 rounded-r-lg text-gray-600 dark:text-gray-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={item.quantity >= (item.stock ?? 9999) ? `Max stock reached (${item.stock})` : 'Increase quantity'}
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  {item.stock != null && item.stock > 0 && (
+                    <span className={`text-[10px] font-medium ${
+                      item.stock <= 5 ? 'text-red-500' : item.stock <= 10 ? 'text-amber-500' : 'text-gray-400'
+                    }`}>
+                      {item.stock} in stock
+                    </span>
+                  )}
                 </div>
 
                 <div className="text-right">

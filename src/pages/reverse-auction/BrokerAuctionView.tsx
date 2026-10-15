@@ -196,13 +196,13 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
 
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4 border-b border-gray-200 pb-4">
-          <button onClick={() => setSelectedAuction(null)} className="p-2 hover:bg-gray-100 rounded-xl transition">
+        <div className="flex items-center gap-4 border-b border-gray-200 dark:border-slate-600 pb-4">
+          <button onClick={() => setSelectedAuction(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition">
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-xl font-bold">{selectedAuction.title}</h1>
-            <p className="text-sm text-gray-500">Customer: {selectedAuction.customerName} · Listed: {new Date(selectedAuction.createdAt || '').toLocaleDateString()}</p>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">{selectedAuction.title}</h1>
+            <p className="text-sm text-gray-500 dark:text-slate-400">Customer: {selectedAuction.customerName} · Listed: {new Date(selectedAuction.createdAt || '').toLocaleDateString()}</p>
           </div>
         </div>
 
@@ -210,49 +210,49 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
           <div className="xl:col-span-2 space-y-6">
             
             {/* Customer Product Images */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm">
                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><ImageIcon size={20}/> Product Images</h3>
                {selectedAuction.photos && selectedAuction.photos.length > 0 ? (
                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {selectedAuction.photos.map((img, idx) => (
-                      <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-gray-200">
+                      <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-slate-600">
                         <img src={img} alt={`Product ${idx+1}`} className="w-full h-full object-cover" />
                       </div>
                     ))}
                  </div>
                ) : (
-                 <div className="p-8 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 text-center text-gray-500 text-sm">
+                 <div className="p-8 border-2 border-dashed border-gray-200 dark:border-slate-600 rounded-xl bg-gray-50 dark:bg-slate-900/50 text-center text-gray-500 dark:text-slate-400 text-sm">
                    Customer did not provide any product images.
                  </div>
                )}
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm">
               <h3 className="font-bold text-lg mb-4">Project Requirements</h3>
-              <p className="text-sm text-gray-700 leading-relaxed mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">{selectedAuction.description}</p>
+              <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed mb-6 bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-100">{selectedAuction.description}</p>
               
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                <div className="bg-teal-50 dark:bg-teal-950/40 p-4 rounded-xl border border-teal-100 dark:border-teal-800/60">
                   <p className="text-teal-700 text-xs font-bold uppercase tracking-wider mb-1">Budget</p>
-                  <p className="font-bold text-teal-900 text-xl">₹{selectedAuction.startingPrice}</p>
+                  <p className="font-bold text-teal-900 dark:text-teal-200 text-xl">₹{selectedAuction.startingPrice}</p>
                 </div>
-                <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                <div className="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-100 dark:border-amber-800/60">
                   <p className="text-amber-700 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><Calendar size={14}/> Deadline</p>
-                  <p className="font-bold text-amber-900 text-sm">
+                  <p className="font-bold text-amber-900 dark:text-amber-200 text-sm">
                     {new Date(selectedAuction.endTime || '').toLocaleString(undefined, {
                       month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                     })}
                   </p>
                 </div>
-                <div className="bg-rose-50 p-4 rounded-xl border border-rose-100">
+                <div className="bg-rose-50 dark:bg-rose-950/40 p-4 rounded-xl border border-rose-100 dark:border-rose-800/60">
                   <p className="text-rose-700 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><Clock size={14}/> Time Left</p>
-                  <p className="font-bold text-rose-900 text-lg">{formatCountdown(selectedAuction.endTime || '')}</p>
+                  <p className="font-bold text-rose-900 dark:text-rose-200 text-lg">{formatCountdown(selectedAuction.endTime || '')}</p>
                 </div>
               </div>
             </div>
 
             {isActive && (
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm">
                 <h3 className="font-bold text-lg mb-5">Project Progress</h3>
                 
                 {/* Horizontal Order-Tracking Timeline */}
@@ -295,13 +295,13 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
                 </div>
 
                 {selectedAuction.currentLevel === 'READY' && (
-                  <div className="space-y-4 mb-6 p-5 border-2 border-teal-200 bg-teal-50 rounded-xl">
-                    <h4 className="font-bold text-teal-900 flex items-center gap-2"><UploadCloud size={18}/> Upload Delivery Proof</h4>
-                    <p className="text-xs text-teal-700 mb-2">Upload photos proving the delivery has been completed.</p>
+                  <div className="space-y-4 mb-6 p-5 border-2 border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 rounded-xl">
+                    <h4 className="font-bold text-teal-900 dark:text-teal-200 flex items-center gap-2"><UploadCloud size={18}/> Upload Delivery Proof</h4>
+                    <p className="text-xs text-teal-700 dark:text-teal-300 mb-2">Upload photos proving the delivery has been completed.</p>
                     
                     {/* File upload area */}
                     <div
-                      className="border-2 border-dashed border-teal-300 rounded-xl p-5 flex flex-col items-center justify-center bg-white cursor-pointer hover:border-teal-400 transition"
+                      className="border-2 border-dashed border-teal-300 rounded-xl p-5 flex flex-col items-center justify-center bg-white dark:bg-slate-800 cursor-pointer hover:border-teal-400 transition"
                       onClick={() => proofFileInputRef.current?.click()}
                     >
                       <UploadCloud size={28} className="text-teal-400 mb-2" />
@@ -364,7 +364,7 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
           </div>
 
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm sticky top-6 space-y-4">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm sticky top-6 space-y-4">
               <h3 className="font-bold text-lg">Actions</h3>
               {isAvailable && (
                 <button 
@@ -377,7 +377,7 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
               )}
               <button 
                 onClick={() => onNavigateToMessages?.(selectedAuction.customerId)}
-                className="w-full py-3 border-2 border-gray-200 hover:border-gray-300 text-slate-700 font-bold rounded-xl flex justify-center items-center gap-2 transition"
+                className="w-full py-3 border-2 border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-bold rounded-xl flex justify-center items-center gap-2 transition"
               >
                 <MessageSquare size={18} /> Message Customer
               </button>
@@ -392,34 +392,34 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
   const renderList = (list: ReverseAuction[]) => {
     if (list.length === 0) {
       return (
-        <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
-          <p className="text-gray-500 font-bold text-lg">No reverse auctions found</p>
-          <p className="text-gray-400 text-sm mt-1">There are no auctions available in this category.</p>
+        <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm">
+          <p className="text-gray-500 dark:text-slate-400 font-bold text-lg">No reverse auctions found</p>
+          <p className="text-gray-400 dark:text-slate-500 text-sm mt-1">There are no auctions available in this category.</p>
         </div>
       );
     }
     return (
       <div className="space-y-4">
         {list.map(auc => (
-          <div key={auc.id} className="bg-white p-6 rounded-2xl border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between shadow-sm hover:shadow-md transition gap-4">
+          <div key={auc.id} className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 flex flex-col sm:flex-row items-start sm:items-center justify-between shadow-sm hover:shadow-md transition gap-4">
             <div className="flex items-center gap-4 w-full sm:w-auto">
               {auc.photos && auc.photos.length > 0 ? (
-                <div className="w-20 h-20 rounded-xl overflow-hidden border border-gray-200 shrink-0">
+                <div className="w-20 h-20 rounded-xl overflow-hidden border border-gray-200 dark:border-slate-600 shrink-0">
                   <img src={auc.photos[0]} alt="Thumbnail" className="w-full h-full object-cover" />
                 </div>
               ) : (
-                <div className="w-20 h-20 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center shrink-0 text-gray-400 text-xs">
+                <div className="w-20 h-20 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/50 flex items-center justify-center shrink-0 text-gray-400 dark:text-slate-500 text-xs">
                   No Img
                 </div>
               )}
               <div className="flex-1">
-                <h3 className="font-bold text-slate-800 text-lg mb-1">{auc.title}</h3>
-                <p className="text-sm text-gray-500 mb-2">Customer: {auc.customerName} · Budget: ₹{auc.startingPrice}</p>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg mb-1">{auc.title}</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400 mb-2">Customer: {auc.customerName} · Budget: ₹{auc.startingPrice}</p>
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold border ${auc.status === 'OPEN' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-teal-50 text-teal-700 border-teal-200'}`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold border ${auc.status === 'OPEN' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' : 'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800'}`}>
                     {auc.currentLevel || auc.status}
                   </span>
-                  <span className="text-xs font-bold text-rose-600 flex items-center gap-1 bg-rose-50 px-2 py-1 rounded border border-rose-100">
+                  <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 bg-rose-50 dark:bg-rose-950/40 px-2 py-1 rounded border border-rose-100 dark:border-rose-800">
                     <Clock size={12}/> {formatCountdown(auc.endTime || '')}
                   </span>
                 </div>
@@ -427,7 +427,7 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
             </div>
             <button 
               onClick={() => setSelectedAuction(auc)}
-              className="w-full sm:w-auto px-6 py-3 bg-teal-50 text-teal-700 font-bold rounded-xl hover:bg-teal-100 transition whitespace-nowrap"
+              className="w-full sm:w-auto px-6 py-3 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 font-bold rounded-xl hover:bg-teal-100 dark:hover:bg-teal-900/50 transition whitespace-nowrap"
             >
               View Details
             </button>
@@ -439,22 +439,22 @@ export const BrokerAuctionView: React.FC<BrokerAuctionViewProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 border-b border-gray-200">
+      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-slate-600">
         <button 
           onClick={() => setActiveTab('available')}
-          className={`px-5 py-4 font-bold border-b-2 transition-colors ${activeTab === 'available' ? 'border-teal-700 text-teal-800' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+          className={`px-5 py-4 font-bold border-b-2 transition-colors ${activeTab === 'available' ? 'border-teal-600 text-teal-700 dark:text-teal-400 dark:border-teal-400' : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-100'}`}
         >
           Available Auctions ({availableAuctions.length})
         </button>
         <button 
           onClick={() => setActiveTab('active')}
-          className={`px-5 py-4 font-bold border-b-2 transition-colors ${activeTab === 'active' ? 'border-teal-700 text-teal-800' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+          className={`px-5 py-4 font-bold border-b-2 transition-colors ${activeTab === 'active' ? 'border-teal-700 text-teal-800' : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:text-slate-100'}`}
         >
           My Active Projects ({activeAuctions.length})
         </button>
         <button 
           onClick={() => setActiveTab('completed')}
-          className={`px-5 py-4 font-bold border-b-2 transition-colors ${activeTab === 'completed' ? 'border-teal-700 text-teal-800' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+          className={`px-5 py-4 font-bold border-b-2 transition-colors ${activeTab === 'completed' ? 'border-teal-700 text-teal-800' : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:text-slate-100'}`}
         >
           Completed ({completedAuctions.length})
         </button>

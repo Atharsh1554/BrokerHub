@@ -243,10 +243,10 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-gray-border flex flex-col max-h-[92vh] overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-slate-800 w-full max-w-4xl rounded-2xl shadow-2xl border border-gray-border dark:border-slate-700 flex flex-col max-h-[92vh] overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-border flex items-center justify-between bg-gray-50/80 sticky top-0 z-10">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-border dark:border-slate-700 flex items-center justify-between bg-gray-50 dark:bg-slate-900/80 sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <span
               className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${
@@ -255,7 +255,7 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                   : currentStatus === 'Ending Soon'
                   ? 'bg-amber-100 text-amber-800 border border-amber-200 animate-pulse'
                   : currentStatus === 'Completed'
-                  ? 'bg-slate-100 text-slate-700 border border-slate-200'
+                  ? 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
                   : 'bg-rose-100 text-rose-800 border border-rose-200'
               }`}
             >
@@ -275,13 +275,13 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
             <button
               onClick={fetchBids}
               title="Refresh Bids"
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              className="p-2 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:bg-slate-700 transition-colors cursor-pointer"
             >
               <RefreshCw size={18} className={loadingBids ? 'animate-spin' : ''} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              className="p-2 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:bg-slate-700 transition-colors cursor-pointer"
             >
               <X size={20} />
             </button>
@@ -295,24 +295,24 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
             {/* Target Budget */}
-            <div className="bg-slate-50 border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+            <div className="bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl p-4 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-gray-label uppercase tracking-wider">Starting / Max Budget</p>
-                <p className="text-xl font-extrabold text-slate-800 mt-1">
+                <p className="text-xl font-extrabold text-slate-800 dark:text-slate-100 mt-1">
                   ₹{auction.startingPrice.toLocaleString('en-IN')}
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-slate-200/80 text-slate-700 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-slate-200/80 text-slate-700 dark:text-slate-300 flex items-center justify-center">
                 <DollarSign size={20} />
               </div>
             </div>
 
             {/* Current Lowest Bid */}
-            <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
+            <div className="bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Current Lowest Bid</p>
+                <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Current Lowest Bid</p>
                 <div className="flex items-baseline gap-2 mt-1">
-                  <p className="text-xl font-extrabold text-emerald-700">
+                  <p className="text-xl font-extrabold text-emerald-700 dark:text-emerald-300">
                     {auction.currentLowestBid
                       ? `₹${auction.currentLowestBid.toLocaleString('en-IN')}`
                       : 'No Bids Yet'}
@@ -324,25 +324,25 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                   )}
                 </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
                 <Award size={20} />
               </div>
             </div>
 
             {/* Live Countdown Timer */}
-            <div className="bg-primary-50/80 border border-primary-200 rounded-xl p-4 flex items-center justify-between">
+            <div className="bg-primary-50/80 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800 rounded-xl p-4 flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold text-primary uppercase tracking-wider">Time Remaining</p>
+                <p className="text-xs font-semibold text-primary dark:text-primary-light uppercase tracking-wider">Time Remaining</p>
                 <div className="mt-1 flex items-center gap-1.5 font-mono text-lg font-bold text-primary-dark">
                   {timeLeft.isExpired || isAuctionEnded ? (
-                    <span className="text-gray-500 font-sans text-sm font-semibold">Auction Ended</span>
+                    <span className="text-gray-500 dark:text-slate-400 font-sans text-sm font-semibold">Auction Ended</span>
                   ) : (
                     <>
-                      <span className="bg-white px-2 py-0.5 rounded border border-primary-200">{String(timeLeft.hours).padStart(2, '0')}h</span>
+                      <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-primary-200">{String(timeLeft.hours).padStart(2, '0')}h</span>
                       <span>:</span>
-                      <span className="bg-white px-2 py-0.5 rounded border border-primary-200">{String(timeLeft.minutes).padStart(2, '0')}m</span>
+                      <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-primary-200">{String(timeLeft.minutes).padStart(2, '0')}m</span>
                       <span>:</span>
-                      <span className="bg-white px-2 py-0.5 rounded border border-primary-200">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+                      <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-primary-200">{String(timeLeft.seconds).padStart(2, '0')}s</span>
                     </>
                   )}
                 </div>
@@ -358,7 +358,7 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
             
             {/* Left 2 Cols: Product & Specs */}
             <div className="md:col-span-2 space-y-5">
-              <div className="bg-white border border-gray-border rounded-xl p-5 space-y-4 shadow-xs">
+              <div className="bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-xl p-5 space-y-4 shadow-xs">
                 <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
                   <Package size={18} className="text-primary" /> Requirement Details
                 </h3>
@@ -367,8 +367,8 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
 
                 {/* Key Spec Badges */}
                 <div className="grid grid-cols-2 gap-3 pt-2">
-                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-3">
-                    <Layers size={18} className="text-gray-400 shrink-0" />
+                  <div className="p-3 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-gray-100 flex items-center gap-3">
+                    <Layers size={18} className="text-gray-400 dark:text-slate-500 shrink-0" />
                     <div>
                       <p className="text-[11px] font-semibold text-gray-label">Quantity Required</p>
                       <p className="text-sm font-bold text-text-primary">
@@ -376,8 +376,8 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                       </p>
                     </div>
                   </div>
-                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-3">
-                    <User size={18} className="text-gray-400 shrink-0" />
+                  <div className="p-3 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-gray-100 flex items-center gap-3">
+                    <User size={18} className="text-gray-400 dark:text-slate-500 shrink-0" />
                     <div>
                       <p className="text-[11px] font-semibold text-gray-label">Customer / Buyer</p>
                       <p className="text-sm font-bold text-text-primary line-clamp-1">{auction.customerName}</p>
@@ -391,12 +391,12 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                     <h4 className="text-xs font-semibold text-gray-label mb-2 uppercase tracking-wider">
                       Technical Specifications & Commercial Terms
                     </h4>
-                    <div className="border border-gray-border rounded-xl overflow-x-auto text-xs">
+                    <div className="border border-gray-border dark:border-slate-700 rounded-xl overflow-x-auto text-xs">
                       <table className="w-full text-left min-w-[340px]">
                         <tbody className="divide-y divide-gray-border">
                           {Object.entries(auction.specifications).map(([k, v]) => (
-                            <tr key={k} className="hover:bg-gray-50/50">
-                              <td className="px-3.5 py-2.5 font-semibold text-gray-text w-1/3 bg-gray-50/80">{k}</td>
+                            <tr key={k} className="hover:bg-gray-50 dark:bg-slate-900/50/50">
+                              <td className="px-3.5 py-2.5 font-semibold text-gray-text w-1/3 bg-gray-50 dark:bg-slate-900/80">{k}</td>
                               <td className="px-3.5 py-2.5 text-text-primary font-medium">{v}</td>
                             </tr>
                           ))}
@@ -425,17 +425,17 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
 
                 <div className="space-y-2 text-xs text-slate-300">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Total Bids Received:</span>
+                    <span className="text-slate-400 dark:text-slate-500">Total Bids Received:</span>
                     <strong className="text-white font-bold">{bids.length} Bids</strong>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Started At:</span>
+                    <span className="text-slate-400 dark:text-slate-500">Started At:</span>
                     <strong className="text-white font-medium">
                       {new Date(auction.startTime).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </strong>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Ends At:</span>
+                    <span className="text-slate-400 dark:text-slate-500">Ends At:</span>
                     <strong className="text-white font-medium">
                       {new Date(auction.endTime).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </strong>
@@ -508,7 +508,7 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                             ? `Lower than ₹${auction.currentLowestBid.toLocaleString('en-IN')}`
                             : `Lower than ₹${auction.startingPrice.toLocaleString('en-IN')}`
                         }
-                        className="w-full pl-8 pr-3.5 py-2.5 bg-white border border-emerald-300 rounded-xl text-sm font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 transition-all"
+                        className="w-full pl-8 pr-3.5 py-2.5 bg-white dark:bg-slate-800 border border-emerald-300 rounded-xl text-sm font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 transition-all"
                         required
                       />
                     </div>
@@ -521,28 +521,28 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleQuickBidAdjustment(1000, false)}
-                        className="py-2 px-2 bg-white border border-emerald-300 hover:bg-emerald-100/70 text-emerald-900 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                        className="py-2 px-2 bg-white dark:bg-slate-800 border border-emerald-300 hover:bg-emerald-100/70 text-emerald-900 text-xs font-bold rounded-lg transition-colors cursor-pointer"
                       >
                         -₹1k
                       </button>
                       <button
                         type="button"
                         onClick={() => handleQuickBidAdjustment(5000, false)}
-                        className="py-2 px-2 bg-white border border-emerald-300 hover:bg-emerald-100/70 text-emerald-900 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                        className="py-2 px-2 bg-white dark:bg-slate-800 border border-emerald-300 hover:bg-emerald-100/70 text-emerald-900 text-xs font-bold rounded-lg transition-colors cursor-pointer"
                       >
                         -₹5k
                       </button>
                       <button
                         type="button"
                         onClick={() => handleQuickBidAdjustment(5, true)}
-                        className="py-2 px-2 bg-white border border-emerald-300 hover:bg-emerald-100/70 text-emerald-900 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                        className="py-2 px-2 bg-white dark:bg-slate-800 border border-emerald-300 hover:bg-emerald-100/70 text-emerald-900 text-xs font-bold rounded-lg transition-colors cursor-pointer"
                       >
                         -5%
                       </button>
                       <button
                         type="button"
                         onClick={() => handleQuickBidAdjustment(10, true)}
-                        className="py-2 px-2 bg-white border border-emerald-300 hover:bg-emerald-100/70 text-emerald-900 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                        className="py-2 px-2 bg-white dark:bg-slate-800 border border-emerald-300 hover:bg-emerald-100/70 text-emerald-900 text-xs font-bold rounded-lg transition-colors cursor-pointer"
                       >
                         -10%
                       </button>
@@ -558,7 +558,7 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="e.g. Price includes free doorstep freight delivery and 2-year warranty"
-                    className="w-full px-3.5 py-2 bg-white border border-emerald-200 rounded-xl text-xs focus:outline-none focus:border-emerald-600"
+                    className="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-emerald-200 rounded-xl text-xs focus:outline-none focus:border-emerald-600"
                   />
                 </div>
 
@@ -586,7 +586,7 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
           )}
 
           {/* Bid History Table */}
-          <div className="bg-white border border-gray-border rounded-xl p-5 space-y-4 shadow-xs">
+          <div className="bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-xl p-5 space-y-4 shadow-xs">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
                 <Award size={18} className="text-primary" /> Live Bid History ({bids.length})
@@ -595,15 +595,15 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
             </div>
 
             {loadingBids ? (
-              <div className="py-8 text-center text-sm text-gray-500">Loading bid history...</div>
+              <div className="py-8 text-center text-sm text-gray-500 dark:text-slate-400">Loading bid history...</div>
             ) : bids.length === 0 ? (
-              <div className="py-8 text-center text-sm text-gray-500 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+              <div className="py-8 text-center text-sm text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900/50/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-600">
                 No bids have been submitted yet for this requirement.
               </div>
             ) : (
-              <div className="border border-gray-border rounded-xl overflow-x-auto text-xs">
+              <div className="border border-gray-border dark:border-slate-700 rounded-xl overflow-x-auto text-xs">
                 <table className="w-full text-left min-w-[560px]">
-                  <thead className="bg-gray-50 border-b border-gray-border text-gray-label font-bold uppercase tracking-wider">
+                  <thead className="bg-gray-50 dark:bg-slate-900/50 border-b border-gray-border dark:border-slate-700 text-gray-label font-bold uppercase tracking-wider">
                     <tr>
                       <th className="px-4 py-3">Rank</th>
                       <th className="px-4 py-3">Broker / Supplier</th>
@@ -628,7 +628,7 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                               ? 'bg-emerald-50/40 hover:bg-emerald-50'
                               : isMe
                               ? 'bg-primary-50/30'
-                              : 'hover:bg-gray-50/50'
+                              : 'hover:bg-gray-50 dark:bg-slate-900/50/50'
                           }`}
                         >
                           <td className="px-4 py-3.5 font-bold">
@@ -637,7 +637,7 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                                 #1
                               </span>
                             ) : (
-                              <span className="text-gray-500 ml-1.5">#{index + 1}</span>
+                              <span className="text-gray-500 dark:text-slate-400 ml-1.5">#{index + 1}</span>
                             )}
                           </td>
                           <td className="px-4 py-3.5">
@@ -654,7 +654,7 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                                     </span>
                                   )}
                                 </p>
-                                {bid.notes && <p className="text-[11px] text-gray-500 italic mt-0.5">"{bid.notes}"</p>}
+                                {bid.notes && <p className="text-[11px] text-gray-500 dark:text-slate-400 italic mt-0.5">"{bid.notes}"</p>}
                               </div>
                             </div>
                           </td>
@@ -676,7 +676,7 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
                                   ? 'bg-primary-100 text-primary-dark font-extrabold'
                                   : bid.status === 'Outbid'
                                   ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-gray-100 text-gray-700'
+                                  : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300'
                               }`}
                             >
                               {bid.status}
@@ -704,7 +704,7 @@ export const AuctionDetailModal: React.FC<AuctionDetailModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-gray-border bg-gray-50 flex items-center justify-between text-xs text-gray-label">
+        <div className="px-6 py-3 border-t border-gray-border dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 flex items-center justify-between text-xs text-gray-label">
           <span>Broker Hub Reverse Auction Marketplace · Verified Contracts</span>
           <button
             onClick={onClose}

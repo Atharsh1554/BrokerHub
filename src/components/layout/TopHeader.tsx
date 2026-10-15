@@ -1,11 +1,12 @@
 import React from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { Menu, ShoppingCart, Bell, MessageSquare, ChevronRight } from 'lucide-react';
+import { Menu, ShoppingCart, Bell, MessageSquare, ChevronRight, Sun, Moon, Monitor } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { resolveUserDisplayName } from '../../lib/userUtils';
 import { UserAvatar } from '../ui/UserAvatar';
+import { useTheme } from '../../context/ThemeContext';
 
 interface TopHeaderProps {
   title?: string;
@@ -18,6 +19,11 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, onMenuClick }) => {
   const { user } = useAuth();
   const { cart } = useApp();
   const { unreadCount } = useNotifications();
+  const { theme, toggleTheme } = useTheme();
+
+  const ThemeIcon = theme === 'dark' ? Moon : theme === 'light' ? Sun : Monitor;
+  const themeLabel = theme === 'dark' ? 'Dark mode' : theme === 'light' ? 'Light mode' : 'Auto (system)';
+
 
   const totalCartCount = cart?.reduce((sum, item) => sum + item.quantity, 0) || 0;
   const displayName = resolveUserDisplayName(user?.fullName, user?.email);
@@ -48,7 +54,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, onMenuClick }) => {
   const messagesPath = role === 'broker' ? '/broker/messages' : '/customer/messages';
 
   return (
-    <header className="h-14 sm:h-16 bg-white/95 backdrop-blur-xs border-b border-gray-border flex items-center justify-between px-3 sm:px-6 sticky top-0 z-30 transition-all min-w-0 overflow-x-hidden">
+    <header className="h-14 sm:h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs border-b border-gray-border dark:border-slate-700 flex items-center justify-between px-3 sm:px-6 sticky top-0 z-30 transition-all min-w-0 overflow-x-hidden">
       {/* Left side: Hamburger button + Breadcrumb / Title */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         {onMenuClick && (
@@ -113,10 +119,20 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, onMenuClick }) => {
           </Link>
         )}
 
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="p-2 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-all"
+          title={`Theme: ${themeLabel} — click to cycle`}
+          aria-label="Toggle theme"
+        >
+          <ThemeIcon size={19} />
+        </button>
+
         {/* Messages shortcut */}
         <Link
           to={messagesPath}
-          className="p-2 text-gray-600 hover:text-primary hover:bg-gray-100 rounded-xl transition-all"
+          className="p-2 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-all"
           title="Direct Messages"
           aria-label="Messages"
         >
@@ -126,7 +142,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, onMenuClick }) => {
         {/* User Avatar Circle */}
         <button
           onClick={() => navigate(settingsPath)}
-          className="flex items-center gap-2 p-1 sm:px-2 sm:py-1 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer group"
+          className="flex items-center gap-2 p-1 sm:px-2 sm:py-1 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors cursor-pointer group"
           title={`${displayName} - Account Settings`}
         >
           <UserAvatar
@@ -135,7 +151,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, onMenuClick }) => {
             alt={displayName}
             className="w-7 h-7 sm:w-8 sm:h-8 border border-gray-border group-hover:border-primary transition-colors"
           />
-          <span className="hidden md:block text-xs font-semibold text-text-primary max-w-[120px] truncate group-hover:text-primary transition-colors">
+          <span className="hidden md:block text-xs font-semibold text-text-primary dark:text-slate-200 max-w-[120px] truncate group-hover:text-primary transition-colors">
             {displayName}
           </span>
         </button>

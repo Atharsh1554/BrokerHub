@@ -231,11 +231,11 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
   if (currentScreen === 'create') {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4 border-b border-gray-200 pb-4">
-          <button onClick={() => setCurrentScreen('list')} className="p-2 hover:bg-gray-100 rounded-xl">
+        <div className="flex items-center gap-4 border-b border-gray-200 dark:border-slate-600 pb-4">
+          <button onClick={() => setCurrentScreen('list')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl">
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-xl font-bold text-slate-800 tracking-tight">Create Reverse Auction</h1>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Create Reverse Auction</h1>
         </div>
 
         {errorMsg && (
@@ -245,50 +245,50 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
           </div>
         )}
 
-        <form onSubmit={handlePublishSubmit} className="max-w-2xl bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
+        <form onSubmit={handlePublishSubmit} className="max-w-2xl bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm space-y-6">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-bold mb-2">Project Title / Product Needed</label>
-              <input required type="text" className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500" value={productNeeded} onChange={e => setProductNeeded(e.target.value)} />
+              <input required type="text" className="w-full p-3 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-teal-500" value={productNeeded} onChange={e => setProductNeeded(e.target.value)} />
             </div>
             
             <div>
               <label className="block text-sm font-bold mb-2">Budget (₹)</label>
-              <input required type="number" min="1" className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500" value={budget} onChange={e => setBudget(e.target.value)} />
+              <input required type="number" min="1" className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-teal-500" value={budget} onChange={e => setBudget(e.target.value)} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold mb-2">Deadline Date</label>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-3 text-gray-400" size={20} />
-                  <input required type="date" className="w-full pl-10 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500" value={deadlineDate} onChange={e => setDeadlineDate(e.target.value)} />
+                  <Calendar className="absolute left-3 top-3 text-gray-400 dark:text-slate-500" size={20} />
+                  <input required type="date" className="w-full pl-10 p-3 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-teal-500" value={deadlineDate} onChange={e => setDeadlineDate(e.target.value)} />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-bold mb-2">Deadline Time</label>
                 <div className="relative">
-                  <Clock className="absolute left-3 top-3 text-gray-400" size={20} />
-                  <input required type="time" className="w-full pl-10 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500" value={deadlineTime} onChange={e => setDeadlineTime(e.target.value)} />
+                  <Clock className="absolute left-3 top-3 text-gray-400 dark:text-slate-500" size={20} />
+                  <input required type="time" className="w-full pl-10 p-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-teal-500" value={deadlineTime} onChange={e => setDeadlineTime(e.target.value)} />
                 </div>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-bold mb-2">Product Images</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition cursor-pointer relative">
+              <div className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl p-6 flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:bg-slate-700 transition cursor-pointer relative">
                 <input type="file" multiple accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
-                <Upload size={32} className="text-gray-400 mb-2" />
-                <p className="text-sm font-bold text-gray-600">Click to upload images</p>
-                <p className="text-xs text-gray-400 mt-1">Select one or multiple photos</p>
+                <Upload size={32} className="text-gray-400 dark:text-slate-500 mb-2" />
+                <p className="text-sm font-bold text-gray-600 dark:text-slate-300">Click to upload images</p>
+                <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Select one or multiple photos</p>
               </div>
 
               {files.length > 0 && (
                 <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-4">
                   {files.map((file, i) => (
-                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200">
+                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-slate-600">
                       <img src={URL.createObjectURL(file)} alt="Preview" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => removeFile(i)} className="absolute top-1 right-1 p-1 bg-white/90 text-red-600 rounded-full hover:bg-white shadow">
+                      <button type="button" onClick={() => removeFile(i)} className="absolute top-1 right-1 p-1 bg-white dark:bg-slate-800/90 text-red-600 rounded-full hover:bg-white dark:bg-slate-800 shadow">
                         <X size={14} />
                       </button>
                     </div>
@@ -299,7 +299,7 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
 
             <div>
               <label className="block text-sm font-bold mb-2">Detailed Requirements</label>
-              <textarea required rows={4} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500" value={description} onChange={e => setDescription(e.target.value)} />
+              <textarea required rows={4} className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-teal-500" value={description} onChange={e => setDescription(e.target.value)} />
             </div>
           </div>
 
@@ -327,9 +327,9 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
 
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-600 pb-4">
           <div className="flex items-center gap-4">
-            <button onClick={() => setCurrentScreen('list')} className="p-2 hover:bg-gray-100 rounded-xl">
+            <button onClick={() => setCurrentScreen('list')} className="p-2 hover:bg-gray-100 dark:bg-slate-700 rounded-xl">
               <ArrowLeft size={20} />
             </button>
             <div>
@@ -348,7 +348,7 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
           <div className="xl:col-span-2 space-y-6">
             
             {/* Horizontal Order-Tracking Timeline */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
               <h3 className="font-bold text-lg mb-5">Live Project Timeline</h3>
 
               <div className="timeline-track">
@@ -393,11 +393,11 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
 
             {/* Product Images uploaded by Customer */}
             {selectedAuction.photos && selectedAuction.photos.length > 0 && (
-               <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+               <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm space-y-4">
                  <h3 className="font-bold text-lg">Product Images</h3>
                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {selectedAuction.photos.map((img, i) => (
-                      <div key={i} className="aspect-square rounded-xl overflow-hidden border border-gray-200">
+                      <div key={i} className="aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-slate-600">
                         <img src={img} alt="Product" className="w-full h-full object-cover" />
                       </div>
                     ))}
@@ -407,35 +407,35 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
 
             {/* Delivery Proof uploaded by Broker */}
             {isCompletedOrDelivered && selectedAuction.deliveryProofPhotos && selectedAuction.deliveryProofPhotos.length > 0 && (
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm space-y-4">
                 <h3 className="font-bold text-lg text-teal-900 flex items-center gap-2"><CheckCircle2 /> Delivery Proof</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {selectedAuction.deliveryProofPhotos.map((url, i) => (
-                    <img key={i} src={url} alt="Proof" className="w-full h-48 object-cover rounded-xl border border-gray-200" />
+                    <img key={i} src={url} alt="Proof" className="w-full h-48 object-cover rounded-xl border border-gray-200 dark:border-slate-600" />
                   ))}
                 </div>
               </div>
             )}
             
             {!isCompletedOrDelivered && (
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                 <p className="text-gray-500 text-sm text-center">Delivery proof will appear here once the broker marks the project as DELIVERED.</p>
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm">
+                 <p className="text-gray-500 dark:text-slate-400 text-sm text-center">Delivery proof will appear here once the broker marks the project as DELIVERED.</p>
               </div>
             )}
           </div>
 
           <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm space-y-4">
               <h3 className="font-bold text-lg">Assigned Broker</h3>
               {selectedAuction.assignedBrokerId ? (
                 <div>
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center text-teal-700">
+                    <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/40 rounded-full flex items-center justify-center text-teal-700 dark:text-teal-300">
                       <Building2 size={24} />
                     </div>
                     <div>
                       <h4 className="font-bold">Verified Broker</h4>
-                      <p className="text-xs text-gray-500">ID: {selectedAuction.assignedBrokerId}</p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400">ID: {selectedAuction.assignedBrokerId}</p>
                     </div>
                   </div>
                   <button onClick={() => onNavigateToMessages?.(selectedAuction.assignedBrokerId)} className="w-full py-3 bg-teal-700 hover:bg-teal-800 transition text-white rounded-xl font-bold flex justify-center items-center gap-2">
@@ -443,34 +443,34 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="p-4 bg-amber-50 text-amber-800 rounded-xl border border-amber-200 text-sm font-bold text-center flex flex-col items-center gap-2">
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded-xl border border-amber-200 dark:border-amber-800 text-sm font-bold text-center flex flex-col items-center gap-2">
                   <div className="w-8 h-8 rounded-full border-2 border-amber-400 border-t-amber-600 animate-spin" />
                   Waiting for a Broker to Accept
                 </div>
               )}
             </div>
             
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-              <h3 className="font-bold text-lg text-slate-800">Project Details</h3>
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm space-y-4">
+              <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">Project Details</h3>
 
               {/* Description — clamped & scrollable if very long */}
-              <p className="text-sm text-gray-700 leading-relaxed break-words whitespace-pre-wrap overflow-hidden">
+              <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed break-words whitespace-pre-wrap overflow-hidden">
                 {selectedAuction.description}
               </p>
 
               <div className="pt-4 border-t border-gray-100 grid grid-cols-1 gap-3">
                 {/* Budget */}
                 <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                  <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Budget</p>
-                  <p className="font-bold text-slate-800 text-base">₹{selectedAuction.startingPrice}</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 uppercase font-bold tracking-wider">Budget</p>
+                  <p className="font-bold text-slate-800 dark:text-slate-100 text-base">₹{selectedAuction.startingPrice}</p>
                 </div>
 
                 {/* Deadline */}
                 <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                  <p className="text-xs text-gray-500 uppercase font-bold tracking-wider flex items-center gap-1">
+                  <p className="text-xs text-gray-500 dark:text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1">
                     <Calendar size={12}/> Deadline
                   </p>
-                  <p className="font-semibold text-slate-800 text-sm text-right">
+                  <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm text-right">
                     {new Date(selectedAuction.endTime || '').toLocaleString(undefined, {
                       month: 'short',
                       day: 'numeric',
@@ -499,10 +499,10 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+      <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-600 pb-4">
         <div>
-           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">My Reverse Auctions</h1>
-           <p className="text-sm text-gray-500 mt-1">Manage your active requests and view broker progress.</p>
+           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">My Reverse Auctions</h1>
+           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Manage your active requests and view broker progress.</p>
         </div>
         <button onClick={() => setCurrentScreen('create')} className="px-5 py-3 bg-teal-700 hover:bg-teal-800 transition text-white font-bold rounded-xl flex items-center gap-2 shadow-sm">
           <Plus size={18} /> Add Auction
@@ -511,41 +511,41 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
 
       <div className="space-y-4">
         {customerAuctions.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
+          <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-600 shadow-sm">
             <div className="w-16 h-16 bg-teal-50 text-teal-700 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 size={32} />
             </div>
-            <p className="text-gray-800 font-bold text-lg mb-2">You have no active auctions.</p>
-            <p className="text-gray-500 text-sm max-w-sm mx-auto">Create a reverse auction to let verified brokers bid on your requirements.</p>
+            <p className="text-gray-800 dark:text-slate-100 font-bold text-lg mb-2">You have no active auctions.</p>
+            <p className="text-gray-500 dark:text-slate-400 text-sm max-w-sm mx-auto">Create a reverse auction to let verified brokers bid on your requirements.</p>
           </div>
         ) : (
           customerAuctions.map(auc => (
-            <div key={auc.id} className="bg-white p-6 rounded-2xl border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between shadow-sm hover:shadow-md transition gap-4">
+            <div key={auc.id} className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-200 dark:border-slate-600 flex flex-col sm:flex-row items-start sm:items-center justify-between shadow-sm hover:shadow-md transition gap-4">
               <div className="flex items-center gap-4">
                 {auc.photos && auc.photos.length > 0 ? (
-                  <div className="w-20 h-20 rounded-xl overflow-hidden border border-gray-200 shrink-0">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden border border-gray-200 dark:border-slate-600 shrink-0">
                     <img src={auc.photos[0]} alt="Thumbnail" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="w-20 h-20 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center shrink-0 text-gray-400">
+                  <div className="w-20 h-20 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-900/50 flex items-center justify-center shrink-0 text-gray-400 dark:text-slate-500">
                     No Img
                   </div>
                 )}
                 <div>
-                  <h3 className="font-bold text-slate-800 text-lg">{auc.title}</h3>
-                  <p className="text-sm text-gray-500 mb-2">
+                  <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg">{auc.title}</h3>
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mb-2">
                     Budget: ₹{auc.startingPrice} · 
                     Deadline: {new Date(auc.endTime || '').toLocaleDateString()}
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${auc.currentLevel === 'OPEN' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-teal-50 text-teal-700 border-teal-200'}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${auc.currentLevel === 'OPEN' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' : 'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800'}`}>
                       Status: {auc.currentLevel || 'OPEN'}
                     </span>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 flex items-center gap-1">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex items-center gap-1">
                       <Clock size={12}/> {formatCountdown(auc.endTime || '')}
                     </span>
                     {auc.assignedBrokerId && (
-                       <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                       <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                          Assigned to Broker
                        </span>
                     )}
@@ -556,12 +556,12 @@ export const CustomerAuctionView: React.FC<CustomerAuctionViewProps> = ({
                 <button 
                   onClick={() => handleConfirmDelete(auc)} 
                   disabled={isDeleting} 
-                  className="p-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition disabled:opacity-50" 
+                  className="p-3 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 transition disabled:opacity-50" 
                   title="Delete Auction"
                 >
                   <Trash2 size={20} />
                 </button>
-                <button onClick={() => handleOpenDetail(auc)} className="w-full sm:w-auto px-6 py-3 bg-teal-50 text-teal-700 font-bold rounded-xl hover:bg-teal-100 transition whitespace-nowrap">
+                <button onClick={() => handleOpenDetail(auc)} className="w-full sm:w-auto px-6 py-3 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 font-bold rounded-xl hover:bg-teal-100 dark:hover:bg-teal-900/50 transition whitespace-nowrap">
                   View Details
                 </button>
               </div>

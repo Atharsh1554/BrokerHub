@@ -19,6 +19,7 @@ import type { Product } from '../../types';
 import { useAdminTheme } from '../../context/AdminThemeContext';
 import { compressImage } from '../../lib/utils/imageCompressor';
 import { supabase } from '../../lib/supabase';
+import { DEFAULT_PRODUCT_CATEGORIES } from '../../data/categories';
 
 export const AdminProducts: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -30,6 +31,8 @@ export const AdminProducts: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategoryInput, setCustomCategoryInput] = useState('');
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; product: Product | null }>({
     show: false,
     product: null,
@@ -49,6 +52,17 @@ export const AdminProducts: React.FC = () => {
     image: '',
     brokerName: 'Apex Brokerage',
   });
+
+  const allKnownCategories = Array.from(
+    new Set([...DEFAULT_PRODUCT_CATEGORIES, ...products.map((p) => p.category).filter(Boolean)])
+  );
+  const uniqueCustomExisting = Array.from(
+    new Set(
+      products
+        .map((p) => p.category)
+        .filter((cat) => cat && !DEFAULT_PRODUCT_CATEGORIES.includes(cat))
+    )
+  );
 
   const { theme } = useAdminTheme();
   const isLight = theme === 'light';
@@ -138,6 +152,8 @@ export const AdminProducts: React.FC = () => {
 
   const handleOpenAddModal = () => {
     setEditingProduct(null);
+    setIsCustomCategory(false);
+    setCustomCategoryInput('');
     setFormData({
       name: '',
       price: '',
@@ -152,6 +168,14 @@ export const AdminProducts: React.FC = () => {
 
   const handleOpenEditModal = (product: Product) => {
     setEditingProduct(product);
+    const isStandard = DEFAULT_PRODUCT_CATEGORIES.includes(product.category);
+    if (!isStandard) {
+      setIsCustomCategory(true);
+      setCustomCategoryInput(product.category);
+    } else {
+      setIsCustomCategory(false);
+      setCustomCategoryInput('');
+    }
     setFormData({
       name: product.name,
       price: product.price.toString(),
@@ -166,7 +190,8 @@ export const AdminProducts: React.FC = () => {
 
   const handleSaveProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.price) return;
+    const finalCategory = (isCustomCategory ? customCategoryInput.trim() : formData.category.trim()) || 'General';
+    if (!formData.name || !formData.price || !finalCategory) return;
 
     const stockNum = parseInt(formData.stock) || 0;
     const priceNum = parseFloat(formData.price) || 0;
@@ -180,7 +205,7 @@ export const AdminProducts: React.FC = () => {
               ...p,
               name: formData.name,
               price: priceNum,
-              category: formData.category,
+              category: finalCategory,
               stock: stockNum,
               status: statusVal as any,
               description: formData.description,
@@ -197,7 +222,7 @@ export const AdminProducts: React.FC = () => {
         adminOverrides[editingProduct.id] = {
           name: formData.name,
           price: priceNum,
-          category: formData.category,
+          category: finalCategory,
           stock: stockNum,
           status: statusVal,
           description: formData.description,
@@ -210,7 +235,7 @@ export const AdminProducts: React.FC = () => {
         brokerOverrides[editingProduct.id] = {
           name: formData.name,
           price: priceNum,
-          category: formData.category,
+          category: finalCategory,
           stock: stockNum,
           status: statusVal,
           description: formData.description,
@@ -226,7 +251,7 @@ export const AdminProducts: React.FC = () => {
                 ...p,
                 name: formData.name,
                 price: priceNum,
-                category: formData.category,
+                category: finalCategory,
                 stock: stockNum,
                 status: statusVal as any,
                 description: formData.description,
@@ -245,7 +270,7 @@ export const AdminProducts: React.FC = () => {
           .update({
             name: formData.name,
             price: priceNum,
-            category: formData.category,
+            category: finalCategory,
             stock: stockNum,
             status: statusVal,
             description: formData.description,
@@ -261,7 +286,7 @@ export const AdminProducts: React.FC = () => {
         id: newId,
         name: formData.name,
         price: priceNum,
-        category: formData.category,
+        category: finalCategory,
         stock: stockNum,
         status: statusVal as any,
         description: formData.description,
@@ -287,7 +312,7 @@ export const AdminProducts: React.FC = () => {
           {
             name: formData.name,
             price: priceNum,
-            category: formData.category,
+            category: finalCategory,
             stock: stockNum,
             status: statusVal,
             description: formData.description,
@@ -683,24 +708,91 @@ export const AdminProducts: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={`block font-semibold uppercase mb-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                    Category
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className={`w-full rounded-xl p-3 border font-semibold ${
-                      isLight
-                        ? 'bg-slate-50 border-slate-300 text-slate-900 focus:bg-white'
-                        : 'bg-slate-800 border-slate-700 text-white'
-                    }`}
-                  >
-                    <option>Electronics</option>
-                    <option>Audio</option>
-                    <option>Furniture</option>
-                    <option>Fashion</option>
-                    <option>Accessories</option>
-                  </select>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={`block font-semibold uppercase ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                      Category
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!isCustomCategory) {
+                          setIsCustomCategory(true);
+                          setCustomCategoryInput(formData.category === '__CUSTOM__' ? '' : formData.category);
+                        } else {
+                          setIsCustomCategory(false);
+                          const fallbackCat = DEFAULT_PRODUCT_CATEGORIES.includes(formData.category)
+                            ? formData.category
+                            : 'Electronics';
+                          setFormData((prev) => ({ ...prev, category: fallbackCat }));
+                        }
+                      }}
+                      className="text-xs font-semibold text-emerald-500 hover:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      {isCustomCategory ? '📋 Standard list' : '✍️ Custom category'}
+                    </button>
+                  </div>
+
+                  {isCustomCategory ? (
+                    <div>
+                      <input
+                        type="text"
+                        required
+                        autoFocus
+                        list="admin-category-suggestions"
+                        placeholder="e.g. Solar Equipment, Raw Silk..."
+                        value={customCategoryInput}
+                        onChange={(e) => {
+                          setCustomCategoryInput(e.target.value);
+                          setFormData((prev) => ({ ...prev, category: e.target.value }));
+                        }}
+                        className={`w-full rounded-xl p-3 border font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
+                          isLight
+                            ? 'bg-slate-50 border-slate-300 text-slate-900 focus:bg-white'
+                            : 'bg-slate-800 border-slate-700 text-white'
+                        }`}
+                      />
+                      <datalist id="admin-category-suggestions">
+                        {allKnownCategories.map((cat) => (
+                          <option key={cat} value={cat} />
+                        ))}
+                      </datalist>
+                    </div>
+                  ) : (
+                    <select
+                      value={formData.category}
+                      onChange={(e) => {
+                        if (e.target.value === '__CUSTOM__') {
+                          setIsCustomCategory(true);
+                          setCustomCategoryInput('');
+                        } else {
+                          setFormData({ ...formData, category: e.target.value });
+                        }
+                      }}
+                      className={`w-full rounded-xl p-3 border font-semibold ${
+                        isLight
+                          ? 'bg-slate-50 border-slate-300 text-slate-900 focus:bg-white'
+                          : 'bg-slate-800 border-slate-700 text-white'
+                      }`}
+                    >
+                      <optgroup label="Standard Categories">
+                        {DEFAULT_PRODUCT_CATEGORIES.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </optgroup>
+                      {uniqueCustomExisting.length > 0 && (
+                        <optgroup label="Custom Categories">
+                          {uniqueCustomExisting.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <option value="__CUSTOM__">✍️ + Type Custom Category...</option>
+                    </select>
+                  )}
                 </div>
 
                 <div>

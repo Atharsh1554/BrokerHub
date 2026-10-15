@@ -84,9 +84,9 @@ export const ReverseAuctionPage: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Workspace Perspective Switcher Bar */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-2xl p-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2">View mode:</span>
+          <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2">View mode:</span>
           {showCustomerWorkspace && (showBothToggles || perspective === 'customer') && (
             <button
               onClick={() => showBothToggles && setPerspective('customer')}
@@ -95,7 +95,7 @@ export const ReverseAuctionPage: React.FC = () => {
               } ${
                 perspective === 'customer'
                   ? 'bg-teal-700 text-white shadow-xs'
-                  : 'bg-gray-100 text-slate-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'
               }`}
             >
               <UserCheck size={14} />
@@ -110,7 +110,7 @@ export const ReverseAuctionPage: React.FC = () => {
               } ${
                 perspective === 'broker'
                   ? 'bg-teal-700 text-white shadow-xs'
-                  : 'bg-gray-100 text-slate-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-gray-200'
               }`}
             >
               <Building2 size={14} />
@@ -122,7 +122,7 @@ export const ReverseAuctionPage: React.FC = () => {
         <button
           onClick={fetchAuctionsData}
           title="Refresh Data"
-          className="p-1.5 text-gray-500 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+          className="p-1.5 text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
         >
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
         </button>

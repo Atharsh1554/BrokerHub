@@ -63,8 +63,9 @@ export async function sendDBMessage(senderId: string, receiverId: string, conten
   };
 }
 
-// Fetch all conversation contacts for a given user, sorted strictly by most recent message timestamp (WhatsApp style)
-export async function getUserConversations(userId: string): Promise<Conversation[]> {
+// Fetch all conversation contacts for a given user, filtered by opposite role.
+// Customers see only brokers; brokers see only customers.
+export async function getUserConversations(userId: string, userRole?: string): Promise<Conversation[]> {
   const { data: userMessages, error } = await supabase
     .from('messages')
     .select('*')
@@ -93,8 +94,14 @@ export async function getUserConversations(userId: string): Promise<Conversation
     });
   }
 
-  // Fetch user profiles
-  const { data: usersData } = await supabase.from('users').select('*');
+  // Fetch user profiles — filter to only show opposite-role contacts
+  // Customers (role='customer') see only brokers; brokers see only customers
+  const oppositeRole = userRole === 'broker' ? 'customer' : 'broker';
+  let query = supabase.from('users').select('*');
+  if (userRole) {
+    query = query.eq('role', oppositeRole);
+  }
+  const { data: usersData } = await query;
 
   const conversations: Conversation[] = [];
 

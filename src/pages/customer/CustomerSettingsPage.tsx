@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Sun, Moon, Check, AlertCircle, Building2, Compass } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Sun, Moon, Monitor, Check, AlertCircle, Building2, Compass } from 'lucide-react';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { resolveUserDisplayName } from '../../lib/userUtils';
 import { supabase } from '../../lib/supabase';
 
 export const CustomerSettingsPage: React.FC = () => {
   const { user, refreshUser } = useAuth();
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const { theme, setTheme } = useTheme();
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -146,40 +147,40 @@ export const CustomerSettingsPage: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className="max-w-4xl mx-auto pb-12">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary mb-1">Customer Profile & Settings</h1>
-          <p className="text-sm text-gray-text">Manage your contact details and default delivery address permanently</p>
+          <h1 className="text-2xl font-bold text-text-primary dark:text-white mb-1">Customer Profile & Settings</h1>
+          <p className="text-sm text-gray-text dark:text-slate-400">Manage your contact details and default delivery address permanently</p>
         </div>
 
         {savedSuccess && (
-          <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-200 shadow-xs">
-            <Check className="w-4 h-4 text-emerald-600" />
+          <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-bold border border-emerald-200 dark:border-emerald-800 shadow-xs">
+            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             Profile and delivery address updated permanently!
           </div>
         )}
       </div>
 
       {errorMessage && (
-        <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center gap-3 text-xs font-bold">
+        <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 rounded-xl flex items-center gap-3 text-xs font-bold">
           <AlertCircle className="w-5 h-5 shrink-0 text-rose-500" />
           <span>{errorMessage}</span>
         </div>
       )}
 
       {/* Theme Toggle */}
-      <div className="bg-white rounded-xl border border-gray-border p-6 mb-6">
-        <h2 className="text-lg font-semibold text-text-primary mb-1">Aesthetic Theme</h2>
-        <p className="text-sm text-gray-text mb-4">Choose your preferred visual theme</p>
-        <div className="flex gap-3">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-border dark:border-slate-700 p-6 mb-6 shadow-xs">
+        <h2 className="text-lg font-semibold text-text-primary dark:text-white mb-1">Aesthetic Theme</h2>
+        <p className="text-sm text-gray-text dark:text-slate-400 mb-4">Choose your preferred visual theme</p>
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => setTheme('light')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all border cursor-pointer
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border cursor-pointer
               ${theme === 'light'
-                ? 'bg-primary-50 text-primary border-primary'
-                : 'bg-white text-gray-text border-gray-border hover:bg-gray-50'
+                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-primary dark:text-emerald-400 border-primary dark:border-emerald-500 shadow-xs'
+                : 'bg-white dark:bg-slate-900 text-gray-600 dark:text-slate-400 border-gray-border dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'
               }`}
           >
             <Sun size={18} />
@@ -188,22 +189,34 @@ export const CustomerSettingsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setTheme('dark')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all border cursor-pointer
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border cursor-pointer
               ${theme === 'dark'
-                ? 'bg-navy text-white border-navy'
-                : 'bg-white text-gray-text border-gray-border hover:bg-gray-50'
+                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-primary dark:text-emerald-400 border-primary dark:border-emerald-500 shadow-xs'
+                : 'bg-white dark:bg-slate-900 text-gray-600 dark:text-slate-400 border-gray-border dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'
               }`}
           >
             <Moon size={18} />
             Dark
+          </button>
+          <button
+            type="button"
+            onClick={() => setTheme('system')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border cursor-pointer
+              ${theme === 'system'
+                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-primary dark:text-emerald-400 border-primary dark:border-emerald-500 shadow-xs'
+                : 'bg-white dark:bg-slate-900 text-gray-600 dark:text-slate-400 border-gray-border dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'
+              }`}
+          >
+            <Monitor size={18} />
+            Auto (System)
           </button>
         </div>
       </div>
 
       <form onSubmit={handleSave}>
         {/* Personal Details */}
-        <div className="bg-white rounded-xl border border-gray-border p-6 mb-6">
-          <h2 className="text-lg font-semibold text-text-primary mb-4">Personal Details</h2>
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-border dark:border-slate-700 p-6 mb-6 shadow-xs">
+          <h2 className="text-lg font-semibold text-text-primary dark:text-white mb-4">Personal Details</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <Input
               label="Full Name *"
@@ -230,9 +243,9 @@ export const CustomerSettingsPage: React.FC = () => {
         </div>
 
         {/* Residential / Delivery Address */}
-        <div className="bg-white rounded-xl border border-gray-border p-6 mb-6">
-          <h2 className="text-lg font-semibold text-text-primary mb-4">Saved Delivery Address</h2>
-          <p className="text-xs text-gray-500 mb-4">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-border dark:border-slate-700 p-6 mb-6 shadow-xs">
+          <h2 className="text-lg font-semibold text-text-primary dark:text-white mb-4">Saved Delivery Address</h2>
+          <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">
             This address will be automatically linked to all your future product orders during checkout.
           </p>
 

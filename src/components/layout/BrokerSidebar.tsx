@@ -82,21 +82,21 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
       )}
 
       <aside
-        className={`fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-border flex flex-col z-50 transition-transform duration-300 ease-in-out ${
+        className={`fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-900 border-r border-gray-border dark:border-slate-700 flex flex-col z-50 transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Logo Header */}
-        <div className="p-5 border-b border-gray-border flex items-center justify-between shrink-0">
+        <div className="p-5 border-b border-gray-border dark:border-slate-700 flex items-center justify-between shrink-0">
           <Link to="/" onClick={onClose} className="flex items-center gap-2.5">
             <img src="/logo.png" alt="B2C Logo" className="h-9 w-auto object-contain" />
-            <span className="font-bold text-base text-text-primary tracking-tight leading-tight">BROKER HUB</span>
+            <span className="font-bold text-base text-text-primary dark:text-white tracking-tight leading-tight">BROKER HUB</span>
           </Link>
 
           {onClose && (
             <button
               onClick={onClose}
-              className="lg:hidden p-1.5 text-gray-400 hover:text-gray-600 rounded-lg transition-colors cursor-pointer"
+              className="lg:hidden p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg transition-colors cursor-pointer"
               aria-label="Close menu"
             >
               <X size={20} />
@@ -122,8 +122,8 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
                     className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                       ${
                         isActive
-                          ? 'bg-primary-50 text-primary font-semibold'
-                          : 'text-gray-text hover:bg-gray-50 hover:text-text-primary'
+                          ? 'bg-primary-50 dark:bg-emerald-900/30 text-primary dark:text-emerald-400 font-semibold'
+                          : 'text-gray-text dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-text-primary dark:hover:text-white'
                       }`}
                   >
                     <div className="flex items-center gap-3">
@@ -143,43 +143,43 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
         </nav>
 
         {/* Support block */}
-        <div className="mx-3 mb-2 bg-gradient-to-b from-primary-50/40 to-transparent rounded-xl border border-primary-100/50 shrink-0">
+        <div className="mx-3 mb-2 bg-gradient-to-b from-primary-50/40 dark:from-slate-800/80 to-transparent rounded-xl border border-primary-100/50 dark:border-slate-700/80 shrink-0">
           <button
             onClick={() => setShowSupport(!showSupport)}
-            className="w-full flex items-center justify-between px-3 py-2.5 text-left cursor-pointer hover:bg-primary-50/80 transition-colors group rounded-xl"
+            className="w-full flex items-center justify-between px-3 py-2.5 text-left cursor-pointer hover:bg-primary-50/80 dark:hover:bg-slate-800 transition-colors group rounded-xl"
           >
             <div className="flex items-center gap-2.5">
-              <div className="bg-white shadow-xs text-primary p-1.5 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+              <div className="bg-white dark:bg-slate-800 shadow-xs text-primary dark:text-emerald-400 p-1.5 rounded-lg group-hover:bg-primary group-hover:text-white dark:group-hover:bg-emerald-600 transition-colors">
                 <Headphones size={14} />
               </div>
-              <span className="text-xs font-semibold text-text-primary group-hover:text-primary transition-colors">Support Helpdesk</span>
+              <span className="text-xs font-semibold text-text-primary dark:text-slate-200 group-hover:text-primary dark:group-hover:text-emerald-400 transition-colors">Support Helpdesk</span>
             </div>
-            <ChevronDown size={14} className={`text-gray-400 transition-transform duration-300 ${showSupport ? 'rotate-180' : ''}`} />
+            <ChevronDown size={14} className={`text-gray-400 dark:text-slate-500 transition-transform duration-300 ${showSupport ? 'rotate-180' : ''}`} />
           </button>
           
           <div className={`transition-all duration-300 ease-in-out overflow-hidden ${showSupport ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="px-3 pb-3 text-left">
-              <div className="space-y-3 pt-2 mt-1 border-t border-primary-100/50">
+              <div className="space-y-3 pt-2 mt-1 border-t border-primary-100/50 dark:border-slate-700/60">
                 <div className="space-y-1">
-                  <p className="text-[9px] font-bold text-primary/60 uppercase tracking-widest pl-1 mb-1">Email Us</p>
-                  <a href="mailto:mystriotechnologies@gmail.com" className="flex items-center gap-2.5 text-[11px] text-gray-600 hover:text-primary hover:bg-white transition-all p-1.5 rounded-lg group/link">
-                    <Mail size={12} className="text-gray-400 group-hover/link:text-primary" />
+                  <p className="text-[9px] font-bold text-primary/70 dark:text-emerald-400 uppercase tracking-widest pl-1 mb-1">Email Us</p>
+                  <a href="mailto:mystriotechnologies@gmail.com" className="flex items-center gap-2.5 text-[11px] text-gray-600 dark:text-slate-300 hover:text-primary dark:hover:text-emerald-400 hover:bg-white dark:hover:bg-slate-800 transition-all p-1.5 rounded-lg group/link">
+                    <Mail size={12} className="text-gray-400 dark:text-slate-500 group-hover/link:text-primary dark:group-hover/link:text-emerald-400" />
                     <span className="truncate">mystriotechnologies@gmail.com</span>
                   </a>
-                  <a href="mailto:brokerhub07@gmail.com" className="flex items-center gap-2.5 text-[11px] text-gray-600 hover:text-primary hover:bg-white transition-all p-1.5 rounded-lg group/link">
-                    <Mail size={12} className="text-gray-400 group-hover/link:text-primary" />
+                  <a href="mailto:brokerhub07@gmail.com" className="flex items-center gap-2.5 text-[11px] text-gray-600 dark:text-slate-300 hover:text-primary dark:hover:text-emerald-400 hover:bg-white dark:hover:bg-slate-800 transition-all p-1.5 rounded-lg group/link">
+                    <Mail size={12} className="text-gray-400 dark:text-slate-500 group-hover/link:text-primary dark:group-hover/link:text-emerald-400" />
                     <span className="truncate">brokerhub07@gmail.com</span>
                   </a>
                 </div>
                 
                 <div className="space-y-1">
-                  <p className="text-[9px] font-bold text-primary/60 uppercase tracking-widest pl-1 mb-1">Call Us</p>
-                  <a href="tel:+917339174356" className="flex items-center gap-2.5 text-[11px] text-gray-600 hover:text-primary hover:bg-white transition-all p-1.5 rounded-lg group/link">
-                    <Phone size={12} className="text-gray-400 group-hover/link:text-primary" />
+                  <p className="text-[9px] font-bold text-primary/70 dark:text-emerald-400 uppercase tracking-widest pl-1 mb-1">Call Us</p>
+                  <a href="tel:+917339174356" className="flex items-center gap-2.5 text-[11px] text-gray-600 dark:text-slate-300 hover:text-primary dark:hover:text-emerald-400 hover:bg-white dark:hover:bg-slate-800 transition-all p-1.5 rounded-lg group/link">
+                    <Phone size={12} className="text-gray-400 dark:text-slate-500 group-hover/link:text-primary dark:group-hover/link:text-emerald-400" />
                     <span>+91 73391 74356</span>
                   </a>
-                  <a href="tel:+917010158911" className="flex items-center gap-2.5 text-[11px] text-gray-600 hover:text-primary hover:bg-white transition-all p-1.5 rounded-lg group/link">
-                    <Phone size={12} className="text-gray-400 group-hover/link:text-primary" />
+                  <a href="tel:+917010158911" className="flex items-center gap-2.5 text-[11px] text-gray-600 dark:text-slate-300 hover:text-primary dark:hover:text-emerald-400 hover:bg-white dark:hover:bg-slate-800 transition-all p-1.5 rounded-lg group/link">
+                    <Phone size={12} className="text-gray-400 dark:text-slate-500 group-hover/link:text-primary dark:group-hover/link:text-emerald-400" />
                     <span>+91 70101 58911</span>
                   </a>
                 </div>
@@ -189,12 +189,12 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
         </div>
 
         {/* Profile card — fixed at bottom of sidebar */}
-        <div className="shrink-0 border-t border-gray-border p-3" ref={dropdownRef}>
+        <div className="shrink-0 border-t border-gray-border dark:border-slate-700 p-3" ref={dropdownRef}>
           {/* Dropdown opens upward */}
           {showDropdown && (
-            <div className="absolute bottom-[72px] left-3 right-3 bg-white rounded-2xl shadow-xl border border-gray-border py-1.5 z-50 animate-fade-in">
+            <div className="absolute bottom-[72px] left-3 right-3 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-border dark:border-slate-700 py-1.5 z-50 animate-fade-in">
               {/* User info */}
-              <div className="px-4 py-3 border-b border-gray-100">
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700">
                 <div className="flex items-center gap-2.5">
                   <UserAvatar
                     src={user?.avatar}
@@ -203,8 +203,8 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
                     className="w-9 h-9 shrink-0"
                   />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-text-primary truncate">{displayName}</p>
-                    <p className="text-[11px] text-gray-text capitalize">{user?.role || 'Broker'}</p>
+                    <p className="text-sm font-semibold text-text-primary dark:text-white truncate">{displayName}</p>
+                    <p className="text-[11px] text-gray-text dark:text-slate-400 capitalize">{user?.role || 'Broker'}</p>
                   </div>
                 </div>
               </div>
@@ -213,17 +213,17 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
               <div className="py-1">
                 <button
                   onClick={handleSettingsClick}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-primary dark:hover:text-emerald-400 transition-colors cursor-pointer"
                 >
-                  <Settings size={16} className="text-gray-400" />
+                  <Settings size={16} className="text-gray-400 dark:text-slate-400" />
                   Profile &amp; Settings
                 </button>
 
-                <div className="border-t border-gray-100 my-1" />
+                <div className="border-t border-gray-100 dark:border-slate-700 my-1" />
 
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer font-medium"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer font-medium"
                 >
                   <LogOut size={16} />
                   Sign Out
@@ -235,7 +235,7 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
           {/* Profile trigger button */}
           <button
             onClick={() => setShowDropdown((prev) => !prev)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors border border-gray-border cursor-pointer group"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors border border-gray-border dark:border-slate-700 cursor-pointer group"
             aria-expanded={showDropdown}
             title="Account Menu"
           >
@@ -246,16 +246,16 @@ export const BrokerSidebar: React.FC<BrokerSidebarProps> = ({ isOpen, onClose })
               className="w-8 h-8 shadow-xs shrink-0"
             />
             <div className="flex-1 flex flex-col text-left min-w-0">
-              <span className="text-xs font-semibold text-text-primary group-hover:text-primary transition-colors truncate leading-tight">
+              <span className="text-xs font-semibold text-text-primary dark:text-white group-hover:text-primary dark:group-hover:text-emerald-400 transition-colors truncate leading-tight">
                 {displayName}
               </span>
-              <span className="text-[10px] text-gray-text capitalize leading-tight">
+              <span className="text-[10px] text-gray-text dark:text-slate-400 capitalize leading-tight">
                 {user?.role || 'Broker'}
               </span>
             </div>
             <ChevronDown
               size={14}
-              className={`text-gray-label transition-transform duration-200 shrink-0 ${showDropdown ? 'rotate-180' : ''}`}
+              className={`text-gray-label dark:text-slate-400 transition-transform duration-200 shrink-0 ${showDropdown ? 'rotate-180' : ''}`}
             />
           </button>
         </div>

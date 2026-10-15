@@ -18,13 +18,15 @@ import {
   ShieldCheck,
   Building,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  Star,
 } from 'lucide-react';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatRupeeExact } from '../../lib/api/orders';
 import type { Order, OrderItem } from '../../types';
+import { SubmitReviewModal } from '../../components/reviews/SubmitReviewModal';
 
 export const MyOrdersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +37,7 @@ export const MyOrdersPage: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState<string>('All');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [reviewModalOrder, setReviewModalOrder] = useState<Order | null>(null);
 
   // Filter orders strictly for the logged-in customer
   const customerOrders = useMemo(() => {
@@ -472,6 +475,22 @@ export const MyOrdersPage: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                      {(() => {
+                        const isDelivered =
+                          order.status &&
+                          (order.status.toLowerCase().includes('deliver') ||
+                            order.status.toLowerCase().includes('complet'));
+                        return isDelivered ? (
+                          <button
+                            onClick={() => setReviewModalOrder(order)}
+                            className="flex-1 md:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 transition-colors cursor-pointer"
+                          >
+                            <Star size={13} className="fill-amber-400 text-amber-400" />
+                            <span>Rate Broker</span>
+                          </button>
+                        ) : null;
+                      })()}
+
                       <button
                         onClick={() => handleViewOrder(order)}
                         className="flex-1 md:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-800 dark:text-gray-200 transition-colors cursor-pointer"
@@ -725,6 +744,25 @@ export const MyOrdersPage: React.FC = () => {
                         <MessageSquare size={15} />
                         <span>Message {b.name}</span>
                       </button>
+
+                      {(() => {
+                        const isDelivered =
+                          selectedOrder.status &&
+                          (selectedOrder.status.toLowerCase().includes('deliver') ||
+                            selectedOrder.status.toLowerCase().includes('complet'));
+                        return isDelivered ? (
+                          <button
+                            onClick={() => {
+                              setShowDetailModal(false);
+                              setReviewModalOrder(selectedOrder);
+                            }}
+                            className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                          >
+                            <Star size={15} className="fill-white" />
+                            <span>Rate & Review Broker</span>
+                          </button>
+                        ) : null;
+                      })()}
                     </div>
                   );
                 })()}
@@ -779,6 +817,18 @@ export const MyOrdersPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Review Submission Modal */}
+      {reviewModalOrder && (
+        <SubmitReviewModal
+          isOpen={!!reviewModalOrder}
+          onClose={() => setReviewModalOrder(null)}
+          brokerId={reviewModalOrder.brokerId || getBrokerDetails(reviewModalOrder).id}
+          brokerName={reviewModalOrder.brokerName || getBrokerDetails(reviewModalOrder).name}
+          orderId={reviewModalOrder.id}
+          productName={reviewModalOrder.productName || reviewModalOrder.product}
+        />
       )}
     </div>
   );

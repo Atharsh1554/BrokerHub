@@ -76,6 +76,7 @@ export interface CartItem {
   brokerName: string;
   price: number;
   quantity: number;
+  stock: number; // max qty allowed in cart
   totalPrice?: number;
 }
 

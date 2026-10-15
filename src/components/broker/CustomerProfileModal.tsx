@@ -23,7 +23,7 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
       <div 
-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all"
+        className="relative w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-600 overflow-hidden transform transition-all"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header banner */}
@@ -34,13 +34,13 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-medium">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-slate-800/20 backdrop-blur-md text-white text-xs font-medium">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Verified Customer Profile</span>
           </div>
         </div>
 
-        <div className="px-6 pb-6 pt-0 bg-white">
+        <div className="px-6 pb-6 pt-0 bg-white dark:bg-slate-800">
           {/* Avatar & Basic Info */}
           <div className="flex items-start justify-between -mt-12 mb-4">
             <div className="relative">
@@ -66,48 +66,48 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
           </div>
 
           <div>
-            <h2 className="text-xl font-bold text-slate-900">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
               {profile.fullName}
             </h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Customer ID: <span className="font-mono text-xs">{profile.id}</span>
             </p>
           </div>
 
           {/* Details grid */}
           <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600">
               <Mail className="w-4 h-4 text-indigo-600 shrink-0" />
               <div className="overflow-hidden">
                 <p className="text-xs text-slate-400">Email Address</p>
-                <p className="font-medium text-slate-800 truncate">{profile.email}</p>
+                <p className="font-medium text-slate-800 dark:text-slate-100 truncate">{profile.email}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600">
               <Phone className="w-4 h-4 text-emerald-600 shrink-0" />
               <div className="overflow-hidden">
                 <p className="text-xs text-slate-400">Direct Phone</p>
-                <p className="font-medium text-slate-800 truncate">{profile.phone}</p>
+                <p className="font-medium text-slate-800 dark:text-slate-100 truncate">{profile.phone}</p>
               </div>
             </div>
 
             {profile.location && (
-              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600">
                 <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
                 <div className="overflow-hidden">
                   <p className="text-xs text-slate-400">Location</p>
-                  <p className="font-medium text-slate-800 truncate">{profile.location}</p>
+                  <p className="font-medium text-slate-800 dark:text-slate-100 truncate">{profile.location}</p>
                 </div>
               </div>
             )}
 
             {profile.joinedDate && (
-              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600">
                 <Calendar className="w-4 h-4 text-purple-600 shrink-0" />
                 <div className="overflow-hidden">
                   <p className="text-xs text-slate-400">Member Since</p>
-                  <p className="font-medium text-slate-800 truncate">{profile.joinedDate}</p>
+                  <p className="font-medium text-slate-800 dark:text-slate-100 truncate">{profile.joinedDate}</p>
                 </div>
               </div>
             )}
@@ -120,7 +120,7 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                 <span className="text-xs font-semibold text-indigo-700">Total Orders</span>
                 <ShoppingBag className="w-4 h-4 text-indigo-500" />
               </div>
-              <p className="text-2xl font-bold text-slate-900 mt-1">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
                 {profile.totalOrders ?? 0}
               </p>
             </div>
@@ -130,7 +130,7 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
                 <span className="text-xs font-semibold text-emerald-700">Total Volume</span>
                 <DollarSign className="w-4 h-4 text-emerald-500" />
               </div>
-              <p className="text-2xl font-bold text-slate-900 mt-1">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
                 ${(profile.totalSpent ?? 0).toLocaleString()}
               </p>
             </div>
@@ -143,7 +143,7 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({
           )}
 
           {/* Action buttons */}
-          <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-600">
             <Button variant="secondary" onClick={onClose}>
               Close
             </Button>

@@ -29,14 +29,14 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-white border border-gray-200 p-3 rounded-xl shadow-lg text-xs space-y-1 z-50">
-        <p className="font-bold text-text-primary border-b border-gray-100 pb-1">{data.periodLabel || data.fullMonth}</p>
+      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 p-3 rounded-xl shadow-lg text-xs space-y-1 z-50">
+        <p className="font-bold text-text-primary dark:text-white border-b border-gray-100 dark:border-slate-700 pb-1">{data.periodLabel || data.fullMonth}</p>
         <div className="pt-1 space-y-0.5">
-          <p className="text-gray-text">
-            Revenue: <span className="font-bold text-emerald-600">{formatRupeeExact(data.revenue)}</span>
+          <p className="text-gray-text dark:text-slate-400">
+            Revenue: <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatRupeeExact(data.revenue)}</span>
           </p>
-          <p className="text-gray-text">
-            Orders: <span className="font-semibold text-text-primary">{data.ordersCount ?? data.transactions ?? 0}</span>
+          <p className="text-gray-text dark:text-slate-400">
+            Orders: <span className="font-semibold text-text-primary dark:text-white">{data.ordersCount ?? data.transactions ?? 0}</span>
           </p>
         </div>
       </div>
@@ -359,29 +359,29 @@ export const BrokerDashboard: React.FC = () => {
   return (
     <div className="space-y-6 pb-12 overflow-x-hidden">
       {/* Welcome Banner & Total Lifetime Revenue */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-border shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-gray-border dark:border-slate-700 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3 sm:gap-4 min-w-0 w-full md:w-auto">
           <UserAvatar
             src={user?.avatar}
             name={displayName}
             alt={displayName}
-            className="w-11 h-11 sm:w-14 sm:h-14 shadow-sm border border-gray-100 shrink-0"
+            className="w-11 h-11 sm:w-14 sm:h-14 shadow-sm border border-gray-100 dark:border-slate-600 shrink-0"
             roundedClassName="rounded-2xl"
             fallbackClassName="bg-gradient-to-br from-primary to-teal-400 text-white text-base sm:text-xl font-bold"
           />
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-text-primary truncate">Welcome back, {displayName}</h1>
-            <p className="text-xs sm:text-sm text-gray-text truncate">Live brokerage performance overview and order metrics</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-text-primary dark:text-white truncate">Welcome back, {displayName}</h1>
+            <p className="text-xs sm:text-sm text-gray-text dark:text-slate-400 truncate">Live brokerage performance overview and order metrics</p>
           </div>
         </div>
 
-        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 sm:gap-4 w-full md:w-auto">
+        <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 sm:gap-4 w-full md:w-auto">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
             <DollarSign size={22} />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] sm:text-xs font-semibold text-emerald-800 uppercase tracking-wider">Total Lifetime Revenue</p>
-            <p className="text-xl sm:text-2xl font-extrabold text-emerald-900 truncate">{formatRupeeExact(revenueMetrics.totalRevenue)}</p>
+            <p className="text-[11px] sm:text-xs font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Total Lifetime Revenue</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-emerald-900 dark:text-emerald-100 truncate">{formatRupeeExact(revenueMetrics.totalRevenue)}</p>
           </div>
         </div>
       </div>
@@ -396,25 +396,25 @@ export const BrokerDashboard: React.FC = () => {
       {/* 📈 Sales Analytics & Quick Glance */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Sales Analytics Graph Card */}
-        <div className="xl:col-span-2 bg-white rounded-2xl border border-gray-border p-6 shadow-xs text-text-primary flex flex-col justify-between">
+        <div className="xl:col-span-2 bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 p-6 shadow-xs text-text-primary dark:text-white flex flex-col justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center font-bold text-lg shadow-xs">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800 flex items-center justify-center font-bold text-lg shadow-xs">
                 $
               </div>
               <div>
-                <h2 className="text-lg font-bold text-text-primary tracking-tight">Revenue Growth (₹)</h2>
-                <p className="text-xs text-gray-text">Total gross transaction volume</p>
+                <h2 className="text-lg font-bold text-text-primary dark:text-white tracking-tight">Revenue Growth (₹)</h2>
+                <p className="text-xs text-gray-text dark:text-slate-400">Total gross transaction volume</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               {/* Timeframe Selector */}
-              <div className="bg-gray-100 p-1 rounded-xl flex items-center text-xs font-semibold">
+              <div className="bg-gray-100 dark:bg-slate-700 p-1 rounded-xl flex items-center text-xs font-semibold">
                 <button
                   onClick={() => setAnalyticsTimeframe('daily')}
                   className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
-                    analyticsTimeframe === 'daily' ? 'bg-white text-primary shadow-xs' : 'text-gray-600 hover:text-text-primary'
+                    analyticsTimeframe === 'daily' ? 'bg-white dark:bg-slate-600 text-primary dark:text-emerald-400 shadow-xs' : 'text-gray-600 dark:text-slate-300 hover:text-text-primary dark:hover:text-white'
                   }`}
                 >
                   Daily
@@ -422,7 +422,7 @@ export const BrokerDashboard: React.FC = () => {
                 <button
                   onClick={() => setAnalyticsTimeframe('weekly')}
                   className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
-                    analyticsTimeframe === 'weekly' ? 'bg-white text-primary shadow-xs' : 'text-gray-600 hover:text-text-primary'
+                    analyticsTimeframe === 'weekly' ? 'bg-white dark:bg-slate-600 text-primary dark:text-emerald-400 shadow-xs' : 'text-gray-600 dark:text-slate-300 hover:text-text-primary dark:hover:text-white'
                   }`}
                 >
                   Weekly
@@ -430,7 +430,7 @@ export const BrokerDashboard: React.FC = () => {
                 <button
                   onClick={() => setAnalyticsTimeframe('monthly')}
                   className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
-                    analyticsTimeframe === 'monthly' ? 'bg-white text-primary shadow-xs' : 'text-gray-600 hover:text-text-primary'
+                    analyticsTimeframe === 'monthly' ? 'bg-white dark:bg-slate-600 text-primary dark:text-emerald-400 shadow-xs' : 'text-gray-600 dark:text-slate-300 hover:text-text-primary dark:hover:text-white'
                   }`}
                 >
                   Monthly
@@ -454,12 +454,12 @@ export const BrokerDashboard: React.FC = () => {
 
           {/* Chart View */}
           {revenueMetrics.completedOrders === 0 && analyticsChartData.every((b) => b.revenue === 0) ? (
-            <div className="h-64 flex flex-col items-center justify-center text-center p-6 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
-              <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 mb-3">
+            <div className="h-64 flex flex-col items-center justify-center text-center p-6 border border-dashed border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50/50 dark:bg-slate-800/50">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-3">
                 <DollarSign size={24} />
               </div>
-              <p className="text-sm font-bold text-text-primary mb-1">No completed sales yet.</p>
-              <p className="text-xs text-gray-text max-w-sm">
+              <p className="text-sm font-bold text-text-primary dark:text-white mb-1">No completed sales yet.</p>
+              <p className="text-xs text-gray-text dark:text-slate-400 max-w-sm">
                 Your revenue chart will appear here once you receive your first completed order.
               </p>
             </div>
@@ -493,42 +493,42 @@ export const BrokerDashboard: React.FC = () => {
         </div>
 
         {/* Quick Glance & Activity */}
-        <div className="bg-white rounded-xl border border-gray-border p-6 shadow-xs flex flex-col justify-between space-y-4">
-          <h2 className="text-lg font-bold text-text-primary">Quick Glance</h2>
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-border dark:border-slate-700 p-6 shadow-xs flex flex-col justify-between space-y-4">
+          <h2 className="text-lg font-bold text-text-primary dark:text-white">Quick Glance</h2>
           <div className="space-y-3">
             <div
               onClick={() => navigate('/broker/messages')}
-              className="flex items-center gap-3 p-3.5 bg-blue-50/80 rounded-xl hover:bg-blue-100 transition-colors cursor-pointer border border-blue-100"
+              className="flex items-center gap-3 p-3.5 bg-blue-50/80 dark:bg-blue-950/30 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-colors cursor-pointer border border-blue-100 dark:border-blue-900"
             >
               <div className="w-10 h-10 rounded-lg bg-status-blue/10 flex items-center justify-center shrink-0">
                 <MessageSquare size={20} className="text-status-blue" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-text-primary">New Customer Messages</p>
-                <p className="text-xs text-gray-text">Respond to client inquiries & quotes</p>
+                <p className="text-sm font-semibold text-text-primary dark:text-white">New Customer Messages</p>
+                <p className="text-xs text-gray-text dark:text-slate-400">Respond to client inquiries & quotes</p>
               </div>
             </div>
 
             <div
               onClick={() => navigate('/broker/notifications')}
-              className="flex items-center gap-3 p-3.5 bg-amber-50/80 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer border border-amber-100"
+              className="flex items-center gap-3 p-3.5 bg-amber-50/80 dark:bg-amber-950/30 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors cursor-pointer border border-amber-100 dark:border-amber-900"
             >
               <div className="w-10 h-10 rounded-lg bg-status-yellow/10 flex items-center justify-center shrink-0">
                 <AlertTriangle size={20} className="text-status-yellow" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-text-primary">Pending Call & Meeting Alerts</p>
-                <p className="text-xs text-gray-text">Review customer callback requests</p>
+                <p className="text-sm font-semibold text-text-primary dark:text-white">Pending Call & Meeting Alerts</p>
+                <p className="text-xs text-gray-text dark:text-slate-400">Review customer callback requests</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3.5 bg-emerald-50/80 rounded-xl border border-emerald-100">
+            <div className="flex items-center gap-3 p-3.5 bg-emerald-50/80 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-900">
               <div className="w-10 h-10 rounded-lg bg-status-green/10 flex items-center justify-center shrink-0">
                 <BarChart3 size={20} className="text-status-green" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-text-primary">{yoyGrowthText} Trajectory</p>
-                <p className="text-xs text-gray-text">Gross revenue trends based on orders</p>
+                <p className="text-sm font-semibold text-text-primary dark:text-white">{yoyGrowthText} Trajectory</p>
+                <p className="text-xs text-gray-text dark:text-slate-400">Gross revenue trends based on orders</p>
               </div>
             </div>
           </div>
@@ -536,57 +536,57 @@ export const BrokerDashboard: React.FC = () => {
       </div>
 
       {/* 🏆 Top Selling Products Section */}
-      <div className="bg-white rounded-2xl border border-gray-border p-6 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
               <TrendingUp size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-text-primary">Top Selling Products</h2>
-              <p className="text-xs text-gray-text">Calculated from actual completed order items</p>
+              <h2 className="text-lg font-bold text-text-primary dark:text-white">Top Selling Products</h2>
+              <p className="text-xs text-gray-text dark:text-slate-400">Calculated from actual completed order items</p>
             </div>
           </div>
         </div>
 
         {topSellingProducts.length === 0 ? (
-          <div className="bg-gray-50 rounded-xl border border-dashed border-gray-200 p-8 text-center">
-            <ShoppingBag size={36} className="text-gray-300 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-text-primary">No top-selling product data yet</p>
-            <p className="text-xs text-gray-label">Top products will populate automatically when customers buy your listings.</p>
+          <div className="bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-700 p-8 text-center">
+            <ShoppingBag size={36} className="text-gray-300 dark:text-slate-600 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-text-primary dark:text-white">No top-selling product data yet</p>
+            <p className="text-xs text-gray-label dark:text-slate-500">Top products will populate automatically when customers buy your listings.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
             {topSellingProducts.map((item, idx) => (
-              <div key={item.name} className="bg-gray-50/80 rounded-xl border border-gray-200 p-4 space-y-3 flex flex-col justify-between">
+              <div key={item.name} className="bg-gray-50/80 dark:bg-slate-900/50 rounded-xl border border-gray-200 dark:border-slate-700 p-4 space-y-3 flex flex-col justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-white overflow-hidden border border-gray-200 shrink-0 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-lg bg-white dark:bg-slate-800 overflow-hidden border border-gray-200 dark:border-slate-600 shrink-0 flex items-center justify-center">
                     {item.image ? (
                       <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                     ) : (
-                      <Package size={24} className="text-gray-300" />
+                      <Package size={24} className="text-gray-300 dark:text-slate-600" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-bold text-primary dark:text-emerald-400 bg-primary/10 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full">
                       #{idx + 1} Top
                     </span>
-                    <h3 className="text-xs font-bold text-text-primary truncate mt-1">{item.name}</h3>
+                    <h3 className="text-xs font-bold text-text-primary dark:text-white truncate mt-1">{item.name}</h3>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-gray-200 space-y-1 text-xs">
-                  <div className="flex justify-between text-gray-600">
+                <div className="pt-2 border-t border-gray-200 dark:border-slate-700 space-y-1 text-xs">
+                  <div className="flex justify-between text-gray-600 dark:text-slate-400">
                     <span>Units Sold:</span>
-                    <span className="font-bold text-text-primary">{item.unitsSold}</span>
+                    <span className="font-bold text-text-primary dark:text-white">{item.unitsSold}</span>
                   </div>
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between text-gray-600 dark:text-slate-400">
                     <span>Revenue:</span>
-                    <span className="font-bold text-emerald-600">{formatRupeeExact(item.revenue)}</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatRupeeExact(item.revenue)}</span>
                   </div>
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between text-gray-600 dark:text-slate-400">
                     <span>Sales Share:</span>
-                    <span className="font-bold text-primary">{item.share}%</span>
+                    <span className="font-bold text-primary dark:text-emerald-400">{item.share}%</span>
                   </div>
                 </div>
               </div>
@@ -596,11 +596,11 @@ export const BrokerDashboard: React.FC = () => {
       </div>
 
       {/* 📋 Recent Received Orders Table */}
-      <div className="bg-white rounded-xl border border-gray-border p-6 shadow-xs">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-border dark:border-slate-700 p-6 shadow-xs">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-bold text-text-primary">Recent Received Orders</h2>
-            <p className="text-xs text-gray-text">Live incoming customer orders requiring fulfillment</p>
+            <h2 className="text-lg font-bold text-text-primary dark:text-white">Recent Received Orders</h2>
+            <p className="text-xs text-gray-text dark:text-slate-400">Live incoming customer orders requiring fulfillment</p>
           </div>
           <div className="flex items-center gap-3">
             {orders.length > 0 && (
@@ -626,7 +626,7 @@ export const BrokerDashboard: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-gray-border bg-gray-50/60 text-xs font-semibold text-gray-label uppercase tracking-wider">
+              <tr className="border-b border-gray-border dark:border-slate-700 bg-gray-50/60 dark:bg-slate-900/40 text-xs font-semibold text-gray-label dark:text-slate-400 uppercase tracking-wider">
                 <th className="py-3 px-4">Order ID</th>
                 <th className="py-3 px-4">Customer</th>
                 <th className="py-3 px-4">Product / Details</th>
@@ -636,10 +636,10 @@ export const BrokerDashboard: React.FC = () => {
                 <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400">
+                  <td colSpan={7} className="text-center py-12 text-gray-400 dark:text-slate-500">
                     No orders received yet
                   </td>
                 </tr>
@@ -647,17 +647,17 @@ export const BrokerDashboard: React.FC = () => {
                 orders.slice(0, 6).map((order) => (
                   <tr
                     key={order.id}
-                    className="hover:bg-gray-50 transition-colors text-sm"
+                    className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors text-sm"
                   >
-                    <td className="py-3.5 px-4 font-bold text-primary font-mono text-xs">{order.id}</td>
-                    <td className="py-3.5 px-4 font-semibold text-text-primary">{order.customerName}</td>
-                    <td className="py-3.5 px-4 text-gray-text text-xs max-w-48 truncate">
+                    <td className="py-3.5 px-4 font-bold text-primary dark:text-emerald-400 font-mono text-xs">{order.id}</td>
+                    <td className="py-3.5 px-4 font-semibold text-text-primary dark:text-white">{order.customerName}</td>
+                    <td className="py-3.5 px-4 text-gray-text dark:text-slate-400 text-xs max-w-48 truncate">
                       {order.product ||
                         (order.items
                           ? order.items.map((i) => `${i.productName} (x${i.quantity})`).join(', ')
                           : 'Order Item')}
                     </td>
-                    <td className="py-3.5 px-4 font-bold text-text-primary">
+                    <td className="py-3.5 px-4 font-bold text-text-primary dark:text-white">
                       {formatRupeeExact(order.amount ?? order.totalAmount ?? 0)}
                     </td>
                     <td className="py-3.5 px-4">
@@ -692,39 +692,39 @@ export const BrokerDashboard: React.FC = () => {
       {/* 🔍 Order Details Modal */}
       {selectedOrderDetails && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full border border-gray-border shadow-2xl p-6 space-y-6 animate-scale-up">
-            <div className="flex items-center justify-between border-b border-gray-border pb-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-2xl w-full border border-gray-border dark:border-slate-700 shadow-2xl p-6 space-y-6 animate-scale-up">
+            <div className="flex items-center justify-between border-b border-gray-border dark:border-slate-700 pb-4">
               <div>
-                <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                  Order Details: <span className="font-mono text-primary">{selectedOrderDetails.id}</span>
+                <h3 className="text-lg font-bold text-text-primary dark:text-white flex items-center gap-2">
+                  Order Details: <span className="font-mono text-primary dark:text-emerald-400">{selectedOrderDetails.id}</span>
                 </h3>
-                <p className="text-xs text-gray-label">
+                <p className="text-xs text-gray-label dark:text-slate-400">
                   Placed on {selectedOrderDetails.date || selectedOrderDetails.createdAt}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedOrderDetails(null)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               >
                 <X size={20} />
               </button>
             </div>
 
             {/* Customer & Shipping Details */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50/80 p-4 rounded-xl border border-gray-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50/80 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
               <div>
-                <p className="text-xs font-bold text-gray-label uppercase tracking-wider mb-1">Customer Info</p>
-                <p className="text-sm font-semibold text-text-primary">{selectedOrderDetails.customerName}</p>
+                <p className="text-xs font-bold text-gray-label dark:text-slate-400 uppercase tracking-wider mb-1">Customer Info</p>
+                <p className="text-sm font-semibold text-text-primary dark:text-white">{selectedOrderDetails.customerName}</p>
                 {selectedOrderDetails.customerEmail && (
-                  <p className="text-xs text-gray-text">📧 {selectedOrderDetails.customerEmail}</p>
+                  <p className="text-xs text-gray-text dark:text-slate-400">📧 {selectedOrderDetails.customerEmail}</p>
                 )}
                 {selectedOrderDetails.customerPhone && (
-                  <p className="text-xs text-gray-text">📞 {selectedOrderDetails.customerPhone}</p>
+                  <p className="text-xs text-gray-text dark:text-slate-400">📞 {selectedOrderDetails.customerPhone}</p>
                 )}
               </div>
               <div>
-                <p className="text-xs font-bold text-gray-label uppercase tracking-wider mb-1">Delivery Address</p>
-                <p className="text-xs text-gray-text">
+                <p className="text-xs font-bold text-gray-label dark:text-slate-400 uppercase tracking-wider mb-1">Delivery Address</p>
+                <p className="text-xs text-gray-text dark:text-slate-400">
                   {selectedOrderDetails.deliveryAddress || 'No delivery address provided'}
                 </p>
               </div>
@@ -732,19 +732,19 @@ export const BrokerDashboard: React.FC = () => {
 
             {/* Customer Requirements */}
             {selectedOrderDetails.customerRequirements && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">📋 Customer Requirements / Notes</p>
-                <p className="text-sm text-amber-900 font-medium">{selectedOrderDetails.customerRequirements}</p>
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+                <p className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-1">📋 Customer Requirements / Notes</p>
+                <p className="text-sm text-amber-900 dark:text-amber-200 font-medium">{selectedOrderDetails.customerRequirements}</p>
               </div>
             )}
 
 
             {/* Items Table */}
             <div>
-              <p className="text-xs font-bold text-gray-label uppercase tracking-wider mb-2">Order Line Items</p>
-              <div className="border border-gray-border rounded-xl overflow-hidden">
+              <p className="text-xs font-bold text-gray-label dark:text-slate-400 uppercase tracking-wider mb-2">Order Line Items</p>
+              <div className="border border-gray-border dark:border-slate-700 rounded-xl overflow-hidden">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-gray-50 border-b border-gray-border font-semibold text-gray-label">
+                  <thead className="bg-gray-50 dark:bg-slate-900/60 border-b border-gray-border dark:border-slate-700 font-semibold text-gray-label dark:text-slate-400">
                     <tr>
                       <th className="py-2.5 px-3">Item</th>
                       <th className="py-2.5 px-3 text-center">Qty</th>
@@ -752,28 +752,28 @@ export const BrokerDashboard: React.FC = () => {
                       <th className="py-2.5 px-3 text-right">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                     {selectedOrderDetails.items && selectedOrderDetails.items.length > 0 ? (
                       selectedOrderDetails.items.map((item, idx) => (
                         <tr key={idx}>
-                          <td className="py-2.5 px-3 font-medium text-text-primary">{item.productName}</td>
-                          <td className="py-2.5 px-3 text-center font-bold">{item.quantity}</td>
-                          <td className="py-2.5 px-3 text-right">₹{item.unitPrice.toLocaleString('en-IN')}</td>
-                          <td className="py-2.5 px-3 text-right font-bold text-emerald-600">
+                          <td className="py-2.5 px-3 font-medium text-text-primary dark:text-white">{item.productName}</td>
+                          <td className="py-2.5 px-3 text-center font-bold dark:text-slate-200">{item.quantity}</td>
+                          <td className="py-2.5 px-3 text-right dark:text-slate-300">₹{item.unitPrice.toLocaleString('en-IN')}</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
                             ₹{(item.unitPrice * item.quantity).toLocaleString('en-IN')}
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td className="py-2.5 px-3 font-medium text-text-primary">
+                        <td className="py-2.5 px-3 font-medium text-text-primary dark:text-white">
                           {selectedOrderDetails.product || 'Order Item'}
                         </td>
-                        <td className="py-2.5 px-3 text-center font-bold">{selectedOrderDetails.quantity || 1}</td>
-                        <td className="py-2.5 px-3 text-right">
+                        <td className="py-2.5 px-3 text-center font-bold dark:text-slate-200">{selectedOrderDetails.quantity || 1}</td>
+                        <td className="py-2.5 px-3 text-right dark:text-slate-300">
                           ₹{(selectedOrderDetails.totalAmount || selectedOrderDetails.amount || 0).toLocaleString('en-IN')}
                         </td>
-                        <td className="py-2.5 px-3 text-right font-bold text-emerald-600">
+                        <td className="py-2.5 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
                           ₹{(selectedOrderDetails.totalAmount || selectedOrderDetails.amount || 0).toLocaleString('en-IN')}
                         </td>
                       </tr>
@@ -784,33 +784,33 @@ export const BrokerDashboard: React.FC = () => {
             </div>
 
             {/* Payment & Settlement Breakdown */}
-            <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 space-y-3">
-              <p className="text-xs font-bold text-emerald-900 uppercase tracking-wider">
+            <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 space-y-3">
+              <p className="text-xs font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider">
                 💰 Settlement & Commission Breakdown
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
-                  <p className="text-gray-500 font-medium text-[11px]">Payment Received</p>
-                  <p className="text-sm font-bold text-slate-900 mt-0.5">
+                <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-900 shadow-2xs">
+                  <p className="text-gray-500 dark:text-slate-400 font-medium text-[11px]">Payment Received</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
                     ₹{(selectedOrderDetails.totalAmount || selectedOrderDetails.amount || 0).toLocaleString('en-IN')}
                   </p>
                 </div>
-                <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
-                  <p className="text-gray-500 font-medium text-[11px]">Platform Commission</p>
-                  <p className="text-sm font-bold text-emerald-600 mt-0.5">₹0</p>
+                <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-900 shadow-2xs">
+                  <p className="text-gray-500 dark:text-slate-400 font-medium text-[11px]">Platform Commission</p>
+                  <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">₹0</p>
                 </div>
-                <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
-                  <p className="text-gray-500 font-medium text-[11px]">Broker Amount</p>
-                  <p className="text-sm font-bold text-emerald-700 mt-0.5">
+                <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-900 shadow-2xs">
+                  <p className="text-gray-500 dark:text-slate-400 font-medium text-[11px]">Broker Amount</p>
+                  <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mt-0.5">
                     ₹{(selectedOrderDetails.totalAmount || selectedOrderDetails.amount || 0).toLocaleString('en-IN')}
                   </p>
                 </div>
-                <div className="bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs">
-                  <p className="text-gray-500 font-medium text-[11px]">Settlement Status</p>
+                <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-900 shadow-2xs">
+                  <p className="text-gray-500 dark:text-slate-400 font-medium text-[11px]">Settlement Status</p>
                   <span className={`inline-block mt-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full ${
                     (selectedOrderDetails.settlement_status === 'Settled')
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-amber-100 text-amber-800'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300'
+                      : 'bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300'
                   }`}>
                     {selectedOrderDetails.settlement_status || 'Pending Admin Settlement'}
                   </span>
@@ -819,27 +819,27 @@ export const BrokerDashboard: React.FC = () => {
             </div>
 
             {/* Payment & Order Status Control */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-border">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-border dark:border-slate-700">
               <div>
-                <p className="text-xs font-bold text-gray-label uppercase tracking-wider mb-1">Payment Info</p>
+                <p className="text-xs font-bold text-gray-label dark:text-slate-400 uppercase tracking-wider mb-1">Payment Info</p>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="font-semibold text-text-primary">{selectedOrderDetails.paymentMethod || 'Online Payment'}</span>
-                  <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-[10px]">
+                  <span className="font-semibold text-text-primary dark:text-white">{selectedOrderDetails.paymentMethod || 'Online Payment'}</span>
+                  <span className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-full text-[10px]">
                     {selectedOrderDetails.paymentStatus || 'Successful'}
                   </span>
                 </div>
                 {selectedOrderDetails.transactionId && (
-                  <p className="text-[11px] text-gray-label font-mono mt-1">Txn: {selectedOrderDetails.transactionId}</p>
+                  <p className="text-[11px] text-gray-label dark:text-slate-500 font-mono mt-1">Txn: {selectedOrderDetails.transactionId}</p>
                 )}
               </div>
 
               <div>
-                <p className="text-xs font-bold text-gray-label uppercase tracking-wider mb-1.5">Update Order Status</p>
+                <p className="text-xs font-bold text-gray-label dark:text-slate-400 uppercase tracking-wider mb-1.5">Update Order Status</p>
                 <select
                   value={selectedOrderDetails.status}
                   disabled={isUpdatingStatus}
                   onChange={(e) => handleUpdateModalOrderStatus(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                  className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
                 >
                   <option value="Pending Broker Approval">Pending Broker Approval</option>
                   <option value="Confirmed">Confirmed</option>

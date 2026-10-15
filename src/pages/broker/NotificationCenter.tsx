@@ -13,7 +13,6 @@ import {
   CheckCheck,
   ExternalLink,
   Clock,
-  Sparkles,
   Database,
   Trash2,
 } from 'lucide-react';
@@ -37,8 +36,10 @@ export const NotificationCenter: React.FC = () => {
     markAllAsRead,
     updateStatus,
     deleteNotification,
+    deleteAllNotifications,
+    deleteReadNotifications,
+    deleteNotificationsByType,
     getCustomerProfile,
-    createNotification,
   } = useNotifications();
 
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
@@ -109,24 +110,25 @@ export const NotificationCenter: React.FC = () => {
     showToast('Marked as read', 'info');
   };
 
-  const handleTestNotification = async () => {
-    await createNotification({
-      broker_id: 'broker_alex',
-      customer_id: 'cust-sarah',
-      customer_name: 'Sarah Jenkins',
-      customer_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-      type: 'call_request',
-      title: 'Urgent Callback Requested',
-      description: 'Customer requested a callback regarding immediate bulk quote for Industrial Valves.',
-      is_read: false,
-      status: 'pending',
-      metadata: {
-        phone: '+1 (555) 234-5678',
-        priority: 'High',
-        requestedTime: 'Next 10 mins'
-      }
-    });
-    showToast('Simulation: New customer call request received!', 'success');
+  const handleClearAll = async () => {
+    if (window.confirm('Are you sure you want to delete all notifications? This action cannot be undone.')) {
+      await deleteAllNotifications();
+      showToast('All notifications cleared', 'success');
+    }
+  };
+
+  const handleClearRead = async () => {
+    await deleteReadNotifications();
+    showToast('Read notifications cleared', 'info');
+  };
+
+  const handleClearCurrentCategory = async () => {
+    if (activeCategory === 'all') return;
+    const count = categoryCounts[activeCategory];
+    if (window.confirm(`Are you sure you want to delete all ${count} notification(s) in this category?`)) {
+      await deleteNotificationsByType(activeCategory);
+      showToast(`Cleared notifications in ${getCategoryLabel(activeCategory)}`, 'success');
+    }
   };
 
   const formatTimestamp = (isoString: string) => {
@@ -210,11 +212,11 @@ export const NotificationCenter: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header section - Clean Light Theme */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-border shadow-sm">
+      {/* Header section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-border dark:border-slate-700 shadow-sm">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-primary-50 text-primary">
+            <div className="p-3 rounded-xl bg-primary-50 dark:bg-emerald-950/50 text-primary dark:text-emerald-400">
               <Bell className="w-6 h-6" />
             </div>
             <div>
@@ -246,26 +248,44 @@ export const NotificationCenter: React.FC = () => {
             <span>{isLiveSupabase ? '⚡ Supabase Live Cloud' : '📁 Supabase Ready (Local Sync)'}</span>
           </div>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleTestNotification}
-            className="flex items-center gap-1.5"
-            title="Simulate an incoming customer request"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>Simulate Request</span>
-          </Button>
-
           {unreadCount > 0 && (
             <Button
               variant="secondary"
               size="sm"
-              onClick={markAllAsRead}
+              onClick={async () => {
+                await markAllAsRead();
+                showToast('All notifications marked as read', 'success');
+              }}
               className="flex items-center gap-1.5"
             >
               <CheckCheck className="w-4 h-4 text-primary" />
               <span>Mark all read ({unreadCount})</span>
+            </Button>
+          )}
+
+          {notifications.some((n) => n.is_read) && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleClearRead}
+              className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900"
+              title="Delete all read notifications"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear Read</span>
+            </Button>
+          )}
+
+          {notifications.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearAll}
+              className="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+              title="Delete all notifications"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear All</span>
             </Button>
           )}
         </div>
@@ -283,7 +303,7 @@ export const NotificationCenter: React.FC = () => {
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
                 isActive
                   ? 'bg-primary text-white shadow-md shadow-primary/25'
-                  : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-gray-border'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 border border-gray-border dark:border-slate-700'
               }`}
             >
               {cat.icon}
@@ -292,7 +312,7 @@ export const NotificationCenter: React.FC = () => {
                 className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                   isActive
                     ? 'bg-white/20 text-white'
-                    : 'bg-slate-100 text-slate-600'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                 }`}
               >
                 {count}
@@ -303,30 +323,45 @@ export const NotificationCenter: React.FC = () => {
       </div>
 
       {/* Status Filter Row */}
-      <div className="flex flex-wrap items-center gap-2.5 bg-white p-3.5 rounded-xl border border-gray-border shadow-xs">
-        <span className="text-xs text-slate-500 font-medium">Filter by status:</span>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-          className="px-3 py-2 text-sm bg-slate-50 border border-gray-border rounded-lg text-slate-800 focus:bg-white focus:border-primary outline-none transition-colors"
-        >
-          <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="accepted">Accepted</option>
-          <option value="rejected">Declined</option>
-          <option value="completed">Completed / Handled</option>
-        </select>
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-gray-border dark:border-slate-700 shadow-xs">
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Filter by status:</span>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            className="px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-gray-border dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-800 focus:border-primary outline-none transition-colors"
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="accepted">Accepted</option>
+            <option value="rejected">Declined</option>
+            <option value="completed">Completed / Handled</option>
+          </select>
+        </div>
+
+        {activeCategory !== 'all' && categoryCounts[activeCategory] > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearCurrentCategory}
+            className="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 text-xs"
+            title={`Delete all notifications in ${getCategoryLabel(activeCategory)}`}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Clear {getCategoryLabel(activeCategory)} ({categoryCounts[activeCategory]})</span>
+          </Button>
+        )}
       </div>
 
       {/* Notification Cards List */}
       <div className="space-y-3">
         {filteredNotifications.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-border p-12 text-center shadow-xs">
-            <div className="w-16 h-16 rounded-full bg-primary-50 text-primary mx-auto flex items-center justify-center mb-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 p-12 text-center shadow-xs">
+            <div className="w-16 h-16 rounded-full bg-primary-50 dark:bg-emerald-950/50 text-primary dark:text-emerald-400 mx-auto flex items-center justify-center mb-4">
               <Bell className="w-8 h-8 opacity-60" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">No notifications found</h3>
-            <p className="text-sm text-slate-500 max-w-md mx-auto">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">No notifications found</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
               {(statusFilter !== 'all' || activeCategory !== 'all')
                 ? 'No activities match your current filter criteria. Try clearing filters or switching tabs.'
                 : 'You are all caught up! When customers send messages, place orders, or make requests, they will appear here.'}
@@ -351,10 +386,10 @@ export const NotificationCenter: React.FC = () => {
             return (
               <div
                 key={notif.id}
-                className={`relative bg-white rounded-2xl border transition-all duration-200 overflow-hidden hover:shadow-md ${
+                className={`relative bg-white dark:bg-slate-800 rounded-2xl border transition-all duration-200 overflow-hidden hover:shadow-md ${
                   isUnread
-                    ? 'border-l-4 border-l-primary border-t-emerald-200/60 border-r-emerald-200/60 border-b-emerald-200/60 bg-emerald-50/20 shadow-xs'
-                    : 'border-gray-border'
+                    ? 'border-l-4 border-l-primary border-t-emerald-200/60 dark:border-t-emerald-900/60 border-r-emerald-200/60 dark:border-r-emerald-900/60 border-b-emerald-200/60 dark:border-b-emerald-900/60 bg-emerald-50/20 dark:bg-emerald-950/10 shadow-xs'
+                    : 'border-gray-border dark:border-slate-700'
                 }`}
               >
                 <div className="p-5 flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -377,7 +412,7 @@ export const NotificationCenter: React.FC = () => {
                           {notif.customer_name ? notif.customer_name.charAt(0) : 'B'}
                         </div>
                       )}
-                      <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-white shadow-xs border border-gray-border">
+                      <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-white dark:bg-slate-700 shadow-xs border border-gray-border dark:border-slate-600">
                         {getCategoryIcon(notif.type)}
                       </div>
                     </div>
@@ -387,7 +422,7 @@ export const NotificationCenter: React.FC = () => {
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <button
                           onClick={() => handleOpenProfile(notif.customer_id)}
-                          className="font-bold text-sm text-slate-900 hover:text-primary transition-colors cursor-pointer"
+                          className="font-bold text-sm text-slate-900 dark:text-white hover:text-primary dark:hover:text-emerald-400 transition-colors cursor-pointer"
                         >
                           {notif.customer_name}
                         </button>
@@ -401,18 +436,18 @@ export const NotificationCenter: React.FC = () => {
                         {isUnread && (
                           <span className="w-2 h-2 rounded-full bg-primary" />
                         )}
-                        <span className="text-xs text-slate-400 flex items-center gap-1 ml-auto md:ml-0">
+                        <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 ml-auto md:ml-0">
                           <Clock className="w-3 h-3" />
                           {formatTimestamp(notif.created_at)}
                         </span>
                       </div>
 
-                      <h4 className="font-semibold text-base text-slate-900 mb-1">
+                      <h4 className="font-semibold text-base text-slate-900 dark:text-white mb-1">
                         {notif.title}
                       </h4>
 
                       {notif.description && (
-                        <p className="text-sm text-slate-600 leading-relaxed mb-3">
+                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
                           {notif.description}
                         </p>
                       )}
@@ -421,27 +456,27 @@ export const NotificationCenter: React.FC = () => {
                       {notif.metadata && (
                         <div className="flex flex-wrap items-center gap-2 mb-2 text-xs">
                           {notif.metadata.phone && (
-                            <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-mono border border-slate-200">
+                            <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono border border-slate-200 dark:border-slate-600">
                               📞 {notif.metadata.phone}
                             </span>
                           )}
                           {notif.metadata.requestedTime && (
-                            <span className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+                            <span className="px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-medium">
                               🕒 {notif.metadata.requestedTime}
                             </span>
                           )}
                           {notif.metadata.proposedDate && (
-                            <span className="px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200 font-medium">
+                            <span className="px-2.5 py-1 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 font-medium">
                               📅 {notif.metadata.proposedDate}
                             </span>
                           )}
                           {notif.related_order_id && (
-                            <span className="px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-mono font-medium">
+                            <span className="px-2.5 py-1 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-mono font-medium">
                               🛒 Order #{notif.related_order_id}
                             </span>
                           )}
                           {notif.metadata.company && (
-                            <span className="px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium">
+                            <span className="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 font-medium">
                               🏢 {notif.metadata.company}
                             </span>
                           )}
@@ -451,16 +486,16 @@ export const NotificationCenter: React.FC = () => {
                   </div>
 
                   {/* Right: Actions */}
-                  <div className="flex flex-wrap md:flex-col items-center md:items-end justify-end gap-2 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-gray-border">
+                  <div className="flex flex-wrap md:flex-col items-center md:items-end justify-end gap-2 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-gray-border dark:border-slate-700">
                     {/* Status badge if already handled */}
                     {notif.status !== 'pending' && (
                       <span
                         className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 ${
                           notif.status === 'accepted'
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                             : notif.status === 'rejected'
-                            ? 'bg-red-100 text-red-800 border border-red-200'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                            ? 'bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
+                            : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
                         }`}
                       >
                         {notif.status === 'accepted' && <Check className="w-3.5 h-3.5" />}
@@ -502,7 +537,7 @@ export const NotificationCenter: React.FC = () => {
                                 variant="secondary"
                                 size="sm"
                                 onClick={() => handleReject(notif)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs"
                               >
                                 Decline
                               </Button>
@@ -561,7 +596,7 @@ export const NotificationCenter: React.FC = () => {
                                 variant="secondary"
                                 size="sm"
                                 onClick={() => handleReject(notif)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs"
                               >
                                 Decline
                               </Button>
@@ -583,7 +618,7 @@ export const NotificationCenter: React.FC = () => {
                                 variant="secondary"
                                 size="sm"
                                 onClick={() => handleReject(notif)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs"
                               >
                                 Decline
                               </Button>
@@ -606,7 +641,7 @@ export const NotificationCenter: React.FC = () => {
                       {/* Delete notification */}
                       <button
                         onClick={() => deleteNotification(notif.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                         title="Delete notification"
                       >
                         <Trash2 className="w-4 h-4" />

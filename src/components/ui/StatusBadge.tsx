@@ -22,7 +22,7 @@ const statusConfig: Record<string, { bg: string; text: string; dot: string }> = 
 };
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' }) => {
-  const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-text', dot: 'bg-gray-400' };
+  const config = statusConfig[status] || { bg: 'bg-gray-100 dark:bg-slate-700', text: 'text-gray-text', dot: 'bg-gray-400' };
 
   return (
     <span

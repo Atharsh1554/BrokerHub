@@ -55,6 +55,9 @@ export const ProductsPage: React.FC = () => {
 
   const handleQuickAdd = (e: React.MouseEvent, product: any) => {
     e.stopPropagation();
+    if ((product.stock ?? 0) <= 0) {
+      return; // Out of stock, button disabled via rendering anyway
+    }
     const broker = getBrokerInfo(product.brokerId);
     addToCart({
       productId: product.id,
@@ -64,6 +67,7 @@ export const ProductsPage: React.FC = () => {
       brokerName: broker.name,
       price: product.price,
       quantity: 1,
+      stock: product.stock ?? 1,
     });
     setAddedIds((prev) => ({ ...prev, [product.id]: true }));
     setTimeout(() => {
@@ -209,10 +213,10 @@ export const ProductsPage: React.FC = () => {
                     {/* Flipkart/Amazon-style Rating Badge */}
                     <div className="flex items-center gap-1.5 pt-0.5">
                       <span className="inline-flex items-center gap-0.5 bg-emerald-700 text-white font-bold px-1.5 py-0.5 rounded text-[10px] leading-none">
-                        {product.rating || 4.8} <Star size={9} className="fill-white text-white" />
+                        {product.rating ? Number(product.rating).toFixed(1) : '0.0'} <Star size={9} className="fill-white text-white" />
                       </span>
                       <span className="text-[10px] text-gray-400">
-                        ({product.reviewCount || 18})
+                        ({product.reviewCount ?? 0})
                       </span>
                     </div>
                   </div>
