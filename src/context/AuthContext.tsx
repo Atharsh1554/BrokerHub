@@ -7,11 +7,12 @@ import { resolveUserDisplayName } from '../lib/userUtils';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password?: string) => Promise<{ error: any }>;
+  signIn: (email: string, password?: string, role?: 'customer' | 'broker') => Promise<{ data?: any; error: any }>;
   signUp: (email: string, password?: string, role?: 'customer' | 'broker', fullName?: string) => Promise<{ data?: any, error: any }>;
   signInWithGoogle: (role?: 'customer' | 'broker') => Promise<void>;
   sendPhoneOtp: (phone: string, role: 'customer' | 'broker') => Promise<{ error: any }>;
-  verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: any }>;
+  verifyPhoneOtp: (phone: string, token: string, role?: 'customer' | 'broker') => Promise<{ error: any }>;
+  switchUserRole: (newRole: 'customer' | 'broker') => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateUserLocal: (data: Partial<User>) => void;
@@ -25,14 +26,16 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => {},
   sendPhoneOtp: async () => ({ error: null }),
   verifyPhoneOtp: async () => ({ error: null }),
+  switchUserRole: async () => {},
   signOut: async () => {},
   refreshUser: async () => {},
   updateUserLocal: () => {},
 });
 
 const GOOGLE_ROLE_KEY = 'brokerhub_google_role';
+const PHONE_ROLE_KEY = 'brokerhub_phone_role';
 
-/** Provisions a user profile in public.users (and public.brokers if needed) */
+/** Provisions or updates a user profile in public.users (and public.brokers if needed) */
 async function provisionProfile(authUser: SupabaseUser, requestedRole?: 'customer' | 'broker') {
   const metaRole = authUser.user_metadata?.role as 'customer' | 'broker' | undefined;
   const effectiveRequestedRole = requestedRole || metaRole || 'customer';
@@ -40,6 +43,12 @@ async function provisionProfile(authUser: SupabaseUser, requestedRole?: 'custome
   const { data: existing } = await supabase
     .from('users')
     .select('id, role')
+    .eq('id', authUser.id)
+    .maybeSingle();
+
+  const { data: existingBroker } = await supabase
+    .from('brokers')
+    .select('id')
     .eq('id', authUser.id)
     .maybeSingle();
 
@@ -51,19 +60,32 @@ async function provisionProfile(authUser: SupabaseUser, requestedRole?: 'custome
     authUser.user_metadata?.picture ||
     null;
 
-  let targetRole: 'customer' | 'broker' | 'admin' = effectiveRequestedRole;
+  let targetRole: 'customer' | 'broker' | 'admin' | 'super_admin' | 'moderator' = effectiveRequestedRole;
 
   if (existing) {
-    targetRole = existing.role || effectiveRequestedRole;
-    // Upgrade/update user role to broker if broker role was explicitly requested
-    if (effectiveRequestedRole === 'broker' && existing.role !== 'broker') {
+    if (existing.role === 'admin' || existing.role === 'super_admin' || existing.role === 'moderator') {
+      targetRole = existing.role;
+    } else if (existingBroker) {
+      targetRole = 'broker';
+      if (existing.role !== 'broker') {
+        await supabase
+          .from('users')
+          .update({ role: 'broker' })
+          .eq('id', authUser.id);
+      }
+    } else if (effectiveRequestedRole === 'broker' && existing.role !== 'broker') {
       targetRole = 'broker';
       await supabase
         .from('users')
         .update({ role: 'broker' })
         .eq('id', authUser.id);
+    } else {
+      targetRole = existing.role || effectiveRequestedRole;
     }
   } else {
+    if (existingBroker) {
+      targetRole = 'broker';
+    }
     // New user profile — use upsert so it never fails on duplicate key race conditions
     const { error } = await supabase.from('users').upsert({
       id: authUser.id,
@@ -81,21 +103,13 @@ async function provisionProfile(authUser: SupabaseUser, requestedRole?: 'custome
   }
 
   // Ensure corresponding record in public.brokers exists if targetRole is broker
-  if (targetRole === 'broker') {
-    const { data: existingBroker } = await supabase
-      .from('brokers')
-      .select('id')
-      .eq('id', authUser.id)
-      .maybeSingle();
-
-    if (!existingBroker) {
-      await supabase.from('brokers').upsert({
-        id: authUser.id,
-        name: fullName,
-        specialty: 'General Brokerage',
-        company: 'Independent Broker',
-      }, { onConflict: 'id' });
-    }
+  if (targetRole === 'broker' && !existingBroker) {
+    await supabase.from('brokers').upsert({
+      id: authUser.id,
+      name: fullName,
+      specialty: 'General Brokerage',
+      company: 'Independent Broker',
+    }, { onConflict: 'id' });
   }
 }
 
@@ -126,6 +140,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch {}
 
       if (data) {
+        let finalRole = (data.role || 'customer') as any;
+        if (finalRole === 'customer') {
+          const { data: brokerRecord } = await supabase
+            .from('brokers')
+            .select('id')
+            .eq('id', authUser.id)
+            .maybeSingle();
+          if (brokerRecord) {
+            finalRole = 'broker';
+            await supabase.from('users').update({ role: 'broker' }).eq('id', authUser.id);
+          }
+        }
+
         const resolvedName = resolveUserDisplayName(localOverride?.name || data.full_name, localOverride?.email || data.email || authUser.email);
         setUser({
           id: data.id,
@@ -140,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           landmark: data.landmark || authUser.user_metadata?.landmark || '',
           address: data.address || authUser.user_metadata?.address || '',
           avatar: localOverride?.avatar || data.avatar,
-          role: data.role || 'customer',
+          role: finalRole,
         });
       } else if (authUser) {
         // No users row yet — check if they exist in the brokers table
@@ -190,12 +217,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const switchUserRole = async (newRole: 'customer' | 'broker') => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+
+    await provisionProfile(session.user, newRole);
+    await fetchUserProfile(session.user);
+  };
+
   useEffect(() => {
     let cleanup: (() => void) | undefined;
 
     const initializeAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        const googleRole = localStorage.getItem(GOOGLE_ROLE_KEY) as 'customer' | 'broker' | null;
+        const phoneRole = localStorage.getItem(PHONE_ROLE_KEY) as 'customer' | 'broker' | null;
+        const storedRole = googleRole || phoneRole;
+
+        if (storedRole) {
+          await provisionProfile(session.user, storedRole);
+          localStorage.removeItem(GOOGLE_ROLE_KEY);
+          localStorage.removeItem(PHONE_ROLE_KEY);
+        }
         await fetchUserProfile(session.user);
       }
       setLoading(false);
@@ -203,15 +247,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, session) => {
           if (session?.user) {
-            if (event === 'SIGNED_IN') {
+            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
               const googleRole = localStorage.getItem(GOOGLE_ROLE_KEY) as 'customer' | 'broker' | null;
               const phoneRole = localStorage.getItem(PHONE_ROLE_KEY) as 'customer' | 'broker' | null;
               const userMetaRole = session.user.user_metadata?.role as 'customer' | 'broker' | undefined;
-              const storedRole = googleRole || phoneRole || userMetaRole || 'customer';
+              const storedRole = googleRole || phoneRole || userMetaRole;
 
-              await provisionProfile(session.user, storedRole);
-              localStorage.removeItem(GOOGLE_ROLE_KEY);
-              localStorage.removeItem(PHONE_ROLE_KEY);
+              if (storedRole) {
+                await provisionProfile(session.user, storedRole);
+                localStorage.removeItem(GOOGLE_ROLE_KEY);
+                localStorage.removeItem(PHONE_ROLE_KEY);
+              }
             }
             await fetchUserProfile(session.user);
           } else {
@@ -228,13 +274,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => cleanup?.();
   }, []);
 
-  const signIn = async (email: string, password?: string) => {
+  const signIn = async (email: string, password?: string, role?: 'customer' | 'broker') => {
     if (password) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      return { error };
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error && data?.user) {
+        if (role) {
+          await provisionProfile(data.user, role);
+        }
+        await fetchUserProfile(data.user);
+      }
+      return { data, error };
     } else {
-      const { error } = await supabase.auth.signInWithOtp({ email });
-      return { error };
+      const { data, error } = await supabase.auth.signInWithOtp({ email });
+      return { data, error };
     }
   };
 
@@ -280,37 +332,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const PHONE_ROLE_KEY = 'brokerhub_phone_role';
-
   const sendPhoneOtp = async (phone: string, role: 'customer' | 'broker') => {
     localStorage.setItem(PHONE_ROLE_KEY, role);
     const { error } = await supabase.auth.signInWithOtp({ phone });
     return { error };
   };
 
-  const verifyPhoneOtp = async (phone: string, token: string) => {
+  const verifyPhoneOtp = async (phone: string, token: string, role?: 'customer' | 'broker') => {
     const { data, error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
     if (!error && data.user) {
-      // Check if user profile exists in public.users
-      const { data: existingProfile } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', data.user.id)
-        .single();
-
-      if (!existingProfile) {
-        // Create profile for first-time phone login
-        const savedRole = (localStorage.getItem(PHONE_ROLE_KEY) as 'customer' | 'broker') || 'customer';
-        localStorage.removeItem(PHONE_ROLE_KEY);
-        await supabase.from('users').insert({
-          id: data.user.id,
-          email: data.user.email || `${phone.replace('+', '')}@phone.brokerhub.com`,
-          full_name: `User ${phone.slice(-4)}`,
-          phone: phone,
-          role: savedRole,
-          status: 'active',
-        });
-      }
+      const savedRole = role || (localStorage.getItem(PHONE_ROLE_KEY) as 'customer' | 'broker') || 'customer';
+      await provisionProfile(data.user, savedRole);
+      localStorage.removeItem(PHONE_ROLE_KEY);
+      await fetchUserProfile(data.user);
     }
     return { error };
   };
@@ -320,11 +354,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut({ scope: 'global' });
     setUser(null);
     // Clear any persisted state from localStorage
-    localStorage.removeItem('brokerhub_google_role');
+    localStorage.removeItem(GOOGLE_ROLE_KEY);
+    localStorage.removeItem(PHONE_ROLE_KEY);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, sendPhoneOtp, verifyPhoneOtp, signOut, refreshUser, updateUserLocal }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, sendPhoneOtp, verifyPhoneOtp, switchUserRole, signOut, refreshUser, updateUserLocal }}>
       {children}
     </AuthContext.Provider>
   );

@@ -4,16 +4,17 @@ import {
   ShieldCheck, UserCheck, Briefcase,
   CheckCircle2, ArrowRight,
   Building2, TrendingUp, Package, MessageCircle,
-  Phone, Hash
+  Phone, Hash, Mail, Lock, Eye, EyeOff
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { resolveUserDisplayName } from '../../lib/userUtils';
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
   </svg>
 );
 
@@ -31,11 +32,11 @@ const BROKER_FEATURES = [
   { icon: <TrendingUp size={16} />, text: 'Revenue & Commission Analytics' },
 ];
 
-type LoginTab = 'google' | 'phone';
+type LoginTab = 'google' | 'phone' | 'email';
 type PhoneStep = 'enter' | 'verify';
 
 export const LoginPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialRole = (searchParams.get('role') as 'customer' | 'broker') || 'customer';
 
   const [role, setRole] = useState<'customer' | 'broker'>(initialRole);
@@ -49,20 +50,39 @@ export const LoginPage: React.FC = () => {
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
+  // Email & Password state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isEmailSubmitting, setIsEmailSubmitting] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+
   // Google state
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Role switch state
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  const { sendPhoneOtp, verifyPhoneOtp, signInWithGoogle, user } = useAuth();
+  const { sendPhoneOtp, verifyPhoneOtp, signInWithGoogle, signIn, signOut, switchUserRole, user } = useAuth();
   const navigate = useNavigate();
 
+  // Sync role with query param
   useEffect(() => {
-    if (user) {
-      navigate(user.role === 'broker' ? '/broker/dashboard' : '/customer/dashboard');
+    const qRole = searchParams.get('role') as 'customer' | 'broker' | null;
+    if (qRole === 'broker' || qRole === 'customer') {
+      setRole(qRole);
     }
-  }, [user, navigate]);
+  }, [searchParams]);
+
+  // Navigate only if authenticated with matching role
+  useEffect(() => {
+    if (user && user.role === role) {
+      navigate(user.role === 'broker' ? '/broker/dashboard' : '/customer/dashboard', { replace: true });
+    }
+  }, [user, role, navigate]);
 
   // Resend countdown timer
   useEffect(() => {
@@ -71,6 +91,14 @@ export const LoginPage: React.FC = () => {
       return () => clearTimeout(t);
     }
   }, [resendTimer]);
+
+  const handleRoleChange = (newRole: 'customer' | 'broker') => {
+    setRole(newRole);
+    setPhoneStep('enter');
+    setErrorMsg('');
+    setSuccessMsg('');
+    setSearchParams({ role: newRole }, { replace: true });
+  };
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
@@ -88,10 +116,9 @@ export const LoginPage: React.FC = () => {
     setErrorMsg('');
     if (!phone.trim()) { setErrorMsg('Please enter your phone number.'); return; }
 
-    // Format phone: ensure it starts with +91 or user's country code
     let formattedPhone = phone.trim().replace(/\s/g, '');
     if (!formattedPhone.startsWith('+')) {
-      formattedPhone = '+91' + formattedPhone; // default India code
+      formattedPhone = '+91' + formattedPhone;
     }
 
     setPhoneLoading(true);
@@ -114,13 +141,33 @@ export const LoginPage: React.FC = () => {
     if (!otp.trim() || otp.length < 6) { setErrorMsg('Enter the 6-digit OTP.'); return; }
 
     setOtpLoading(true);
-    const { error } = await verifyPhoneOtp(phone, otp);
+    const { error } = await verifyPhoneOtp(phone, otp, role);
     setOtpLoading(false);
 
     if (error) {
       setErrorMsg(error.message || 'Invalid OTP. Please try again.');
+    } else {
+      navigate(role === 'broker' ? '/broker/dashboard' : '/customer/dashboard', { replace: true });
     }
-    // On success, AuthContext will update user and the useEffect above redirects
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    if (!email.trim() || !password.trim()) {
+      setErrorMsg('Please enter both email and password.');
+      return;
+    }
+
+    setIsEmailSubmitting(true);
+    const { error } = await signIn(email.trim(), password, role);
+    setIsEmailSubmitting(false);
+
+    if (error) {
+      setErrorMsg(error.message || 'Sign in failed. Please check your credentials.');
+    } else {
+      navigate(role === 'broker' ? '/broker/dashboard' : '/customer/dashboard', { replace: true });
+    }
   };
 
   const handleResendOtp = async () => {
@@ -225,7 +272,7 @@ export const LoginPage: React.FC = () => {
             <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
               <button
                 type="button"
-                onClick={() => { setRole('customer'); setPhoneStep('enter'); setErrorMsg(''); setSuccessMsg(''); }}
+                onClick={() => handleRoleChange('customer')}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
                   isCustomer ? 'bg-white text-teal-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'
                 }`}
@@ -234,7 +281,7 @@ export const LoginPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => { setRole('broker'); setPhoneStep('enter'); setErrorMsg(''); setSuccessMsg(''); }}
+                onClick={() => handleRoleChange('broker')}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
                   !isCustomer ? 'bg-white text-indigo-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'
                 }`}
@@ -243,12 +290,55 @@ export const LoginPage: React.FC = () => {
               </button>
             </div>
 
+            {/* If user is currently signed in under a different role */}
+            {user && user.role !== role && (
+              <div className={`p-4 rounded-2xl border space-y-3 ${
+                role === 'broker' ? 'bg-indigo-50 border-indigo-200 text-indigo-950' : 'bg-teal-50 border-teal-200 text-teal-950'
+              }`}>
+                <div className="flex items-center gap-2.5">
+                  <UserCheck size={18} className={role === 'broker' ? 'text-indigo-600' : 'text-teal-600'} />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold truncate">
+                      Currently signed in as: {resolveUserDisplayName(user.fullName, user.email)}
+                    </p>
+                    <p className="text-[11px] opacity-80 capitalize">
+                      Active session role: {user.role}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={isSwitchingRole}
+                    onClick={async () => {
+                      setIsSwitchingRole(true);
+                      await switchUserRole(role);
+                      setIsSwitchingRole(false);
+                      navigate(role === 'broker' ? '/broker/dashboard' : '/customer/dashboard', { replace: true });
+                    }}
+                    className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold text-white transition-all cursor-pointer shadow-xs disabled:opacity-60 ${btnClass}`}
+                  >
+                    {isSwitchingRole ? 'Switching workspace…' : `Switch to ${role === 'broker' ? 'Broker' : 'Customer'} Workspace`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await signOut();
+                    }}
+                    className="w-full py-2 px-3 rounded-xl text-xs font-semibold text-gray-600 hover:bg-white/80 transition-colors cursor-pointer border border-gray-300"
+                  >
+                    Sign Out to Use Another Account
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Sign-in Method Tabs */}
-            <div className="flex rounded-xl overflow-hidden border border-gray-200">
+            <div className="flex rounded-xl overflow-hidden border border-gray-200 text-xs font-bold">
               <button
                 type="button"
                 onClick={() => { setTab('google'); setErrorMsg(''); setSuccessMsg(''); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold transition-colors cursor-pointer ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-colors cursor-pointer ${
                   tab === 'google'
                     ? isCustomer ? 'bg-teal-600 text-white' : 'bg-indigo-600 text-white'
                     : 'bg-white text-gray-500 hover:bg-gray-50'
@@ -259,13 +349,24 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setTab('phone'); setErrorMsg(''); setSuccessMsg(''); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold transition-colors cursor-pointer border-l border-gray-200 ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-colors cursor-pointer border-l border-gray-200 ${
                   tab === 'phone'
                     ? isCustomer ? 'bg-teal-600 text-white' : 'bg-indigo-600 text-white'
                     : 'bg-white text-gray-500 hover:bg-gray-50'
                 }`}
               >
                 <Phone size={14} /> Phone / SMS
+              </button>
+              <button
+                type="button"
+                onClick={() => { setTab('email'); setErrorMsg(''); setSuccessMsg(''); }}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-colors cursor-pointer border-l border-gray-200 ${
+                  tab === 'email'
+                    ? isCustomer ? 'bg-teal-600 text-white' : 'bg-indigo-600 text-white'
+                    : 'bg-white text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                <Mail size={14} /> Email
               </button>
             </div>
 
@@ -296,7 +397,7 @@ export const LoginPage: React.FC = () => {
                   {isGoogleLoading ? 'Redirecting…' : `Continue as ${isCustomer ? 'Customer' : 'Broker'} with Google`}
                 </button>
                 <p className="text-center text-xs text-gray-400">
-                  Secure sign-in via your Google account. No password required.
+                  Secure sign-in via your Google account. Role is verified automatically.
                 </p>
               </div>
             )}
@@ -342,7 +443,7 @@ export const LoginPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => { setPhoneStep('enter'); setOtp(''); setErrorMsg(''); setSuccessMsg(''); }}
-                        className="text-xs text-teal-600 hover:underline mt-1"
+                        className="text-xs text-teal-600 hover:underline mt-1 cursor-pointer"
                       >
                         Change number
                       </button>
@@ -373,7 +474,7 @@ export const LoginPage: React.FC = () => {
                       {otpLoading ? (
                         <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                       ) : <ArrowRight size={16} />}
-                      {otpLoading ? 'Verifying…' : 'Verify & Sign In'}
+                      {otpLoading ? 'Verifying…' : `Verify & Sign In as ${isCustomer ? 'Customer' : 'Broker'}`}
                     </button>
                     <div className="text-center">
                       {resendTimer > 0 ? (
@@ -394,6 +495,78 @@ export const LoginPage: React.FC = () => {
               </div>
             )}
 
+            {/* ── Email & Password Tab ── */}
+            {tab === 'email' && (
+              <form onSubmit={handleEmailSignIn} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={`your@${isCustomer ? 'email' : 'brokerage'}.com`}
+                      className="w-full pl-10 pr-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-10 pr-10 py-3 bg-white text-gray-900 border border-gray-300 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    <span>Remember me</span>
+                  </label>
+                  <a href="#" className="font-semibold text-teal-700 hover:underline">
+                    Forgot password?
+                  </a>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isEmailSubmitting}
+                  className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer ${btnClass}`}
+                >
+                  {isEmailSubmitting ? (
+                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : <ArrowRight size={16} />}
+                  {isEmailSubmitting ? 'Signing in…' : `Sign In as ${isCustomer ? 'Customer' : 'Broker'}`}
+                </button>
+              </form>
+            )}
+
             {/* Footer links */}
             <div className="text-center space-y-2 pt-1">
               <p className="text-xs text-gray-500">
@@ -405,7 +578,7 @@ export const LoginPage: React.FC = () => {
               {isCustomer && (
                 <p className="text-xs text-gray-400">
                   Are you a broker?{' '}
-                  <button type="button" onClick={() => setRole('broker')} className="text-indigo-600 font-semibold hover:underline cursor-pointer">
+                  <button type="button" onClick={() => handleRoleChange('broker')} className="text-indigo-600 font-semibold hover:underline cursor-pointer">
                     Switch to Broker Login
                   </button>
                 </p>
@@ -413,7 +586,7 @@ export const LoginPage: React.FC = () => {
               {!isCustomer && (
                 <p className="text-xs text-gray-400">
                   Looking as a customer?{' '}
-                  <button type="button" onClick={() => setRole('customer')} className="text-teal-700 font-semibold hover:underline cursor-pointer">
+                  <button type="button" onClick={() => handleRoleChange('customer')} className="text-teal-700 font-semibold hover:underline cursor-pointer">
                     Switch to Customer Login
                   </button>
                 </p>

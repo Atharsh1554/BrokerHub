@@ -18,6 +18,7 @@ import type { Order, Broker, Product } from '../../types';
 import { useAdminTheme } from '../../context/AdminThemeContext';
 import { getAdminOrders, getAdminBrokers } from '../../lib/api/admin';
 import { getProducts } from '../../lib/api/products';
+import { supabase } from '../../lib/supabase';
 import { formatRupeeCompact, formatRupeeExact } from '../../lib/api/orders';
 
 export const AdminAnalytics: React.FC = () => {
@@ -30,7 +31,6 @@ export const AdminAnalytics: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
-    setLoading(true);
     try {
       const [oData, bData, pData] = await Promise.all([
         getAdminOrders(),
@@ -49,6 +49,31 @@ export const AdminAnalytics: React.FC = () => {
 
   useEffect(() => {
     loadData();
+
+    const channel = supabase
+      .channel('admin_analytics_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'brokers' }, () => {
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    const interval = setInterval(() => {
+      loadData();
+    }, 15000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
   }, []);
 
   // Compute Revenue Over Time Chart

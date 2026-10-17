@@ -14,13 +14,10 @@ import { useAuth } from '../../context/AuthContext';
  */
 export const AuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, switchUserRole } = useAuth();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // With detectSessionInUrl=true, Supabase automatically exchanges the PKCE code.
-    // We just wait for the AuthContext to set the user or timeout if it fails.
-    
     // Safety: if user never gets set after 12s, go to login
     timeoutRef.current = setTimeout(() => {
       navigate('/login', { replace: true });
@@ -33,15 +30,36 @@ export const AuthCallbackPage: React.FC = () => {
 
   // Step 2: Navigate once AuthContext confirms the user
   useEffect(() => {
-    if (!loading && user) {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      const destination =
-        user.role === 'broker' ? '/broker/dashboard'
-        : user.role === 'admin' ? '/admin/dashboard'
-        : '/customer/dashboard';
-      navigate(destination, { replace: true });
-    }
-  }, [user, loading, navigate]);
+    const handleNavigation = async () => {
+      if (!loading && user) {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        const googleRole = localStorage.getItem('brokerhub_google_role') as 'customer' | 'broker' | null;
+        const phoneRole = localStorage.getItem('brokerhub_phone_role') as 'customer' | 'broker' | null;
+        const requestedRole = googleRole || phoneRole;
+
+        if (requestedRole === 'broker' && user.role !== 'broker' && user.role !== 'admin') {
+          // Switch user role to broker before redirecting
+          await switchUserRole('broker');
+          localStorage.removeItem('brokerhub_google_role');
+          localStorage.removeItem('brokerhub_phone_role');
+          navigate('/broker/dashboard', { replace: true });
+          return;
+        }
+
+        const effectiveRole = requestedRole || user.role;
+        localStorage.removeItem('brokerhub_google_role');
+        localStorage.removeItem('brokerhub_phone_role');
+
+        const destination =
+          effectiveRole === 'broker' ? '/broker/dashboard'
+          : effectiveRole === 'admin' ? '/admin/dashboard'
+          : '/customer/dashboard';
+        navigate(destination, { replace: true });
+      }
+    };
+
+    handleNavigation();
+  }, [user, loading, navigate, switchUserRole]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-bg">

@@ -18,6 +18,7 @@ import {
 import { getAdminKpis, getAdminOrders, getAdminBrokers } from '../../lib/api/admin';
 import { getProducts } from '../../lib/api/products';
 import { useApp } from '../../context/AppContext';
+import { supabase } from '../../lib/supabase';
 import type { AdminKpis, Order, Broker, Product } from '../../types';
 import { useAdminTheme } from '../../context/AdminThemeContext';
 import { formatRupeeExact, updateOrderStatusInDB } from '../../lib/api/orders';
@@ -30,6 +31,8 @@ export const AdminDashboard: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedBrokerModal, setSelectedBrokerModal] = useState<Broker | null>(null);
   const { theme } = useAdminTheme();
@@ -56,6 +59,7 @@ export const AdminDashboard: React.FC = () => {
       setOrders(combined);
       setBrokers(brokersData);
       setProducts(productsData);
+      setLastSyncTime(new Date());
     } catch (err) {
       console.error('Error loading admin dashboard:', err);
     } finally {
@@ -66,6 +70,48 @@ export const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData();
+
+    // Supabase Real-time updates: instantly re-calculate revenue on any order, item, payment, broker or product change
+    const channel = supabase
+      .channel('admin_dashboard_realtime_metrics')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        loadDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        loadDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        loadDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'brokers' }, () => {
+        loadDashboardData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        loadDashboardData();
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsLiveConnected(true);
+        }
+      });
+
+    // 10s polling interval to guarantee revenue metrics remain fresh even across network blips
+    const interval = setInterval(() => {
+      loadDashboardData();
+    }, 10000);
+
+    const handleWindowStorage = () => {
+      loadDashboardData();
+    };
+    window.addEventListener('storage', handleWindowStorage);
+    window.addEventListener('brokerhub_order_updated', handleWindowStorage);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+      window.removeEventListener('storage', handleWindowStorage);
+      window.removeEventListener('brokerhub_order_updated', handleWindowStorage);
+    };
   }, []);
 
   useEffect(() => {
@@ -86,13 +132,15 @@ export const AdminDashboard: React.FC = () => {
     loadDashboardData();
   };
 
-  // 1. Calculate Time-Filtered Platform Revenue Metrics
+  // 1. Calculate Real-Time Time-Filtered Platform Revenue Metrics
   const platformRevenueMetrics = useMemo(() => {
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const weekAgo = new Date(now);
-    weekAgo.setDate(now.getDate() - 7);
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const todayYear = now.getFullYear();
+    const todayMonth = now.getMonth();
+    const todayDate = now.getDate();
+
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(todayYear, todayMonth, 1);
 
     let totalRev = 0;
     let todayRev = 0;
@@ -112,12 +160,12 @@ export const AdminDashboard: React.FC = () => {
       const o = order as any;
       const statusLower = (order.status || '').toLowerCase();
 
-      if (statusLower.includes('pending')) {
-        pendingCount++;
-      } else if (statusLower.includes('cancel')) {
+      if (statusLower.includes('cancel')) {
         cancelledCount++;
       } else if (statusLower.includes('refund')) {
         refundedCount++;
+      } else if (statusLower.includes('pending')) {
+        pendingCount++;
       } else {
         successfulCount++;
       }
@@ -126,21 +174,43 @@ export const AdminDashboard: React.FC = () => {
         continue;
       }
 
-      const val = order.totalAmount ?? order.amount ?? 0;
-      totalRev += val;
-      totalCommission += (o.platform_commission ?? 0);
-      totalBrokerPayable += (o.broker_amount ?? val);
+      const val = Number(order.totalAmount ?? order.amount ?? 0);
+      const commission = Number(o.platform_commission ?? 0);
+      const brokerPayable = Number(
+        o.broker_amount !== undefined && o.broker_amount !== null
+          ? o.broker_amount
+          : val - commission
+      );
 
-      if ((o.settlement_status || 'Pending') === 'Settled') completedSettlements++;
-      else pendingSettlements++;
+      totalRev += val;
+      totalCommission += commission;
+      totalBrokerPayable += brokerPayable;
+
+      const settStatus = (o.settlement_status || '').toLowerCase();
+      if (settStatus === 'settled') {
+        completedSettlements++;
+      } else {
+        pendingSettlements++;
+      }
 
       const orderDateStr = order.createdAt || order.date;
       if (orderDateStr) {
         const orderDate = new Date(orderDateStr);
         if (!isNaN(orderDate.getTime())) {
-          if (orderDateStr.split('T')[0] === todayStr) todayRev += val;
-          if (orderDate >= weekAgo) weekRev += val;
-          if (orderDate >= startOfMonth) monthRev += val;
+          // Check today's date in local user timezone
+          if (
+            orderDate.getFullYear() === todayYear &&
+            orderDate.getMonth() === todayMonth &&
+            orderDate.getDate() === todayDate
+          ) {
+            todayRev += val;
+          }
+          if (orderDate >= weekAgo) {
+            weekRev += val;
+          }
+          if (orderDate >= startOfMonth) {
+            monthRev += val;
+          }
         }
       }
     }
@@ -162,7 +232,7 @@ export const AdminDashboard: React.FC = () => {
     };
   }, [orders]);
 
-  // 2. Calculate Broker Performance Table
+  // 2. Calculate Real-Time Broker Performance Table
   const brokerPerformanceList = useMemo(() => {
     const map: Record<
       string,
@@ -185,7 +255,7 @@ export const AdminDashboard: React.FC = () => {
         brokerId: b.id,
         name: b.name,
         company: b.company || b.specialty || 'Broker Hub Network',
-        productsCount: bProds.length,
+        productsCount: b.totalProducts ?? bProds.length,
         ordersCount: 0,
         unitsSold: 0,
         revenue: 0,
@@ -195,23 +265,56 @@ export const AdminDashboard: React.FC = () => {
     }
 
     for (const order of orders) {
+      const o = order as any;
       const statusLower = (order.status || '').toLowerCase();
-      const bId = order.brokerId;
-      if (!bId || !map[bId]) continue;
+      if (statusLower.includes('cancel') || statusLower.includes('fail') || statusLower.includes('refund')) continue;
 
-      map[bId].ordersCount += 1;
+      const val = Number(order.totalAmount ?? order.amount ?? 0);
 
-      if (statusLower.includes('pending')) {
-        map[bId].pendingOrders += 1;
-      } else if (!statusLower.includes('cancel') && !statusLower.includes('refund')) {
-        map[bId].completedOrders += 1;
-        const val = order.totalAmount ?? order.amount ?? 0;
-        map[bId].revenue += val;
+      // Check item-level brokers first
+      if (order.items && order.items.length > 0) {
+        let itemsAttributed = false;
+        for (const item of order.items) {
+          const itemBId = item.brokerId || o.broker_id || order.brokerId;
+          const targetBroker =
+            (itemBId && map[itemBId]) ||
+            Object.values(map).find(
+              (b) => b.name.toLowerCase() === (item.brokerName || order.brokerName || '').toLowerCase()
+            );
+          if (targetBroker) {
+            const qty = item.quantity || 1;
+            targetBroker.revenue += (item.unitPrice || 0) * qty;
+            targetBroker.unitsSold += qty;
+            itemsAttributed = true;
+          }
+        }
+        if (itemsAttributed) {
+          const mainBId = o.broker_id || order.brokerId;
+          const target =
+            (mainBId && map[mainBId]) ||
+            Object.values(map).find((b) => b.name.toLowerCase() === (order.brokerName || '').toLowerCase());
+          if (target) {
+            target.ordersCount += 1;
+            if (statusLower.includes('pending')) target.pendingOrders += 1;
+            else target.completedOrders += 1;
+          }
+          continue;
+        }
+      }
 
-        if (order.items) {
-          map[bId].unitsSold += order.items.reduce((s, i) => s + (i.quantity || 1), 0);
+      // Order-level attribution
+      const bId = o.broker_id || order.brokerId;
+      const target =
+        (bId && map[bId]) ||
+        Object.values(map).find((b) => b.name.toLowerCase() === (order.brokerName || '').toLowerCase());
+      if (target) {
+        target.ordersCount += 1;
+        if (statusLower.includes('pending')) {
+          target.pendingOrders += 1;
         } else {
-          map[bId].unitsSold += order.quantity || 1;
+          target.completedOrders += 1;
+          target.revenue += val;
+          target.unitsSold += order.quantity || 1;
         }
       }
     }
@@ -219,7 +322,7 @@ export const AdminDashboard: React.FC = () => {
     return Object.values(map).sort((a, b) => b.revenue - a.revenue);
   }, [brokers, orders, products]);
 
-  // 3. Calculate Product Performance Table
+  // 3. Calculate Real-Time Product Performance Table
   const productPerformanceList = useMemo(() => {
     const map: Record<
       string,
@@ -258,7 +361,7 @@ export const AdminDashboard: React.FC = () => {
             map[key] = {
               id: item.productId || key,
               name: item.productName,
-              brokerName: order.brokerName || 'Verified Broker',
+              brokerName: item.brokerName || order.brokerName || 'Verified Broker',
               price: item.unitPrice,
               unitsSold: 0,
               revenue: 0,
@@ -268,9 +371,26 @@ export const AdminDashboard: React.FC = () => {
 
           const qty = item.quantity || 1;
           map[key].unitsSold += qty;
-          map[key].revenue += item.unitPrice * qty;
+          map[key].revenue += (item.unitPrice || 0) * qty;
           map[key].ordersCount += 1;
         }
+      } else if (order.product) {
+        const key = order.product.toLowerCase();
+        if (!map[key]) {
+          map[key] = {
+            id: order.id,
+            name: order.product,
+            brokerName: order.brokerName || 'Verified Broker',
+            price: (order.totalAmount || order.amount || 0) / (order.quantity || 1),
+            unitsSold: 0,
+            revenue: 0,
+            ordersCount: 0,
+          };
+        }
+        const qty = order.quantity || 1;
+        map[key].unitsSold += qty;
+        map[key].revenue += Number(order.totalAmount || order.amount || 0);
+        map[key].ordersCount += 1;
       }
     }
 
@@ -321,15 +441,28 @@ export const AdminDashboard: React.FC = () => {
         }`}
       >
         <div className="relative z-10 space-y-1">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="text-xs font-bold text-emerald-300 tracking-wider uppercase">Live Real-Time Control Center</span>
+            <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${
+              isLiveConnected
+                ? 'bg-emerald-400/20 text-emerald-200 border-emerald-400/30'
+                : 'bg-amber-400/20 text-amber-200 border-amber-400/30'
+            }`}>
+              {isLiveConnected ? '⚡ Live Cloud Sync Active' : 'Connecting Live DB...'}
+            </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">BROKER HUB Admin Control Center</h1>
-          <p className="text-xs text-emerald-100/80">Monitoring platform revenue, broker performance, products, and customer orders.</p>
+          <p className="text-xs text-emerald-100/80">Monitoring platform revenue, broker performance, products, and customer orders in real time.</p>
         </div>
 
-        <div className="flex items-center space-x-3 relative z-10 flex-wrap">
+        <div className="flex items-center space-x-3 relative z-10 flex-wrap gap-y-2">
+          <div className="hidden sm:flex flex-col text-right">
+            <span className="text-[10px] text-emerald-200/80 font-medium">Auto-synced</span>
+            <span className="text-[10px] text-emerald-300 font-mono font-bold">
+              {lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          </div>
           <button
             onClick={handleRefresh}
             disabled={refreshing}

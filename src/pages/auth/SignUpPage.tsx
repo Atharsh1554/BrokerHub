@@ -94,11 +94,13 @@ export const SignUpPage: React.FC = () => {
     if (!otp.trim() || otp.length < 6) { setErrorMsg('Enter the 6-digit OTP.'); return; }
 
     setOtpLoading(true);
-    const { error } = await verifyPhoneOtp(phone, otp);
+    const { error } = await verifyPhoneOtp(phone, otp, accountType);
     setOtpLoading(false);
 
     if (error) {
       setErrorMsg(error.message || 'Invalid OTP. Please try again.');
+    } else {
+      navigate(accountType === 'broker' ? '/broker/dashboard' : '/customer/dashboard', { replace: true });
     }
   };
 

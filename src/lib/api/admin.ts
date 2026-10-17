@@ -321,7 +321,12 @@ export const getAdminKpis = async (): Promise<AdminKpis> => {
   const completedOrders = ordersList.filter(o => o.status === 'Delivered' || o.status === 'COMPLETED').length;
   const cancelledOrders = ordersList.filter(o => o.status === 'Cancelled').length;
 
-  const totalRevenue = ordersList.reduce((acc, o) => acc + (o.amount || o.totalAmount || 0), 0);
+  const totalRevenue = ordersList
+    .filter((o) => {
+      const st = (o.status || '').toLowerCase();
+      return !st.includes('cancel') && !st.includes('refund') && !st.includes('fail');
+    })
+    .reduce((acc, o) => acc + Number(o.amount || o.total_amount || 0), 0);
   const pendingPayments = initialPayments.filter(p => p.status === 'Pending').length;
   const completedPayments = initialPayments.filter(p => p.status === 'Successful').length;
 
@@ -392,32 +397,89 @@ export const updateCustomerStatus = async (customerId: string, status: 'active' 
   await logAdminActivity(`Customer Status Change`, `Customer ID: ${customerId} → ${status}`);
 };
 
-// 3. Fetch Brokers
+// 3. Fetch Brokers with Real-Time Stats
 export const getAdminBrokers = async (): Promise<Broker[]> => {
   try {
-    const { data } = await supabase.from('brokers').select('*, users(full_name, email, phone, avatar)');
-    if (data && data.length > 0) {
-      return data.map(b => ({
-        id: b.id,
-        name: b.name || b.users?.full_name || 'Broker Name',
-        specialty: b.specialty || 'General Brokerage',
-        company: b.company || 'Independent',
-        avatar: b.users?.avatar || b.avatar,
-        location: b.location || 'India',
-        status: b.status || 'Under Review',
-        rating: b.rating || 4.5,
-        reviewCount: b.review_count || 12,
-        description: b.description || '',
-        email: b.users?.email || 'broker@brokerhub.com',
-        phone: b.users?.phone || '+91 98000 00000',
-        totalProducts: 8,
-        totalOrders: 24,
-        totalSales: 350000,
-        createdAt: b.created_at || '2026-01-10',
-      }));
+    const [brokersRes, productsRes, ordersRes] = await Promise.all([
+      supabase.from('brokers').select('*, users(full_name, email, phone, avatar)'),
+      supabase.from('products').select('id, broker_id'),
+      supabase.from('orders').select('id, broker_id, broker_name, total_amount, amount, status, order_items(id, broker_id, unit_price, quantity)'),
+    ]);
+
+    const brokersData = brokersRes.data || [];
+    const productsData = productsRes.data || [];
+    const ordersData = ordersRes.data || [];
+
+    // Map stats by broker id
+    const statsMap: Record<string, { productsCount: number; ordersCount: number; sales: number }> = {};
+    for (const b of brokersData) {
+      statsMap[b.id] = { productsCount: 0, ordersCount: 0, sales: 0 };
     }
-  } catch {
-    // Fallback
+
+    // Count real products
+    for (const p of productsData) {
+      if (p.broker_id && statsMap[p.broker_id]) {
+        statsMap[p.broker_id].productsCount++;
+      }
+    }
+
+    // Compute real orders and sales
+    for (const o of ordersData) {
+      const statusLower = (o.status || '').toLowerCase();
+      if (statusLower.includes('cancel') || statusLower.includes('refund') || statusLower.includes('fail')) {
+        continue;
+      }
+
+      const orderVal = Number(o.total_amount ?? o.amount ?? 0);
+      const items = o.order_items || [];
+      let itemAttributed = false;
+
+      if (items.length > 0) {
+        for (const it of items) {
+          const itBId = it.broker_id || o.broker_id;
+          if (itBId && statsMap[itBId]) {
+            statsMap[itBId].sales += Number(it.unit_price || 0) * Number(it.quantity || 1);
+            itemAttributed = true;
+          }
+        }
+        if (itemAttributed && o.broker_id && statsMap[o.broker_id]) {
+          statsMap[o.broker_id].ordersCount++;
+          continue;
+        }
+      }
+
+      const bId = o.broker_id;
+      if (bId && statsMap[bId]) {
+        statsMap[bId].sales += orderVal;
+        statsMap[bId].ordersCount++;
+      }
+    }
+
+    if (brokersData && brokersData.length > 0) {
+      return brokersData.map((b) => {
+        const stats = statsMap[b.id] || { productsCount: 0, ordersCount: 0, sales: 0 };
+        return {
+          id: b.id,
+          name: b.name || b.users?.full_name || 'Broker Name',
+          specialty: b.specialty || 'General Brokerage',
+          company: b.company || 'Independent',
+          avatar: b.users?.avatar || b.avatar,
+          location: b.location || 'India',
+          status: b.status || 'Under Review',
+          rating: b.rating ?? 0,
+          reviewCount: b.review_count ?? 0,
+          description: b.description || '',
+          email: b.users?.email || 'broker@brokerhub.com',
+          phone: b.users?.phone || '+91 98000 00000',
+          totalProducts: stats.productsCount,
+          totalOrders: stats.ordersCount,
+          totalSales: stats.sales,
+          createdAt: b.created_at || '2026-01-10',
+        };
+      });
+    }
+  } catch (err) {
+    console.error('Error fetching admin brokers with real-time stats:', err);
   }
 
   return [];
@@ -608,6 +670,14 @@ export const getAdminOrders = async (): Promise<Order[]> => {
           status: o.status || 'Pending',
           product: productSummary,
           items,
+          platform_commission: Number(o.platform_commission ?? 0),
+          broker_amount: Number(o.broker_amount ?? (o.total_amount || o.amount || 0)),
+          commission_type: o.commission_type || 'NONE',
+          commission_value: Number(o.commission_value ?? 0),
+          razorpay_order_id: o.razorpay_order_id || null,
+          razorpay_payment_id: o.razorpay_payment_id || null,
+          settlement_status: o.settlement_status || 'Pending',
+          settlement_date: o.settlement_date || null,
         } as Order;
       });
     }

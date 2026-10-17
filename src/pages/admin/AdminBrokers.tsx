@@ -8,6 +8,7 @@ import {
   X,
 } from 'lucide-react';
 import { getAdminBrokers, updateBrokerStatus } from '../../lib/api/admin';
+import { supabase } from '../../lib/supabase';
 import type { Broker } from '../../types';
 import { useAdminTheme } from '../../context/AdminThemeContext';
 
@@ -29,7 +30,6 @@ export const AdminBrokers: React.FC = () => {
   const isLight = theme === 'light';
 
   const fetchBrokers = async () => {
-    setLoading(true);
     const data = await getAdminBrokers();
     setBrokers(data);
     setLoading(false);
@@ -37,6 +37,32 @@ export const AdminBrokers: React.FC = () => {
 
   useEffect(() => {
     fetchBrokers();
+
+    // Real-time subscription: refresh broker sales & listings when orders or products change
+    const channel = supabase
+      .channel('admin_brokers_realtime_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchBrokers();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        fetchBrokers();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        fetchBrokers();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'brokers' }, () => {
+        fetchBrokers();
+      })
+      .subscribe();
+
+    const interval = setInterval(() => {
+      fetchBrokers();
+    }, 15000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleConfirmStatusUpdate = async () => {
@@ -81,6 +107,12 @@ export const AdminBrokers: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center space-x-3">
+          <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold ${
+            isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+          }`}>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Real-Time Live
+          </span>
           <span className={`px-3 py-1.5 rounded-xl border text-xs font-bold ${
             isLight ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
           }`}>
@@ -182,8 +214,8 @@ export const AdminBrokers: React.FC = () => {
                         <span className={`text-[10px] font-normal ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>({b.reviewCount})</span>
                       </div>
                     </td>
-                    <td className={`py-3.5 px-4 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{b.totalProducts || 5} products</td>
-                    <td className={`py-3.5 px-4 font-bold ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>₹{(b.totalSales || 250000).toLocaleString('en-IN')}</td>
+                    <td className={`py-3.5 px-4 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{b.totalProducts ?? 0} products</td>
+                    <td className={`py-3.5 px-4 font-bold ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>₹{(b.totalSales ?? 0).toLocaleString('en-IN')}</td>
                     <td className="py-3.5 px-4">
                       <span
                         className={`px-2.5 py-1 rounded-full text-[10px] font-bold capitalize border ${
@@ -311,7 +343,7 @@ export const AdminBrokers: React.FC = () => {
                 isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'
               }`}>
                 <span className={`font-medium ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Total Sales Volume</span>
-                <p className="font-bold text-emerald-600">₹{(selectedBroker.totalSales || 350000).toLocaleString('en-IN')}</p>
+                <p className="font-bold text-emerald-600">₹{(selectedBroker.totalSales ?? 0).toLocaleString('en-IN')}</p>
               </div>
             </div>
 

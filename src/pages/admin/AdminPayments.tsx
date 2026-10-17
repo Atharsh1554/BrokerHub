@@ -91,6 +91,26 @@ export const AdminPayments: React.FC = () => {
   useEffect(() => {
     fetchGatewayPayments();
     fetchSettlementOrders();
+
+    const channel = supabase
+      .channel('admin_payments_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchSettlementOrders();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        fetchGatewayPayments();
+      })
+      .subscribe();
+
+    const interval = setInterval(() => {
+      fetchSettlementOrders();
+      fetchGatewayPayments();
+    }, 15000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
   }, [fetchSettlementOrders]);
 
   // Handle Mark as Settled
