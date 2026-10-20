@@ -12,44 +12,23 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<ThemeMode>(() => {
-    try {
-      return (localStorage.getItem('brokerhub_theme') as ThemeMode) || 'system';
-    } catch {
-      return 'system';
-    }
-  });
+  // Enforce light theme only across customer and broker application
+  const [theme] = useState<ThemeMode>('light');
+  const resolvedTheme: 'light' | 'dark' = 'light';
 
-  const [systemIsDark, setSystemIsDark] = useState<boolean>(
-    () => window.matchMedia('(prefers-color-scheme: dark)').matches
-  );
-
-  // Listen to OS-level dark mode changes
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e: MediaQueryListEvent) => setSystemIsDark(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
+    try {
+      localStorage.setItem('brokerhub_theme', 'light');
+    } catch {}
+    // Only remove dark if not on an admin route
+    if (!window.location.pathname.startsWith('/admin')) {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.style.colorScheme = 'light';
+    }
   }, []);
 
-  const resolvedTheme: 'light' | 'dark' =
-    theme === 'system' ? (systemIsDark ? 'dark' : 'light') : theme;
-
-  // Theme classList is managed by RouteThemeManager in App.tsx based on active route and resolvedTheme
-
-  const setTheme = (newTheme: ThemeMode) => {
-    setThemeState(newTheme);
-    try {
-      localStorage.setItem('brokerhub_theme', newTheme);
-    } catch {}
-  };
-
-  const toggleTheme = () => {
-    // Cycle: light → dark → system → light
-    if (theme === 'light') setTheme('dark');
-    else if (theme === 'dark') setTheme('system');
-    else setTheme('light');
-  };
+  const setTheme = (_newTheme: ThemeMode) => {};
+  const toggleTheme = () => {};
 
   return (
     <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>

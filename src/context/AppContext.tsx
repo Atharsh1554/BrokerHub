@@ -8,7 +8,8 @@ import {
   getBrokerProducts, 
   createBrokerProduct, 
   updateBrokerProduct, 
-  deleteBrokerProduct 
+  deleteBrokerProduct,
+  syncUnsyncedBrokerProducts
 } from '../lib/api/products';
 import { getOrders } from '../lib/api/orders';
 import { getAppointments } from '../lib/api/appointments';
@@ -145,6 +146,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     setBrokerProductsLoading(true);
     try {
+      if (user?.id && user.id === targetId && user.role === 'broker') {
+        await syncUnsyncedBrokerProducts(targetId, user.fullName);
+      }
       const bProds = await getBrokerProducts(targetId);
       setBrokerProducts(bProds);
     } catch (err) {
@@ -226,12 +230,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
     } catch {}
 
+    let bcReviews: BroadcastChannel | null = null;
+    try {
+      bcReviews = new BroadcastChannel('brokerhub_reviews_channel');
+      bcReviews.onmessage = () => {
+        loadBrokersList();
+      };
+    } catch {}
+
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'brokerhub_broker_overrides') {
+      if (e.key === 'brokerhub_broker_overrides' || e.key === 'brokerhub_reviews_cache') {
         loadBrokersList();
       }
     };
     window.addEventListener('storage', handleStorage);
+
+    const handleBrokerUpdateEvent = () => {
+      loadBrokersList();
+    };
+    window.addEventListener('brokerhub_reviews_updated', handleBrokerUpdateEvent);
+    window.addEventListener('brokerhub_brokers_updated', handleBrokerUpdateEvent);
 
     const brokersRealtime = supabase
       .channel('public_brokers_realtime')
@@ -246,7 +264,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     return () => {
       bc?.close();
+      bcReviews?.close();
       window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('brokerhub_reviews_updated', handleBrokerUpdateEvent);
+      window.removeEventListener('brokerhub_brokers_updated', handleBrokerUpdateEvent);
       supabase.removeChannel(brokersRealtime);
     };
   }, []);
@@ -352,6 +373,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       bc.postMessage({ type: 'REFRESH_PRODUCTS', brokerId });
       bc.close();
     } catch {}
+    window.dispatchEvent(new CustomEvent('brokerhub_products_updated', { detail: { brokerId } }));
+    refreshProducts();
   };
 
   const refreshProducts = async () => {
@@ -363,7 +386,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProducts(freshProducts.filter((p) => !globalDeleted.includes(p.id)));
   };
 
-  // Listen for real-time product updates (BroadcastChannel, storage event, window custom events)
+  // Refetch products when returning to tab or window focus
+  useEffect(() => {
+    const handleActive = () => {
+      refreshProducts();
+      if (user?.id && user.role === 'broker') {
+        loadBrokerProducts(user.id);
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        handleActive();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleActive);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleActive);
+    };
+  }, [user]);
+
+  // Listen for real-time product updates (BroadcastChannel, storage event, window custom events, Supabase Realtime)
   useEffect(() => {
     const handleProductsReload = async (eventBrokerId?: string) => {
       const freshProducts = await getProducts();
@@ -397,8 +444,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     window.addEventListener('storage', handleStorage);
 
-    const handleCustomEvent = () => {
-      handleProductsReload();
+    const handleCustomEvent = (e: any) => {
+      handleProductsReload(e?.detail?.brokerId);
     };
     window.addEventListener('brokerhub_products_updated', handleCustomEvent);
 
@@ -411,6 +458,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         (payload: any) => {
           const changedBrokerId = payload.new?.broker_id || payload.old?.broker_id;
           handleProductsReload(changedBrokerId);
+          window.dispatchEvent(new CustomEvent('brokerhub_products_updated', { detail: { brokerId: changedBrokerId } }));
         }
       )
       .subscribe();

@@ -20,6 +20,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { supabase } from '../../lib/supabase';
 import { getBrokerById } from '../../lib/api/brokers';
 import { getProductsByBrokerId } from '../../lib/api/products';
 import type { Broker, Product } from '../../types';
@@ -46,25 +47,75 @@ export const BrokerProfilePage: React.FC = () => {
   const displayedReviewCount = liveStats ? liveStats.totalReviews : (broker?.reviewCount ?? 0);
 
   useEffect(() => {
+    let isMounted = true;
+    if (!brokerId) return;
+
     const load = async () => {
-      if (!brokerId) return;
       setLoading(true);
 
       let bk = brokers.find((b) => b.id === brokerId) || null;
       if (!bk) bk = await getBrokerById(brokerId);
+      if (!isMounted) return;
       setBroker(bk);
 
-      let prods = products.filter(
-        (p) => p.brokerId === brokerId
-      );
-      if (prods.length === 0) {
-        prods = await getProductsByBrokerId(brokerId);
-      }
-      setBrokerProducts(prods);
+      const prods = await getProductsByBrokerId(brokerId);
+      if (!isMounted) return;
+      setBrokerProducts(prods.filter((p) => p.isActive !== false));
       setLoading(false);
     };
     load();
-  }, [brokerId, brokers, products]);
+
+    const handleUpdate = () => {
+      getProductsByBrokerId(brokerId).then((fresh) => {
+        if (isMounted) setBrokerProducts(fresh.filter((p) => p.isActive !== false));
+      });
+    };
+
+    window.addEventListener('brokerhub_products_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    // Supabase Realtime subscription specifically for this broker's products
+    const channelName = `broker_profile_live_${brokerId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+    const profileChannel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        (payload: any) => {
+          const changedId = payload.new?.broker_id || payload.old?.broker_id;
+          if (!changedId || changedId === brokerId) {
+            handleUpdate();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('brokerhub_products_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+      supabase.removeChannel(profileChannel);
+    };
+  }, [brokerId, brokers]);
+
+  // Keep brokerProducts in sync when products in context change
+  useEffect(() => {
+    if (!brokerId) return;
+    const matching = products.filter((p) => p.brokerId === brokerId && p.isActive !== false);
+    if (matching.length > 0) {
+      setBrokerProducts((prev) => {
+        const seen = new Set<string>();
+        const merged: Product[] = [];
+        for (const p of [...matching, ...prev]) {
+          if (!seen.has(p.id) && p.isActive !== false) {
+            seen.add(p.id);
+            merged.push(p);
+          }
+        }
+        return merged;
+      });
+    }
+  }, [products, brokerId]);
 
   const handleConnect = () => {
     if (broker) navigate(`/customer/messages?brokerId=${broker.id}`);

@@ -21,7 +21,7 @@ const StarRating: React.FC<{ rating: number; size?: number }> = ({ rating, size 
       <svg key={s} width={size} height={size} viewBox="0 0 20 20" fill="none">
         <path
           d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-          fill={s <= Math.round(rating) ? '#F59E0B' : '#E5E7EB'}
+          fill={rating > 0 && s <= Math.round(rating) ? '#F59E0B' : '#E5E7EB'}
         />
       </svg>
     ))}
@@ -81,6 +81,41 @@ export const ProductDetailPage: React.FC = () => {
     load();
   }, [productId, products, brokers]);
 
+  // Real-time live review updates on ProductDetailPage
+  useEffect(() => {
+    if (!product?.brokerId) return;
+
+    const bId = product.brokerId;
+    const fetchFreshReviews = () => {
+      getBrokerReviews(bId).then((revs) => {
+        setLiveReviews(revs);
+      });
+    };
+
+    const handleUpdate = (e: any) => {
+      if (!e.detail?.brokerId || e.detail.brokerId === bId) {
+        fetchFreshReviews();
+      }
+    };
+
+    window.addEventListener('brokerhub_reviews_updated', handleUpdate);
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('brokerhub_reviews_channel');
+      bc.onmessage = (event) => {
+        if (!event.data?.brokerId || event.data.brokerId === bId) {
+          fetchFreshReviews();
+        }
+      };
+    } catch {}
+
+    return () => {
+      window.removeEventListener('brokerhub_reviews_updated', handleUpdate);
+      bc?.close();
+    };
+  }, [product?.brokerId]);
+
   useEffect(() => {
     setQuantity(1);
     setActiveImage(0);
@@ -115,8 +150,8 @@ export const ProductDetailPage: React.FC = () => {
   const isOutOfStock = product.stock === 0 || product.status === 'Out of Stock';
   const isLowStock = !isOutOfStock && (product.stock <= 5 || product.status === 'Low Stock');
   const liveStats = calculateRatingStats(liveReviews);
-  const rating = liveStats.totalReviews > 0 ? liveStats.average : (product.rating ?? 0);
   const reviewCount = liveStats.totalReviews > 0 ? liveStats.totalReviews : (product.reviewCount ?? 0);
+  const rating = reviewCount > 0 ? (liveStats.totalReviews > 0 ? liveStats.average : (product.rating ?? 0)) : 0;
 
   // Related products — same category, excluding current
   const related = products
@@ -584,7 +619,7 @@ export const ProductDetailPage: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-1 mt-0.5">
                         <StarRating rating={review.rating} size={13} />
-                        <span className="text-xs font-bold text-gray-700 ml-1">{review.rating}.0</span>
+                        <span className="text-xs font-bold text-gray-700 ml-1">{Number.isInteger(review.rating) ? `${review.rating}.0` : review.rating.toFixed(1)}</span>
                       </div>
                     </div>
                   </div>

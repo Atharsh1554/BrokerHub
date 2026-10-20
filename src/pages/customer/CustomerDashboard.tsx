@@ -50,9 +50,12 @@ export const CustomerDashboard: React.FC = () => {
   }, [products]);
 
   // Helper to find broker info
-  const getBrokerInfo = (brokerId?: string) => {
-    if (!brokerId) return brokers[0] || { id: '', name: 'Verified Broker' };
-    return brokers.find((b) => b.id === brokerId) || { id: brokerId, name: 'Verified Broker' };
+  const getBrokerInfo = (brokerId?: string, fallbackName?: string) => {
+    if (brokerId) {
+      const found = brokers.find((b) => b.id === brokerId);
+      if (found) return found;
+    }
+    return { id: brokerId || '', name: fallbackName || 'Verified Broker', company: 'MYSTRIO Partner' };
   };
 
   // 1. Calculate Top Sale Product dynamically from actual orders data
@@ -119,10 +122,10 @@ export const CustomerDashboard: React.FC = () => {
     if (!q) return [];
 
     return activeProducts.filter((p) => {
-      const broker = getBrokerInfo(p.brokerId);
+      const broker = getBrokerInfo(p.brokerId, p.brokerName);
       const nameMatch = p.name.toLowerCase().includes(q);
       const categoryMatch = (p.category || '').toLowerCase().includes(q);
-      const brokerMatch = (broker.name || '').toLowerCase().includes(q) || (p.brokerName || '').toLowerCase().includes(q);
+      const brokerMatch = (broker.name || '').toLowerCase().includes(q) || (p.brokerName || '').toLowerCase().includes(q) || (broker.company || '').toLowerCase().includes(q);
       const descMatch = (p.description || '').toLowerCase().includes(q);
       return nameMatch || categoryMatch || brokerMatch || descMatch;
     });
@@ -188,7 +191,7 @@ export const CustomerDashboard: React.FC = () => {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
               {searchResults.map((product) => {
-                const broker = getBrokerInfo(product.brokerId);
+                const broker = getBrokerInfo(product.brokerId, product.brokerName);
                 return (
                   <div
                     key={product.id}
@@ -281,7 +284,7 @@ export const CustomerDashboard: React.FC = () => {
                         ₹{topSaleInfo.product.price.toLocaleString('en-IN')}
                       </p>
                       <span className="text-xs font-medium text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-md">
-                        Broker: <strong className="text-gray-800 dark:text-white">{getBrokerInfo(topSaleInfo.product.brokerId).name}</strong>
+                        Broker: <strong className="text-gray-800 dark:text-white">{getBrokerInfo(topSaleInfo.product.brokerId, topSaleInfo.product.brokerName).name}</strong>
                       </span>
                     </div>
                   </div>
@@ -330,7 +333,7 @@ export const CustomerDashboard: React.FC = () => {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
                 {latestProducts.map((product) => {
-                  const broker = getBrokerInfo(product.brokerId);
+                  const broker = getBrokerInfo(product.brokerId, product.brokerName);
                   return (
                     <div
                       key={product.id}

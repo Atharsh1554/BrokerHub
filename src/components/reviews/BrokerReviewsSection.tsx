@@ -563,7 +563,7 @@ export const BrokerReviewsSection: React.FC<BrokerReviewsSectionProps> = ({
                             />
                           ))}
                           <span className="text-[11px] font-bold text-gray-700 dark:text-slate-300 ml-1">
-                            {rev.rating}.0
+                            {Number.isInteger(rev.rating) ? `${rev.rating}.0` : rev.rating.toFixed(1)}
                           </span>
                         </div>
                       </div>

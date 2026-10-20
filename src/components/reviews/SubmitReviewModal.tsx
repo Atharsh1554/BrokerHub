@@ -10,6 +10,7 @@ interface SubmitReviewModalProps {
   brokerId: string;
   brokerName?: string;
   orderId?: string;
+  productId?: string;
   productName?: string;
   onSuccess?: () => void;
 }
@@ -20,6 +21,7 @@ export const SubmitReviewModal: React.FC<SubmitReviewModalProps> = ({
   brokerId,
   brokerName = 'Broker',
   orderId,
+  productId,
   productName,
   onSuccess,
 }) => {
@@ -80,6 +82,7 @@ export const SubmitReviewModal: React.FC<SubmitReviewModalProps> = ({
       await submitReview({
         brokerId,
         orderId,
+        productId,
         rating,
         comment: comment.trim(),
       });

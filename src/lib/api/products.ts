@@ -1,25 +1,32 @@
 import { supabase } from '../supabase';
 import type { Product } from '../../types';
 
-const mapProduct = (p: any): Product => ({
-  id: p.id,
-  name: p.name,
-  price: p.price,
-  image: p.image || '',
-  images: p.images || [],
-  category: p.category || 'General',
-  stock: p.stock ?? 0,
-  status: p.status || (p.stock === 0 ? 'Out of Stock' : p.stock < 10 ? 'Low Stock' : 'In Stock'),
-  description: p.description || '',
-  brokerId: p.broker_id || p.brokerId || undefined,
-  brokerName: p.broker_name || p.brokerName || undefined,
-  rating: p.rating ?? 4.8,
-  reviewCount: p.review_count ?? 0,
-  specifications: p.specifications || {},
-  isActive: p.is_active ?? true,
-  createdAt: p.created_at,
-  updatedAt: p.updated_at,
-});
+export const mapProduct = (p: any): Product => {
+  const primaryImage = p.image || (Array.isArray(p.images) && p.images[0]) || '';
+  const imagesList = Array.isArray(p.images) && p.images.length > 0 
+    ? p.images 
+    : (primaryImage ? [primaryImage] : []);
+
+  return {
+    id: p.id,
+    name: p.name || 'Untitled Product',
+    price: Number(p.price) || 0,
+    image: primaryImage,
+    images: imagesList,
+    category: p.category || 'General',
+    stock: p.stock ?? 0,
+    status: p.status || (p.stock === 0 ? 'Out of Stock' : p.stock < 10 ? 'Low Stock' : 'In Stock'),
+    description: p.description || '',
+    brokerId: p.broker_id || p.brokerId || undefined,
+    brokerName: p.broker_name || p.brokerName || undefined,
+    rating: (p.review_count ?? 0) > 0 ? (p.rating ?? 0) : 0,
+    reviewCount: p.review_count ?? 0,
+    specifications: p.specifications || {},
+    isActive: p.is_active ?? true,
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
+  };
+};
 
 /**
  * Fetch ONLY products belonging to the specified broker from the database.
@@ -61,11 +68,14 @@ export const getBrokerProducts = async (brokerId: string): Promise<Product[]> =>
     // ignore
   }
 
-  // Combine DB products & broker-isolated local products
-  const combined = [...dbProducts];
-  for (const bp of brokerLocalProducts) {
-    if (!combined.some((p) => p.id === bp.id)) {
-      combined.push(bp);
+  // Combine DB products & broker-isolated local products (deduplicated)
+  const seenIds = new Set<string>();
+  const combined: Product[] = [];
+
+  for (const p of [...dbProducts, ...brokerLocalProducts]) {
+    if (!seenIds.has(p.id)) {
+      seenIds.add(p.id);
+      combined.push(p);
     }
   }
 
@@ -110,8 +120,7 @@ export const getProducts = async (includeInactive: boolean = false): Promise<Pro
       .select('*')
       .order('created_at', { ascending: false });
 
-    // IMPORTANT: must reassign — Supabase builder is immutable/chainable
-    // Also treat NULL is_active as active (older products may not have the field set)
+    // Treat NULL is_active as active (older products may not have the field set)
     if (!includeInactive) {
       query = query.or('is_active.eq.true,is_active.is.null');
     }
@@ -149,8 +158,17 @@ export const getProducts = async (includeInactive: boolean = false): Promise<Pro
     globalDeleted = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
   } catch {}
 
-  // Combine DB products and broker custom products for the public marketplace
-  const combined = [...allCustomProducts, ...dbProducts];
+  // Combine DB products and broker custom products (deduplicated)
+  const seenIds = new Set<string>();
+  const combined: Product[] = [];
+
+  for (const p of [...dbProducts, ...allCustomProducts]) {
+    if (!seenIds.has(p.id)) {
+      seenIds.add(p.id);
+      combined.push(p);
+    }
+  }
+
   return combined
     .filter((p) => !globalDeleted.includes(p.id))
     .filter((p) => includeInactive || p.isActive !== false);
@@ -186,19 +204,75 @@ export const getProductById = async (id: string): Promise<Product | null> => {
   return all.find((p) => p.id === id) || null;
 };
 
+/**
+ * Fetch all published/active products for a broker's public profile or shareable shop page.
+ */
 export const getProductsByBrokerId = async (brokerId: string): Promise<Product[]> => {
   if (!brokerId) return [];
-  const brokerOnly = await getBrokerProducts(brokerId);
-  if (brokerOnly.length > 0) {
-    return brokerOnly;
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brokerId);
+  let dbProducts: Product[] = [];
+
+  if (isUuid) {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('broker_id', brokerId)
+        .or('is_active.eq.true,is_active.is.null')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        dbProducts = data.map(mapProduct);
+      } else if (error) {
+        console.warn('Error querying broker profile products from Supabase:', error.message);
+      }
+    } catch (err) {
+      console.error('Exception fetching broker profile products:', err);
+    }
   }
 
+  // Load custom products stored specifically for this broker ID in localStorage
+  let brokerLocalProducts: Product[] = [];
+  try {
+    const savedCustom = localStorage.getItem(`brokerhub_custom_products_${brokerId}`);
+    if (savedCustom) {
+      brokerLocalProducts = JSON.parse(savedCustom);
+    }
+  } catch {
+    // ignore
+  }
+
+  // Exclude deleted product IDs
+  let deletedIds: string[] = [];
+  try {
+    const brokerDel = JSON.parse(localStorage.getItem(`brokerhub_deleted_products_${brokerId}`) || '[]');
+    const globalDel = JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
+    deletedIds = [...brokerDel, ...globalDel];
+  } catch {}
+
+  const seenIds = new Set<string>();
+  const combined: Product[] = [];
+
+  for (const p of [...dbProducts, ...brokerLocalProducts]) {
+    if (!seenIds.has(p.id) && !deletedIds.includes(p.id) && p.isActive !== false) {
+      seenIds.add(p.id);
+      combined.push(p);
+    }
+  }
+
+  if (combined.length > 0) {
+    return combined;
+  }
+
+  // Fallback to searching all active marketplace products
   const all = await getProducts();
-  return all.filter((p) => p.brokerId === brokerId);
+  return all.filter((p) => p.brokerId === brokerId && p.isActive !== false);
 };
 
 /**
- * Creates a product with automatic broker_id assignment.
+ * Creates a product in Supabase with automatic broker_id assignment.
+ * Resilient to database column schema differences (e.g. presence or absence of 'images' array column).
  */
 export const createBrokerProduct = async (
   prodData: Omit<Product, 'id'>,
@@ -208,44 +282,76 @@ export const createBrokerProduct = async (
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brokerId);
   const tempId = `p_${Date.now()}`;
 
+  const primaryImage = prodData.image || (prodData.images && prodData.images[0]) || '';
+  const stockNum = typeof prodData.stock === 'number' ? prodData.stock : parseInt(String(prodData.stock)) || 0;
+  const statusVal = prodData.status || (stockNum === 0 ? 'Out of Stock' : stockNum < 10 ? 'Low Stock' : 'In Stock');
+
   let newProd: Product = {
     ...prodData,
     id: tempId,
+    image: primaryImage,
+    images: prodData.images && prodData.images.length > 0 ? prodData.images : (primaryImage ? [primaryImage] : []),
     brokerId: brokerId,
     brokerName: brokerName || 'Broker',
-    rating: 4.8,
-    reviewCount: 1,
-    isActive: true,
+    stock: stockNum,
+    status: statusVal,
+    rating: 0,
+    reviewCount: 0,
+    isActive: prodData.isActive !== false,
   };
 
   if (isUuid) {
     try {
-      const { data, error } = await supabase
+      const basePayload: any = {
+        name: prodData.name,
+        price: Number(prodData.price) || 0,
+        image: primaryImage,
+        category: prodData.category || 'General',
+        stock: stockNum,
+        status: statusVal,
+        description: prodData.description || '',
+        broker_id: brokerId,
+        is_active: prodData.isActive !== false,
+      };
+
+      // Try inserting with 'images' column if images array is provided
+      let insertPayload = { ...basePayload };
+      if (prodData.images && prodData.images.length > 0) {
+        insertPayload.images = prodData.images;
+      }
+
+      let { data, error } = await supabase
         .from('products')
-        .insert([{
-          name: prodData.name,
-          price: prodData.price,
-          image: prodData.image,
-          images: prodData.images || [],
-          category: prodData.category,
-          stock: prodData.stock,
-          status: prodData.status,
-          description: prodData.description,
-          broker_id: brokerId,
-          is_active: true,
-        }])
+        .insert([insertPayload])
         .select()
         .single();
 
+      // If column 'images' does not exist (PostgreSQL error 42703), retry cleanly with basePayload
+      if (error && error.code === '42703') {
+        const retry = await supabase
+          .from('products')
+          .insert([basePayload])
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
+
       if (!error && data) {
         newProd = mapProduct(data);
+        if (!newProd.brokerName && brokerName) newProd.brokerName = brokerName;
+        if ((!newProd.images || newProd.images.length === 0) && prodData.images?.length) {
+          newProd.images = prodData.images;
+        }
+      } else if (error) {
+        console.error('Supabase product insert error:', error.message, error.details || error);
       }
     } catch (err) {
-      console.warn('Supabase product insert notice:', err);
+      console.error('Supabase product insert exception:', err);
     }
   }
 
-  // Persist locally under this broker's specific storage key
+  // Persist locally under this broker's specific storage key as reliable fallback/cache
   try {
     const key = `brokerhub_custom_products_${brokerId}`;
     const customProds: Product[] = JSON.parse(localStorage.getItem(key) || '[]');
@@ -273,20 +379,39 @@ export const updateBrokerProduct = async (
         updated_at: new Date().toISOString(),
       };
       if (updatedFields.name !== undefined) payload.name = updatedFields.name;
-      if (updatedFields.price !== undefined) payload.price = updatedFields.price;
+      if (updatedFields.price !== undefined) payload.price = Number(updatedFields.price);
       if (updatedFields.image !== undefined) payload.image = updatedFields.image;
-      if (updatedFields.images !== undefined) payload.images = updatedFields.images;
       if (updatedFields.category !== undefined) payload.category = updatedFields.category;
-      if (updatedFields.stock !== undefined) payload.stock = updatedFields.stock;
+      if (updatedFields.stock !== undefined) payload.stock = Number(updatedFields.stock);
       if (updatedFields.status !== undefined) payload.status = updatedFields.status;
       if (updatedFields.description !== undefined) payload.description = updatedFields.description;
       if (updatedFields.isActive !== undefined) payload.is_active = updatedFields.isActive;
 
-      await supabase
+      // Try with images if provided
+      let updatePayload = { ...payload };
+      if (updatedFields.images !== undefined) {
+        updatePayload.images = updatedFields.images;
+      }
+
+      let { error } = await supabase
         .from('products')
-        .update(payload)
+        .update(updatePayload)
         .eq('id', id)
         .eq('broker_id', brokerId);
+
+      // If column 'images' does not exist in DB (code 42703), retry without images
+      if (error && error.code === '42703') {
+        const retry = await supabase
+          .from('products')
+          .update(payload)
+          .eq('id', id)
+          .eq('broker_id', brokerId);
+        error = retry.error;
+      }
+
+      if (error) {
+        console.error('Supabase product update error:', error.message);
+      }
     } catch (err) {
       console.warn('Supabase update product error:', err);
     }
@@ -326,7 +451,9 @@ export const deleteBrokerProduct = async (id: string, brokerId: string): Promise
       if (error) {
         console.error('Error deleting product from Supabase:', error);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Exception deleting product from Supabase:', err);
+    }
   }
 
   // Record deleted ID in broker-specific storage
@@ -345,3 +472,93 @@ export const deleteBrokerProduct = async (id: string, brokerId: string): Promise
 
   return true;
 };
+
+/**
+ * Synchronizes any locally created products that failed to insert into Supabase
+ * (e.g. products with temporary IDs starting with 'p_').
+ */
+export const syncUnsyncedBrokerProducts = async (brokerId: string, brokerName?: string): Promise<Product[]> => {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brokerId);
+  if (!isUuid) return [];
+
+  const key = `brokerhub_custom_products_${brokerId}`;
+  let localProds: Product[] = [];
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) localProds = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+
+  const unsynced = localProds.filter((p) => p.id && p.id.startsWith('p_'));
+  if (unsynced.length === 0) return localProds;
+
+  const updatedList = [...localProds];
+  let hasChanges = false;
+
+  for (const p of unsynced) {
+    try {
+      const primaryImage = p.image || (p.images && p.images[0]) || '';
+      const stockNum = typeof p.stock === 'number' ? p.stock : parseInt(String(p.stock)) || 0;
+      const statusVal = p.status || (stockNum === 0 ? 'Out of Stock' : stockNum < 10 ? 'Low Stock' : 'In Stock');
+
+      const basePayload: any = {
+        name: p.name,
+        price: Number(p.price) || 0,
+        image: primaryImage,
+        category: p.category || 'General',
+        stock: stockNum,
+        status: statusVal,
+        description: p.description || '',
+        broker_id: brokerId,
+        is_active: p.isActive !== false,
+      };
+
+      let insertPayload = { ...basePayload };
+      if (p.images && p.images.length > 0) {
+        insertPayload.images = p.images;
+      }
+
+      let { data, error } = await supabase
+        .from('products')
+        .insert([insertPayload])
+        .select()
+        .single();
+
+      if (error && error.code === '42703') {
+        const retry = await supabase
+          .from('products')
+          .insert([basePayload])
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
+
+      if (!error && data) {
+        const syncedProd = mapProduct(data);
+        syncedProd.brokerName = brokerName || p.brokerName;
+        syncedProd.images = p.images && p.images.length > 0 ? p.images : (primaryImage ? [primaryImage] : []);
+
+        const idx = updatedList.findIndex((item) => item.id === p.id);
+        if (idx >= 0) {
+          updatedList[idx] = syncedProd;
+          hasChanges = true;
+        }
+      } else if (error) {
+        console.warn('Failed to sync product to Supabase:', p.name, error.message);
+      }
+    } catch (err) {
+      console.warn('Exception syncing product to Supabase:', err);
+    }
+  }
+
+  if (hasChanges) {
+    try {
+      localStorage.setItem(key, JSON.stringify(updatedList));
+    } catch {}
+  }
+
+  return updatedList;
+};
+

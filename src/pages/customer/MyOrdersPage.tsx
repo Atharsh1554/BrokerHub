@@ -127,7 +127,7 @@ export const MyOrdersPage: React.FC = () => {
       name: matched?.name || bName || 'Verified Broker',
       company: matched?.company || 'BrokerHub Partner',
       specialty: matched?.specialty || 'General Merchandise',
-      rating: matched?.rating || 4.8,
+      rating: matched?.rating || 0,
       avatar: matched?.avatar,
       phone: matched?.phone || '+91 98765 43210',
       email: matched?.email || 'broker@brokerhub.com',
@@ -827,7 +827,8 @@ export const MyOrdersPage: React.FC = () => {
           brokerId={reviewModalOrder.brokerId || getBrokerDetails(reviewModalOrder).id}
           brokerName={reviewModalOrder.brokerName || getBrokerDetails(reviewModalOrder).name}
           orderId={reviewModalOrder.id}
-          productName={reviewModalOrder.productName || reviewModalOrder.product}
+          productId={reviewModalOrder.productId || (reviewModalOrder.items && reviewModalOrder.items[0]?.productId)}
+          productName={reviewModalOrder.productName || reviewModalOrder.product || (reviewModalOrder.items && reviewModalOrder.items[0]?.productName)}
         />
       )}
     </div>

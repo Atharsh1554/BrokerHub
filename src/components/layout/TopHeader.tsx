@@ -1,12 +1,11 @@
 import React from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { Menu, ShoppingCart, Bell, MessageSquare, ChevronRight, Sun, Moon, Monitor } from 'lucide-react';
+import { Menu, ShoppingCart, Bell, MessageSquare, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { resolveUserDisplayName } from '../../lib/userUtils';
 import { UserAvatar } from '../ui/UserAvatar';
-import { useTheme } from '../../context/ThemeContext';
 
 interface TopHeaderProps {
   title?: string;
@@ -19,10 +18,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, onMenuClick }) => {
   const { user } = useAuth();
   const { cart } = useApp();
   const { unreadCount } = useNotifications();
-  const { theme, toggleTheme } = useTheme();
-
-  const ThemeIcon = theme === 'dark' ? Moon : theme === 'light' ? Sun : Monitor;
-  const themeLabel = theme === 'dark' ? 'Dark mode' : theme === 'light' ? 'Light mode' : 'Auto (system)';
 
 
   const totalCartCount = cart?.reduce((sum, item) => sum + item.quantity, 0) || 0;
@@ -119,15 +114,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ title, onMenuClick }) => {
           </Link>
         )}
 
-        {/* Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          className="p-2 text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-all"
-          title={`Theme: ${themeLabel} — click to cycle`}
-          aria-label="Toggle theme"
-        >
-          <ThemeIcon size={19} />
-        </button>
 
         {/* Messages shortcut */}
         <Link

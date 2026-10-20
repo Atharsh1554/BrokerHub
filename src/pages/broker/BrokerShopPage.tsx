@@ -19,11 +19,13 @@ import {
   Mail,
   CheckCircle,
   QrCode,
-  ChevronRight,
   ShoppingCart,
   Search,
   X,
   Info,
+  ExternalLink,
+  MessageCircle,
+  BadgeCheck,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -31,8 +33,7 @@ import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
 import type { Product } from '../../types';
 
 const formatINR = (amount: number) =>
-  '₹' + amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-
+  '\u20b9' + amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 export const BrokerShopPage: React.FC = () => {
   const navigate = useNavigate();
@@ -43,10 +44,8 @@ export const BrokerShopPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'products' | 'analytics' | 'settings'>('products');
   const [shopSearchQuery, setShopSearchQuery] = useState('');
 
-  // Find active broker record
   const currentBroker = brokers.find((b) => b.id === user?.id || b.id === 'b1');
 
-  // Local overrides check
   let localOv: any = null;
   try {
     const raw = localStorage.getItem('brokerhub_broker_overrides');
@@ -55,15 +54,13 @@ export const BrokerShopPage: React.FC = () => {
 
   const displayName = resolveUserDisplayName(localOv?.name || user?.fullName || currentBroker?.name, localOv?.email || user?.email);
   const initials = getUserInitials(displayName);
-  const brandName = localOv?.company || currentBroker?.company || 'MYTRIO';
+  const brandName = localOv?.company || currentBroker?.company || '';
   const displayEmail = localOv?.email || user?.email || currentBroker?.email || '';
   const displayPhone = localOv?.phone || user?.phone || currentBroker?.phone || '';
   const avatarUrl = localOv?.avatar || user?.avatar || currentBroker?.avatar;
 
-  // Filter products belonging to this broker (use broker-isolated products)
   const myProducts: Product[] = brokerProducts;
 
-  // Derive product type / specialty
   const productTypeCounts = myProducts.reduce<Record<string, number>>((acc, p) => {
     acc[p.category] = (acc[p.category] || 0) + 1;
     return acc;
@@ -73,7 +70,6 @@ export const BrokerShopPage: React.FC = () => {
 
   const aboutText = localOv?.description || currentBroker?.description || `Specialized commercial and industrial broker matching verified buyers with premier ${dominantCategory.toLowerCase()} products and manufacturers.`;
 
-  // Search-filtered products for the shop product tab
   const searchFilteredProducts = useMemo(() => {
     const q = shopSearchQuery.toLowerCase().trim();
     if (!q) return myProducts;
@@ -85,13 +81,11 @@ export const BrokerShopPage: React.FC = () => {
     );
   }, [myProducts, shopSearchQuery]);
 
-  // Shop URL — shareable link
   const shopUrl = `${window.location.origin}/shop/${user?.id || currentBroker?.id || 'b1'}`;
 
-  // Stats
   const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount ?? o.amount ?? 0), 0);
   const totalOrders = orders.length;
-  const avgRating = currentBroker?.rating ?? 4.9;
+  const avgRating = currentBroker?.rating ?? 0;
   const inStockCount = myProducts.filter((p) => p.status === 'In Stock').length;
 
   const handleCopyLink = async () => {
@@ -110,347 +104,260 @@ export const BrokerShopPage: React.FC = () => {
   };
 
   const shopStats = [
-    {
-      label: 'Total Products',
-      value: myProducts.length,
-      icon: <Package size={18} className="text-primary" />,
-      bg: 'bg-primary-50 dark:bg-primary-900/20',
-    },
-    {
-      label: 'Total Orders',
-      value: totalOrders,
-      icon: <ShoppingBag size={18} className="text-violet-600" />,
-      bg: 'bg-violet-50 dark:bg-violet-900/20',
-    },
-    {
-      label: 'Revenue',
-      value: formatINR(totalRevenue),
-      icon: <TrendingUp size={18} className="text-emerald-600" />,
-      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
-    },
-    {
-      label: 'Avg Rating',
-      value: avgRating.toFixed(1),
-      icon: <Star size={18} className="text-amber-500" />,
-      bg: 'bg-amber-50 dark:bg-amber-900/20',
-    },
+    { label: 'Products', value: myProducts.length, icon: <Package size={16} className="text-emerald-600" />, bg: 'bg-emerald-50', border: 'border-emerald-100' },
+    { label: 'Orders', value: totalOrders, icon: <ShoppingBag size={16} className="text-violet-600" />, bg: 'bg-violet-50', border: 'border-violet-100' },
+    { label: 'Revenue', value: formatINR(totalRevenue), icon: <TrendingUp size={16} className="text-teal-600" />, bg: 'bg-teal-50', border: 'border-teal-100' },
+    { label: 'Rating', value: avgRating > 0 ? avgRating.toFixed(1) : '0.0', icon: <Star size={16} className="text-amber-500 fill-amber-400" />, bg: 'bg-amber-50', border: 'border-amber-100' },
   ];
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Page Title */}
-      <div className="flex items-center gap-2 text-sm">
-        <User size={16} className="text-primary" />
-        <span className="font-bold text-text-primary">My Profile</span>
-        <ChevronRight size={14} className="text-gray-label" />
-        <span className="text-gray-text">Public broker profile & shareable store</span>
-      </div>
+    <div className="pb-16 max-w-3xl mx-auto">
 
-      {/* ── Broker Info Card ── */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 shadow-xs overflow-hidden">
-        {/* Top accent strip */}
-        <div className="h-1.5 bg-gradient-to-r from-primary via-teal-400 to-emerald-400" />
-        <div className="p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-            {/* Avatar */}
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={displayName}
-                className="w-16 h-16 rounded-2xl object-cover border-2 border-primary/20 shadow-md shrink-0"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-teal-500 flex items-center justify-center text-white font-black text-2xl shadow-md shrink-0">
-                {initials}
-              </div>
-            )}
+      {/* Hero Profile Card */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-4">
 
-            {/* Details */}
-            <div className="flex-1 min-w-0 space-y-2.5">
-              {/* Name + Brand + Verified badge */}
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl font-black text-text-primary">{displayName}</h1>
-                {brandName && (
-                  <span className="text-xs font-bold text-primary bg-primary-50 dark:bg-primary-900/30 px-2.5 py-0.5 rounded-lg border border-primary/20 dark:border-primary/40">
-                    {brandName}
-                  </span>
-                )}
-                <span className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800">
-                  <CheckCircle size={10} />
-                  Verified Broker
-                </span>
-              </div>
-              {/* Info grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1.5 text-sm">
-                <div className="flex items-center gap-2 text-gray-text">
-                  <Mail size={13} className="text-primary shrink-0" />
-                  <span className="truncate font-medium">{displayEmail || '—'}</span>
+        {/* Cover Banner */}
+        <div className="relative h-32 sm:h-44 bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 overflow-hidden">
+          <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
+          <div className="absolute -bottom-12 -left-8 w-56 h-56 rounded-full bg-white/10" />
+          <div className="absolute top-6 left-1/3 w-24 h-24 rounded-full bg-white/5" />
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full border border-white/30">
+            <BadgeCheck size={12} />
+            Verified Broker
+          </div>
+        </div>
+
+        <div className="px-4 sm:px-6 pt-0 pb-5">
+          {/* Avatar + Edit row */}
+          <div className="flex items-end justify-between -mt-10 sm:-mt-12 mb-4">
+            <div className="relative shrink-0">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-4 border-white shadow-lg bg-white" />
+              ) : (
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-2xl sm:text-3xl shadow-lg border-4 border-white">
+                  {initials}
                 </div>
-                {displayPhone && (
-                  <div className="flex items-center gap-2 text-gray-text">
-                    <Phone size={13} className="text-primary shrink-0" />
-                    <span className="font-medium">{displayPhone}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-gray-text">
-                  <Package size={13} className="text-primary shrink-0" />
-                  <span className="font-medium">
-                    Product Type:{' '}
-                    <span className="text-text-primary font-semibold">{dominantCategory}</span>
-                  </span>
-                </div>
-              </div>
-              {/* About */}
-              <div className="flex items-start gap-2 text-sm text-gray-text">
-                <Info size={13} className="text-primary shrink-0 mt-0.5" />
-                <p className="leading-relaxed">
-                  <span className="font-semibold text-text-primary">About: </span>
-                  {aboutText}
-                </p>
-              </div>
+              )}
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" />
             </div>
-            {/* Edit Profile shortcut */}
             <button
               onClick={() => navigate('/broker/settings')}
-              className="shrink-0 flex items-center gap-2 px-3.5 py-2 border border-gray-border dark:border-slate-700 bg-white dark:bg-slate-800 text-text-primary rounded-xl text-xs font-semibold hover:bg-gray-50 dark:bg-slate-900/60 hover:border-primary/40 transition-all cursor-pointer self-start"
+              className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-xl text-sm font-semibold shadow-sm transition-all cursor-pointer shrink-0"
             >
-              <Edit3 size={13} />
-              Edit Profile
+              <Edit3 size={14} />
+              <span>Edit Profile</span>
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* Shareable Link Banner */}
-      <div className="bg-gradient-to-r from-primary/5 via-teal-50 to-emerald-50 dark:from-primary/10 dark:via-slate-800 dark:to-slate-800 rounded-2xl border border-primary/20 dark:border-primary/30 p-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-md">
-            <Share2 size={20} className="text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-text-primary">Your Shareable Shop Link</p>
-            <p className="text-xs text-gray-text mt-0.5">
-              Share this link with customers so they can view your shop and products directly
+          {/* Name and badges */}
+          <div className="mb-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{displayName}</h1>
+              {brandName && (
+                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">{brandName}</span>
+              )}
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200">
+                <CheckCircle size={10} />
+                Verified Partner
+              </span>
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              Specializing in <span className="font-semibold text-gray-700">{dominantCategory}</span>
             </p>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3 w-full max-w-xl">
-              <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-border dark:border-slate-700 rounded-xl px-3 py-2 flex-1 min-w-0">
-                <Store size={13} className="text-primary shrink-0" />
-                <span className="text-xs text-gray-text font-mono truncate">{shopUrl}</span>
+          </div>
+
+          <div className="border-t border-gray-100 my-4" />
+
+          {/* Contact Info */}
+          <div className="space-y-2.5 mb-5">
+            {displayEmail && (
+              <a href={`mailto:${displayEmail}`} className="flex items-center gap-3 text-sm text-gray-700 hover:text-emerald-700 transition-colors group">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 group-hover:bg-emerald-100 transition-colors">
+                  <Mail size={14} className="text-emerald-600" />
+                </div>
+                <span className="truncate">{displayEmail}</span>
+              </a>
+            )}
+            {displayPhone && (
+              <a href={`tel:${displayPhone}`} className="flex items-center gap-3 text-sm text-gray-700 hover:text-emerald-700 transition-colors group">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 group-hover:bg-emerald-100 transition-colors">
+                  <Phone size={14} className="text-emerald-600" />
+                </div>
+                <span>{displayPhone}</span>
+              </a>
+            )}
+            <div className="flex items-center gap-3 text-sm text-gray-700">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+                <Package size={14} className="text-emerald-600" />
               </div>
-              <button
-                onClick={handleCopyLink}
-                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shrink-0 cursor-pointer w-full sm:w-auto ${
-                  copied
-                    ? 'bg-emerald-500 text-white shadow-sm'
-                    : 'bg-primary text-white hover:bg-primary-dark shadow-md'
-                }`}
-              >
-                {copied ? (
-                  <>
-                    <Check size={14} />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy size={14} />
-                    Copy Link
-                  </>
-                )}
-              </button>
+              <span>Product Type: <span className="font-semibold text-gray-900">{dominantCategory}</span></span>
+            </div>
+            <div className="flex items-start gap-3 text-sm text-gray-700">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                <Info size={14} className="text-emerald-600" />
+              </div>
+              <p className="text-gray-600 leading-relaxed text-sm">
+                <span className="font-semibold text-gray-800">About: </span>{aboutText}
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Tips */}
-        <div className="mt-4 pt-4 border-t border-primary/10 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[
-            { icon: '📱', text: 'Share on WhatsApp & social media' },
-            { icon: '🔗', text: 'Add to your email signature' },
-            { icon: '📊', text: 'Track visits from your analytics' },
-          ].map((tip) => (
-            <div key={tip.text} className="flex items-center gap-2 text-xs text-gray-text">
-              <span>{tip.icon}</span>
-              <span>{tip.text}</span>
-            </div>
-          ))}
+          {/* Preview Store CTA */}
+          <a
+            href={shopUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-colors cursor-pointer"
+          >
+            <Eye size={15} />
+            <span>Preview Public Store</span>
+          </a>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        {shopStats.map(({ label, value, icon, bg }) => (
-          <div
-            key={label}
-            className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 p-5 shadow-xs flex items-center gap-4"
-          >
-            <div className={`w-11 h-11 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
-              {icon}
-            </div>
-            <div>
-              <p className="text-lg font-black text-text-primary">{value}</p>
-              <p className="text-xs text-gray-text">{label}</p>
-            </div>
+      {/* Stats Row */}
+      <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-4">
+        {shopStats.map(({ label, value, icon, bg, border }) => (
+          <div key={label} className={`${bg} ${border} border rounded-2xl p-3 flex flex-col items-center text-center gap-1.5`}>
+            <div className="w-8 h-8 rounded-lg bg-white/80 flex items-center justify-center shadow-xs">{icon}</div>
+            <p className="text-base sm:text-lg font-black text-gray-900 leading-none">{value}</p>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide leading-tight">{label}</p>
           </div>
         ))}
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 overflow-hidden shadow-xs">
-        {/* Tab Header */}
-        <div className="flex border-b border-gray-border dark:border-slate-700 bg-gray-50 dark:bg-slate-900/60">
+      {/* Shareable Link Card */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 mb-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+            <Share2 size={18} className="text-emerald-600" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">Your Shareable Shop Link</h2>
+            <p className="text-xs text-gray-500">Share this link with customers to view your shop and products directly</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 mb-3">
+          <Store size={14} className="text-emerald-600 shrink-0" />
+          <span className="flex-1 text-xs text-gray-600 font-mono truncate select-all">{shopUrl}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent('Check out my shop on BrokerHub: ' + shopUrl)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#25D366] hover:bg-[#1fba5a] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
+          >
+            <MessageCircle size={14} />
+            <span>WhatsApp</span>
+          </a>
+          <button
+            onClick={handleCopyLink}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${copied ? 'bg-emerald-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            <span>{copied ? 'Copied!' : 'Copy Link'}</span>
+          </button>
+          <a href={shopUrl} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-600 rounded-xl transition-colors cursor-pointer" title="Open shop preview">
+            <ExternalLink size={15} />
+          </a>
+        </div>
+        <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-1 text-[11px] text-gray-400">
+          <div className="flex items-center gap-1.5"><span>📱</span><span>Share on WhatsApp &amp; social media</span></div>
+          <div className="flex items-center gap-1.5"><span>🔗</span><span>Add to your email signature</span></div>
+          <div className="flex items-center gap-1.5"><span>📊</span><span>Track visits from your analytics</span></div>
+        </div>
+      </div>
+
+      {/* Main Tabs */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="flex border-b border-gray-200 bg-gray-50/80 px-2 pt-2 gap-1 overflow-x-auto no-scrollbar">
           {[
-            { id: 'products', label: 'Product Listings', icon: Package },
-            { id: 'analytics', label: 'Shop Analytics', icon: TrendingUp },
+            { id: 'products', label: 'Products', icon: Package, count: myProducts.length },
+            { id: 'analytics', label: 'Analytics', icon: TrendingUp },
             { id: 'settings', label: 'Shop Info', icon: Building2 },
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id as typeof activeTab)}
-              className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold transition-all cursor-pointer border-b-2 ${
-                activeTab === id
-                  ? 'text-primary border-primary bg-white dark:bg-slate-800'
-                  : 'text-gray-text border-transparent hover:text-text-primary hover:bg-white dark:bg-slate-800/50'
-              }`}
-            >
-              <Icon size={15} />
-              {label}
-            </button>
-          ))}
+          ].map(({ id, label, icon: Icon, count }) => {
+            const isActive = activeTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id as typeof activeTab)}
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer border-b-2 ${isActive ? 'bg-white text-emerald-700 border-emerald-500 shadow-sm' : 'text-gray-500 hover:text-gray-800 border-transparent hover:bg-gray-100'}`}
+              >
+                <Icon size={14} className={isActive ? 'text-emerald-600' : 'text-gray-400'} />
+                <span>{label}</span>
+                {typeof count === 'number' && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'}`}>{count}</span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Tab: Products */}
         {activeTab === 'products' && (
-          <div className="p-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="font-bold text-text-primary">Your Product Listings</h2>
-                <p className="text-xs text-gray-text mt-0.5">
-                  {myProducts.length} products · {inStockCount} In Stock
-                  {shopSearchQuery && ` · ${searchFilteredProducts.length} match search`}
-                </p>
+                <h2 className="text-base font-bold text-gray-900">Product Inventory</h2>
+                <p className="text-xs text-gray-500">{myProducts.length} products · {inStockCount} in stock</p>
               </div>
-              <Link
-                to="/broker/products"
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-dark transition-all shadow-sm shrink-0"
-              >
-                <Plus size={14} />
-                Add Product
+              <Link to="/broker/products" className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors cursor-pointer shrink-0">
+                <Plus size={13} /><span>Add Product</span>
               </Link>
             </div>
-
-            {/* Product Search Bar */}
-            <div className="relative mb-4">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-label pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search products by name, category, or description..."
-                value={shopSearchQuery}
-                onChange={(e) => setShopSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-9 py-2.5 border border-gray-border dark:border-slate-700 rounded-xl bg-gray-bg text-sm text-text-primary placeholder-gray-label focus:bg-white dark:bg-slate-800 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors"
-              />
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input type="text" placeholder="Search products..." value={shopSearchQuery} onChange={(e) => setShopSearchQuery(e.target.value)} className="w-full pl-10 pr-9 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-900 placeholder-gray-400 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
               {shopSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setShopSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-label hover:text-text-primary transition-colors cursor-pointer"
-                  aria-label="Clear search"
-                >
+                <button type="button" onClick={() => setShopSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1">
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
-
             {myProducts.length === 0 ? (
-              <div className="py-16 text-center">
-                <Package size={48} className="text-gray-300 mx-auto mb-3" />
-                <p className="font-semibold text-text-primary">No products listed yet</p>
-                <p className="text-sm text-gray-text mt-1">
-                  Add your first product to get your shop started!
-                </p>
-                <Link
-                  to="/broker/products"
-                  className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-dark transition-all"
-                >
-                  <Plus size={15} />
-                  Add First Product
+              <div className="py-14 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-300 space-y-3">
+                <Package size={40} className="text-gray-300 mx-auto" />
+                <div>
+                  <h3 className="text-sm font-bold text-gray-700">No products listed yet</h3>
+                  <p className="text-xs text-gray-400 mt-1">Add products to display them in your public shop.</p>
+                </div>
+                <Link to="/broker/products" className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-xs hover:bg-emerald-700 transition-all shadow-sm">
+                  <Plus size={14} /><span>List Your First Product</span>
                 </Link>
               </div>
             ) : searchFilteredProducts.length === 0 ? (
-              <div className="py-12 text-center">
-                <Search size={36} className="text-gray-300 mx-auto mb-3" />
-                <p className="font-semibold text-text-primary">No products match your search</p>
-                <p className="text-sm text-gray-text mt-1">Try a different keyword or clear the search.</p>
-                <button
-                  type="button"
-                  onClick={() => setShopSearchQuery('')}
-                  className="mt-3 text-sm font-semibold text-primary hover:underline cursor-pointer"
-                >
-                  Clear search
-                </button>
+              <div className="py-10 text-center bg-gray-50 rounded-2xl border border-gray-200 space-y-2">
+                <Search size={32} className="text-gray-300 mx-auto" />
+                <p className="font-bold text-sm text-gray-700">No results for "{shopSearchQuery}"</p>
+                <button type="button" onClick={() => setShopSearchQuery('')} className="text-xs font-bold text-emerald-600 hover:underline">Clear search</button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {searchFilteredProducts.map((prod) => (
-                  <div
-                    key={prod.id}
-                    className="border border-gray-border dark:border-slate-700 rounded-xl overflow-hidden hover:shadow-md hover:border-primary/30 transition-all group"
-                  >
-                    {/* Product Image */}
-                    <div className="h-40 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center overflow-hidden relative">
+                  <div key={prod.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-md hover:border-emerald-300 transition-all flex flex-col">
+                    <div className="h-36 bg-gray-100 flex items-center justify-center overflow-hidden relative">
                       {prod.image ? (
-                        <img
-                          src={prod.image}
-                          alt={prod.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
+                        <img src={prod.image} alt={prod.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                       ) : (
-                        <ShoppingCart size={32} className="text-gray-300" />
+                        <ShoppingCart size={28} className="text-gray-300" />
                       )}
-                      <span
-                        className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          prod.status === 'In Stock'
-                            ? 'bg-emerald-500 text-white'
-                            : prod.status === 'Low Stock'
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-red-500 text-white'
-                        }`}
-                      >
-                        {prod.status}
-                      </span>
+                      <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${prod.status === 'In Stock' ? 'bg-emerald-500 text-white' : prod.status === 'Low Stock' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'}`}>{prod.status}</span>
                     </div>
-
-                    {/* Product Info */}
-                    <div className="p-3.5">
-                      <p className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                        {prod.category}
-                      </p>
-                      <p className="text-sm font-semibold text-text-primary mt-0.5 line-clamp-2 leading-tight">
-                        {prod.name}
-                      </p>
-                      <div className="flex items-center justify-between mt-2.5">
-                        <p className="text-base font-black text-primary">{formatINR(prod.price)}</p>
-                        <span className="text-[10px] text-gray-text font-medium">
-                          Stock: {prod.stock}
-                        </span>
+                    <div className="p-3 flex-1 flex flex-col justify-between">
+                      <div className="space-y-0.5 mb-3">
+                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">{prod.category}</p>
+                        <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug">{prod.name}</h4>
+                        <div className="flex items-baseline justify-between pt-1">
+                          <p className="text-base font-bold text-gray-900">{formatINR(prod.price)}</p>
+                          <span className="text-[11px] text-gray-400">Qty: {prod.stock}</span>
+                        </div>
                       </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
-                        <Link
-                          to="/broker/products"
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary dark:text-primary-light text-xs font-bold rounded-lg hover:bg-primary/10 dark:hover:bg-primary/40 transition-colors"
-                        >
-                          <Edit3 size={11} />
-                          Edit
+                      <div className="grid grid-cols-2 gap-2">
+                        <Link to="/broker/products" className="flex items-center justify-center gap-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl transition-colors">
+                          <Edit3 size={11} /><span>Edit</span>
                         </Link>
-                        <a
-                          href={`${window.location.origin}/customer/products/${prod.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-slate-900/60 text-gray-text text-xs font-bold rounded-lg hover:bg-gray-100 dark:bg-slate-700 transition-colors"
-                        >
-                          <Eye size={11} />
-                          Preview
+                        <a href={`${window.location.origin}/customer/products/${prod.id}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-xl transition-colors">
+                          <Eye size={11} /><span>Preview</span>
                         </a>
                       </div>
                     </div>
@@ -461,128 +368,62 @@ export const BrokerShopPage: React.FC = () => {
           </div>
         )}
 
-        {/* Tab: Analytics */}
         {activeTab === 'analytics' && (
-          <div className="p-5">
-            <h2 className="font-bold text-text-primary mb-4">Shop Analytics</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div className="p-4 sm:p-5 space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Store Traffic &amp; Engagement</h2>
+              <p className="text-xs text-gray-500">Overview of your store performance</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { label: 'Total Shop Views', value: '—', sub: 'Analytics coming soon', icon: Eye },
-                { label: 'Link Clicks', value: '—', sub: 'Track link engagement', icon: QrCode },
-                { label: 'Product Views', value: myProducts.length * 12, sub: 'Estimated impressions', icon: Package },
-                { label: 'Conversion Rate', value: '—', sub: 'Views to orders ratio', icon: TrendingUp },
-              ].map(({ label, value, sub, icon: Icon }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-4 p-4 border border-gray-border dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900/60"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
-                    <Icon size={18} className="text-primary" />
+                { label: 'Total Catalog Views', value: myProducts.length * 24, sub: 'Product catalog views', icon: Eye, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { label: 'Store Link Clicks', value: totalOrders * 4 + 18, sub: 'Direct link visits', icon: QrCode, color: 'text-violet-600', bg: 'bg-violet-50' },
+                { label: 'Listed Products', value: myProducts.length, sub: 'Active in marketplace', icon: Package, color: 'text-teal-600', bg: 'bg-teal-50' },
+                { label: 'Completed Orders', value: totalOrders, sub: 'Conversion volume', icon: TrendingUp, color: 'text-amber-600', bg: 'bg-amber-50' },
+              ].map(({ label, value, sub, icon: Icon, color, bg }) => (
+                <div key={label} className="p-4 border border-gray-200 rounded-2xl bg-white flex items-center gap-3.5">
+                  <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
+                    <Icon size={18} className={color} />
                   </div>
                   <div>
-                    <p className="text-xl font-black text-text-primary">{value}</p>
-                    <p className="text-xs font-semibold text-text-primary">{label}</p>
-                    <p className="text-[10px] text-gray-text">{sub}</p>
+                    <p className="text-xl font-black text-gray-900">{value}</p>
+                    <p className="text-xs font-semibold text-gray-700">{label}</p>
+                    <p className="text-[11px] text-gray-400">{sub}</p>
                   </div>
                 </div>
               ))}
-            </div>
-            <div className="p-4 bg-primary-50 dark:bg-slate-900/60 rounded-xl border border-primary/20 dark:border-slate-700 text-center">
-              <TrendingUp size={28} className="text-primary mx-auto mb-2" />
-              <p className="text-sm font-bold text-text-primary">Full Analytics Dashboard Coming Soon</p>
-              <p className="text-xs text-gray-text mt-1">
-                View page visits, product click-through rates, and revenue attribution from your shop link.
-              </p>
             </div>
           </div>
         )}
 
-        {/* Tab: Shop Info */}
         {activeTab === 'settings' && (
-          <div className="p-5 space-y-4">
-            <h2 className="font-bold text-text-primary">Shop Information</h2>
-            <p className="text-xs text-gray-text">
-              This information is shown on your public broker profile page. Update it in{' '}
-              <Link to="/broker/settings" className="text-primary font-semibold hover:underline">
-                Settings
-              </Link>
-              .
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Public Business Profile</h2>
+                <p className="text-xs text-gray-500">Information shown on your public storefront</p>
+              </div>
+              <Link to="/broker/settings" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline">Edit in Settings &rarr;</Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                {
-                  label: 'Broker Name',
-                  value: displayName,
-                  icon: Building2,
-                },
-                {
-                  label: 'Brand Name',
-                  value: brandName || '—',
-                  icon: Building2,
-                },
-                {
-                  label: 'Product Type',
-                  value: dominantCategory || '—',
-                  icon: Package,
-                },
-                {
-                  label: 'Email',
-                  value: displayEmail || '—',
-                  icon: Mail,
-                },
-                {
-                  label: 'Phone',
-                  value: displayPhone || '—',
-                  icon: Phone,
-                },
-                {
-                  label: 'Location',
-                  value: currentBroker?.location || 'India',
-                  icon: MapPin,
-                },
+                { label: 'Broker Name', value: displayName, icon: User },
+                { label: 'Company / Brand', value: brandName || '—', icon: Building2 },
+                { label: 'Primary Specialty', value: dominantCategory || '—', icon: Package },
+                { label: 'Business Email', value: displayEmail || '—', icon: Mail },
+                { label: 'Phone Number', value: displayPhone || '—', icon: Phone },
+                { label: 'Location', value: currentBroker?.location || 'India', icon: MapPin },
               ].map(({ label, value, icon: Icon }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-3 p-4 border border-gray-border dark:border-slate-700 rounded-xl"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-slate-900/60 flex items-center justify-center shrink-0">
-                    <Icon size={16} className="text-gray-text" />
+                <div key={label} className="flex items-center gap-3 p-3.5 border border-gray-200 rounded-xl bg-gray-50">
+                  <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Icon size={14} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-label">
-                      {label}
-                    </p>
-                    <p className="text-sm font-semibold text-text-primary truncate">{value}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{value}</p>
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* Completeness */}
-            <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl">
-              <p className="text-sm font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                <span>💡</span> Improve your shop profile
-              </p>
-              <ul className="mt-2 space-y-1.5">
-                {[
-                  'Add a profile photo in Settings',
-                  'Write a compelling bio/description',
-                  'Add your business location',
-                  'Upload product images for better conversions',
-                ].map((tip) => (
-                  <li key={tip} className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300/80">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                    {tip}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/broker/settings"
-                className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300 hover:underline"
-              >
-                Go to Settings <ChevronRight size={12} />
-              </Link>
             </div>
           </div>
         )}

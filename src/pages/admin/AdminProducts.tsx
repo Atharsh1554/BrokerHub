@@ -293,8 +293,8 @@ export const AdminProducts: React.FC = () => {
         image: formData.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=400',
         brokerId: 'b1',
         brokerName: formData.brokerName,
-        rating: 4.8,
-        reviewCount: 1,
+        rating: 0,
+        reviewCount: 0,
         isActive: true,
       };
 

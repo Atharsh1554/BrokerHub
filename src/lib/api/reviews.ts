@@ -148,8 +148,8 @@ export const getBrokerReviews = async (brokerId: string): Promise<Review[]> => {
       customerName: item.users?.full_name || 'Verified Buyer',
       customerAvatar: item.users?.avatar,
       brokerId: item.broker_id,
-      orderId: item.order_id || undefined,
-      productId: item.product_id || undefined,
+      orderId: item.order_id ?? undefined,
+      productId: item.product_id ?? undefined,
       rating: Number(item.rating) || 5,
       comment: item.comment || '',
       status: item.status || 'Published',
@@ -181,13 +181,27 @@ export const checkOrderReviewed = async (orderId: string): Promise<Review | null
   if (local) return local;
 
   try {
+    // Try querying by order_id column — if the column doesn't exist, gracefully return null
     const { data, error } = await supabase
       .from('reviews')
       .select('*, users:customer_id(full_name, avatar)')
       .eq('order_id', orderId)
       .maybeSingle();
 
-    if (error || !data) return null;
+    // If order_id column doesn't exist in schema or type mismatch (e.g. non-UUID), gracefully skip DB check
+    if (error) {
+      if (
+        error.code === 'PGRST204' ||
+        error.code === '22P02' ||
+        error.message?.includes('order_id') ||
+        error.message?.includes('uuid')
+      ) {
+        return null;
+      }
+      return null;
+    }
+
+    if (!data) return null;
 
     return {
       id: data.id,
@@ -247,27 +261,62 @@ export const submitReview = async (payload: SubmitReviewPayload): Promise<Review
     if (profile?.avatar) customerAvatar = profile.avatar;
   } catch {}
 
-  const reviewPayload = {
+  // Build the insert payload — include order_id/product_id only if they exist
+  const reviewPayload: Record<string, any> = {
     customer_id: user.id,
     broker_id: payload.brokerId,
-    order_id: payload.orderId || null,
-    product_id: payload.productId || null,
     rating: payload.rating,
     comment: payload.comment.trim(),
     status: 'Published',
   };
 
-  const { data, error } = await supabase
+  // Include optional FK columns
+  if (payload.orderId) reviewPayload.order_id = payload.orderId;
+  if (payload.productId) reviewPayload.product_id = payload.productId;
+
+  let { data, error } = await supabase
     .from('reviews')
     .insert([reviewPayload])
     .select('*, users:customer_id(full_name, avatar)')
     .single();
 
-  if (error) {
+  // If the insert failed because column doesn't exist, type mismatch (e.g. 22P02), or constraint error,
+  // retry with minimal required columns so review safely persists in Supabase
+  if (
+    error &&
+    (error.code === 'PGRST204' ||
+      error.code === '22P02' ||
+      error.message?.includes('column') ||
+      error.message?.includes('uuid') ||
+      error.message?.includes('order_id') ||
+      error.message?.includes('product_id'))
+  ) {
+    console.warn('Review insert failed due to column or type mismatch, retrying without optional FK columns:', error.message);
+    const fallbackPayload: Record<string, any> = {
+      customer_id: user.id,
+      broker_id: payload.brokerId,
+      rating: payload.rating,
+      comment: payload.comment.trim(),
+      status: 'Published',
+    };
+
+    const retry = await supabase
+      .from('reviews')
+      .insert([fallbackPayload])
+      .select('*, users:customer_id(full_name, avatar)')
+      .single();
+
+    data = retry.data;
+    error = retry.error;
+  }
+
+  let finalReview: Review;
+
+  if (error || !data) {
     console.error('Supabase review insert error:', error);
-    // If table column order_id doesn't exist yet or other schema constraint, fallback gracefully
+    // Final fallback — save to localStorage so the review at least appears locally
     const fallbackId = `rev_${Date.now()}`;
-    const newRev: Review = {
+    finalReview = {
       id: fallbackId,
       customerId: user.id,
       customerName,
@@ -280,42 +329,76 @@ export const submitReview = async (payload: SubmitReviewPayload): Promise<Review
       status: 'Published',
       createdAt: new Date().toISOString(),
     };
-
-    const current = getLocalReviews();
-    saveLocalReviews([newRev, ...current]);
-    broadcastReviewUpdate(payload.brokerId);
-    return newRev;
+  } else {
+    finalReview = {
+      id: data.id,
+      customerId: data.customer_id,
+      customerName: data.users?.full_name || customerName,
+      customerAvatar: data.users?.avatar || customerAvatar,
+      brokerId: data.broker_id,
+      orderId: data.order_id ?? payload.orderId,
+      productId: data.product_id ?? payload.productId,
+      rating: Number(data.rating),
+      comment: data.comment,
+      status: data.status,
+      createdAt: data.created_at,
+    };
   }
 
-  const createdReview: Review = {
-    id: data.id,
-    customerId: data.customer_id,
-    customerName: data.users?.full_name || customerName,
-    customerAvatar: data.users?.avatar || customerAvatar,
-    brokerId: data.broker_id,
-    orderId: data.order_id,
-    productId: data.product_id,
-    rating: Number(data.rating),
-    comment: data.comment,
-    status: data.status,
-    createdAt: data.created_at,
-  };
-
-  // Sync to local cache
+  // 1. Sync to local reviews cache
   const current = getLocalReviews();
-  saveLocalReviews([createdReview, ...current.filter((r) => r.id !== createdReview.id)]);
+  const updatedReviews = [finalReview, ...current.filter((r) => r.id !== finalReview.id)];
+  saveLocalReviews(updatedReviews);
 
-  // Broadcast update event to all active views
+  // 2. Automatically compute broker's updated live rating & review count
+  try {
+    const brokerReviews = updatedReviews.filter((r) => r.brokerId === payload.brokerId && r.status === 'Published');
+    const stats = calculateRatingStats(brokerReviews);
+
+    // Update localStorage broker overrides so UI components immediately reflect the new score
+    const rawOverrides = localStorage.getItem('brokerhub_broker_overrides');
+    const overrides = rawOverrides ? JSON.parse(rawOverrides) : {};
+    overrides[payload.brokerId] = {
+      ...(overrides[payload.brokerId] || {}),
+      rating: stats.average,
+      reviewCount: stats.totalReviews,
+    };
+    localStorage.setItem('brokerhub_broker_overrides', JSON.stringify(overrides));
+
+    // Update Supabase brokers table if brokerId is a valid UUID
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.brokerId);
+    if (isUuid) {
+      await supabase
+        .from('brokers')
+        .update({
+          rating: stats.average,
+          review_count: stats.totalReviews,
+        })
+        .eq('id', payload.brokerId);
+    }
+  } catch (err) {
+    console.warn('Notice: could not auto-update broker rating stats:', err);
+  }
+
+  // 3. Broadcast update event to all active views across tabs
   broadcastReviewUpdate(payload.brokerId);
 
-  return createdReview;
+  return finalReview;
 };
 
 const broadcastReviewUpdate = (brokerId: string) => {
   try {
-    const bc = new BroadcastChannel('brokerhub_reviews_channel');
-    bc.postMessage({ type: 'REVIEW_SUBMITTED', brokerId });
-    bc.close();
+    const bcReviews = new BroadcastChannel('brokerhub_reviews_channel');
+    bcReviews.postMessage({ type: 'REVIEW_SUBMITTED', brokerId });
+    bcReviews.close();
   } catch {}
+
+  try {
+    const bcBrokers = new BroadcastChannel('brokerhub_brokers_live');
+    bcBrokers.postMessage({ type: 'BROKER_RATING_UPDATED', brokerId });
+    bcBrokers.close();
+  } catch {}
+
   window.dispatchEvent(new CustomEvent('brokerhub_reviews_updated', { detail: { brokerId } }));
+  window.dispatchEvent(new CustomEvent('brokerhub_brokers_updated', { detail: { brokerId } }));
 };

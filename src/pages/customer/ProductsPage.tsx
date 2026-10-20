@@ -39,19 +39,36 @@ export const ProductsPage: React.FC = () => {
 
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const getBrokerInfo = (brokerId?: string, fallbackName?: string) => {
+    if (brokerId) {
+      const found = brokers.find((b) => b.id === brokerId);
+      if (found) return found;
+    }
+    return {
+      id: brokerId || 'b1',
+      name: fallbackName || 'Verified Broker',
+      company: 'MYSTRIO Partner',
+      location: 'India',
+    };
+  };
+
   const filtered = activeProducts.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase().trim();
+    const broker = getBrokerInfo(p.brokerId, p.brokerName);
+    const matchesSearch =
+      !q ||
+      p.name.toLowerCase().includes(q) ||
+      (p.category || '').toLowerCase().includes(q) ||
+      (p.description || '').toLowerCase().includes(q) ||
+      (p.brokerName || '').toLowerCase().includes(q) ||
+      (broker.name || '').toLowerCase().includes(q) ||
+      (broker.company || '').toLowerCase().includes(q);
     const matchesCategory = category === 'All' || p.category === category;
     return matchesSearch && matchesCategory;
   });
 
-  // Products added in the last 24 hours (id starts with p_ meaning broker-added at runtime)
+  // Products added recently (within runtime or starts with p_)
   const isNew = (id: string) => id.startsWith('p_');
-
-  const getBrokerInfo = (brokerId?: string) => {
-    if (!brokerId) return brokers[0] || { id: 'b1', name: 'Marcus Chen', company: 'Apex Realty Group', location: 'Mumbai' };
-    return brokers.find((b) => b.id === brokerId) || brokers[0] || { id: 'b1', name: 'Marcus Chen', company: 'Apex Realty Group', location: 'Mumbai' };
-  };
 
   const handleQuickAdd = (e: React.MouseEvent, product: any) => {
     e.stopPropagation();
@@ -147,7 +164,7 @@ export const ProductsPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-4">
           {filtered.map((product) => {
-            const broker = getBrokerInfo(product.brokerId);
+            const broker = getBrokerInfo(product.brokerId, product.brokerName);
             const isAdded = addedIds[product.id];
 
             return (

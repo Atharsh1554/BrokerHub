@@ -110,6 +110,7 @@ export interface Order {
   customerPhone?: string;
   brokerId?: string;
   brokerName?: string;
+  productId?: string;
   product?: string;
   productName?: string;
   productImage?: string;
