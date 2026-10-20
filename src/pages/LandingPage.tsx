@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Navbar } from '../components/layout/Navbar';
+import { LiveMarketplaceStats } from '../components/landing/LiveMarketplaceStats';
 import { Footer } from '../components/layout/Footer';
 import { Button } from '../components/ui/Button';
 import { Zap, Shield, Users, Star, ArrowRight, CheckCircle, Quote } from 'lucide-react';
@@ -412,49 +413,8 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-text-primary mb-4">
-              Simple, <span className="text-primary">transparent pricing</span>
-            </h2>
-            <p className="text-gray-text max-w-2xl mx-auto">
-              No hidden fees. Choose the plan that works best for your digital marketplace needs.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              { plan: 'Starter', price: '₹0', period: '/month', desc: 'Perfect for individuals exploring seller connections.', features: ['Up to 3 seller matches', 'Basic messaging', 'Public seller profiles'] },
-              { plan: 'Growth', price: '₹2,999', period: '/month', desc: 'For growing businesses needing consistent marketplace access.', features: ['Unlimited seller matches', 'Priority support', 'Advanced analytics', 'Inquiry scheduling'], highlight: true },
-              { plan: 'Enterprise', price: 'Custom', period: '', desc: 'Tailored solutions for large-scale operations.', features: ['Dedicated account manager', 'Custom integrations', 'SLA guarantee', 'Bulk order management'] },
-            ].map((tier) => (
-              <div key={tier.plan} className={`rounded-2xl border p-8 flex flex-col gap-6 ${
-                tier.highlight ? 'border-primary bg-primary/5 shadow-lg' : 'border-gray-border bg-gray-bg'
-              }`}>
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-wider text-primary mb-1">{tier.plan}</p>
-                  <p className="text-4xl font-bold text-text-primary">{tier.price}<span className="text-sm font-normal text-gray-text">{tier.period}</span></p>
-                  <p className="text-sm text-gray-text mt-2">{tier.desc}</p>
-                </div>
-                <ul className="space-y-2 flex-1">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-sm text-text-primary">
-                      <CheckCircle size={16} className="text-primary shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link to="/signup">
-                  <Button variant={tier.highlight ? 'primary' : 'secondary'} size="md" className="w-full justify-center">
-                    Get Started
-                  </Button>
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Live Marketplace Statistics */}
+      <LiveMarketplaceStats />
 
       {/* FAQ Section */}
       <section id="faq" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-bg border-t border-gray-border">
@@ -468,8 +428,8 @@ export const LandingPage: React.FC = () => {
               { q: 'How does seller matching work?', a: 'Our algorithm analyses your business requirements and matches you with verified commercial sellers who specialize in your specific product categories and supply requirements.' },
               { q: 'Are sellers verified and vetted?', a: 'Yes. Every seller and provider on BROKER HUB goes through an onboarding verification process including identity checks, business verification, and reference reviews.' },
               { q: 'How quickly can I get matched?', a: 'Most matches are delivered within 24 hours of submitting your requirements. Priority plan users get matches within 4 hours.' },
-              { q: 'Is there a free plan available?', a: 'Yes, our Starter plan is completely free and lets you explore up to 3 seller matches with basic messaging.' },
-              { q: 'Can I switch plans later?', a: 'Absolutely. You can upgrade, downgrade, or cancel your plan at any time from your account settings.' },
+              { q: 'Is it free to browse and connect with sellers?', a: 'Yes. Customers can freely discover verified product listings, compare prices, and connect directly with sellers on the marketplace.' },
+              { q: 'How do independent sellers register on BrokerHub?', a: 'Sellers can click Sign Up, choose the Independent Broker / Seller role, complete onboarding verification, and begin publishing their product catalog.' },
             ].map((item, i) => (
               <div key={i} className="bg-white rounded-xl border border-gray-border p-6">
                 <h3 className="font-semibold text-text-primary mb-2">{item.q}</h3>

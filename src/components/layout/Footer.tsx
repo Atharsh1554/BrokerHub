@@ -25,7 +25,6 @@ export const Footer: React.FC = () => {
   const platformLinks: { label: string; sectionId: string }[] = [
     { label: 'How It Works', sectionId: 'how-it-works' },
     { label: 'Features', sectionId: 'features' },
-    { label: 'Pricing', sectionId: 'pricing' },
     { label: 'FAQ', sectionId: 'faq' },
   ];
 

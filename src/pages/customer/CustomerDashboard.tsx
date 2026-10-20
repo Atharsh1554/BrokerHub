@@ -8,11 +8,18 @@ import {
   TrendingUp,
   MessageCircle,
   Package,
+  Sparkles,
+  Star,
+  ChevronDown,
+  CheckCircle2,
+  Zap,
 } from 'lucide-react';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { resolveUserDisplayName, getUserInitials } from '../../lib/userUtils';
+import { rankProducts } from '../../lib/ranking/productRanking';
+import { recordProductImpression, recordProductInteraction } from '../../lib/analytics/productAnalytics';
 
 export const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -116,22 +123,65 @@ export const CustomerDashboard: React.FC = () => {
     };
   }, [orders, activeProducts]);
 
-  // 2. Filter products based on search term
-  const searchResults = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return [];
+  // Pagination states for discovery and search (12 products initially + Load More)
+  const [visibleDiscoveryCount, setVisibleDiscoveryCount] = useState(12);
+  const [visibleSearchCount, setVisibleSearchCount] = useState(12);
 
-    return activeProducts.filter((p) => {
-      const broker = getBrokerInfo(p.brokerId, p.brokerName);
-      const nameMatch = p.name.toLowerCase().includes(q);
-      const categoryMatch = (p.category || '').toLowerCase().includes(q);
-      const brokerMatch = (broker.name || '').toLowerCase().includes(q) || (p.brokerName || '').toLowerCase().includes(q) || (broker.company || '').toLowerCase().includes(q);
-      const descMatch = (p.description || '').toLowerCase().includes(q);
-      return nameMatch || categoryMatch || brokerMatch || descMatch;
+  // Reset search pagination when query changes
+  useEffect(() => {
+    setVisibleSearchCount(12);
+  }, [searchQuery]);
+
+  // Read globally deleted products
+  const globalDeletedIds = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('brokerhub_deleted_products') || '[]');
+    } catch {
+      return [];
+    }
+  }, []);
+
+  // 2. Smart Product Ranking for Discovery (When no search query is active)
+  // Evaluates recency decay, Bayesian damped quality, stock status, and applies
+  // Fair Seller Exposure windowed interleaving across 12-item discovery batches.
+  const discoveryRankingResult = useMemo(() => {
+    return rankProducts(activeProducts, {
+      brokers,
+      deletedIds: globalDeletedIds,
+      pageSize: visibleDiscoveryCount,
     });
-  }, [searchQuery, activeProducts, brokers]);
+  }, [activeProducts, brokers, globalDeletedIds, visibleDiscoveryCount]);
 
-  const latestProducts = activeProducts.slice(0, 8);
+  // 3. Smart Product Ranking for Search (When customer types a search term)
+  // Evaluates search token matches across name, category, broker, description,
+  // balanced with freshness, quality, and stock availability.
+  const searchRankingResult = useMemo(() => {
+    const q = searchQuery.trim();
+    if (!q) return null;
+    return rankProducts(activeProducts, {
+      query: q,
+      brokers,
+      deletedIds: globalDeletedIds,
+      pageSize: visibleSearchCount,
+    });
+  }, [searchQuery, activeProducts, brokers, globalDeletedIds, visibleSearchCount]);
+
+  // Track impressions on real render for visibility analytics (no fake counts)
+  useEffect(() => {
+    const items = searchQuery.trim()
+      ? searchRankingResult?.items || []
+      : discoveryRankingResult.items;
+
+    items.forEach((item, index) => {
+      recordProductImpression(
+        item.product.id,
+        index + 1,
+        searchQuery.trim() ? 'search_results' : 'customer_dashboard',
+        item.product.brokerId,
+        searchQuery.trim() || undefined
+      );
+    });
+  }, [discoveryRankingResult.items, searchRankingResult?.items, searchQuery]);
 
   return (
     <div className="space-y-8 pb-12">
@@ -171,64 +221,112 @@ export const CustomerDashboard: React.FC = () => {
       </div>
 
       {/* Search Results view when user is actively searching */}
-      {searchQuery.trim().length > 0 ? (
+      {searchQuery.trim().length > 0 && searchRankingResult ? (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-text-primary dark:text-white">
-              Search Results for "{searchQuery}"
-            </h2>
-            <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
-              {searchResults.length} {searchResults.length === 1 ? 'product' : 'products'} found
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-text-primary dark:text-white">
+                  Search Results for "{searchQuery}"
+                </h2>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Zap size={10} /> Smart Ranked
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-slate-400">
+                Sorted by token relevance, freshness, quality, and stock availability
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2.5 py-1 rounded-full self-start sm:self-auto">
+              {searchRankingResult.totalEligible} {searchRankingResult.totalEligible === 1 ? 'product' : 'products'} found
             </span>
           </div>
 
-          {searchResults.length === 0 ? (
+          {searchRankingResult.items.length === 0 ? (
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-border dark:border-slate-700 p-12 text-center">
               <ShoppingBag size={48} className="text-gray-300 dark:text-slate-600 mx-auto mb-3" />
-              <h3 className="text-base font-bold text-text-primary dark:text-white mb-1">No products found.</h3>
+              <h3 className="text-base font-bold text-text-primary dark:text-white mb-1">No matching products found.</h3>
               <p className="text-xs text-gray-label dark:text-slate-400">Try searching for another product name, category, or broker.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
-              {searchResults.map((product) => {
-                const broker = getBrokerInfo(product.brokerId, product.brokerName);
-                return (
-                  <div
-                    key={product.id}
-                    onClick={() => navigate(`/customer/products/${product.id}`)}
-                    className="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl border border-gray-border dark:border-slate-700 overflow-hidden hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-500 transition-all duration-200 group cursor-pointer flex flex-col justify-between"
-                  >
-                    <div className="relative aspect-square sm:h-36 w-full bg-white dark:bg-slate-900 p-2 flex items-center justify-center overflow-hidden border-b border-gray-100 dark:border-slate-700">
-                      {product.image ? (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <ShoppingBag size={28} className="text-gray-300 dark:text-slate-600 group-hover:scale-110 transition-transform duration-300" />
-                      )}
-                    </div>
-                    <div className="p-2 sm:p-2.5 flex-1 flex flex-col justify-between space-y-1.5">
-                      <div>
-                        <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider truncate mb-0.5">{product.category}</p>
-                        <h3 className="text-xs sm:text-sm font-semibold text-text-primary dark:text-slate-200 line-clamp-2 leading-tight group-hover:text-primary dark:group-hover:text-emerald-400 transition-colors min-h-[1.8rem] sm:min-h-[2.2rem]">{product.name}</h3>
-                        <div className="flex items-baseline justify-between gap-1 pt-1">
-                          <p className="text-xs sm:text-sm font-extrabold text-primary dark:text-emerald-400">₹{product.price.toLocaleString('en-IN')}</p>
-                          <StatusBadge status={product.status} size="sm" />
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
+                {searchRankingResult.items.map(({ product, scoreBreakdown }) => {
+                  const broker = getBrokerInfo(product.brokerId, product.brokerName);
+                  const isNewArrival = scoreBreakdown.tags.includes('New Arrival');
+                  const isTopRated = scoreBreakdown.tags.includes('Top Rated');
+
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => {
+                        recordProductInteraction(product.id, 'click', product.brokerId, scoreBreakdown.finalRank);
+                        navigate(`/customer/products/${product.id}`);
+                      }}
+                      className="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl border border-gray-border dark:border-slate-700 overflow-hidden hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-500 transition-all duration-200 group cursor-pointer flex flex-col justify-between relative"
+                    >
+                      {/* Product Badges */}
+                      <div className="absolute top-2 left-2 z-10 flex flex-col gap-1 items-start pointer-events-none">
+                        {isNewArrival && (
+                          <span className="flex items-center gap-1 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+                            <Sparkles size={9} /> New
+                          </span>
+                        )}
+                        {isTopRated && (
+                          <span className="flex items-center gap-1 bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+                            <Star size={9} className="fill-white" /> Top Rated
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="relative aspect-square sm:h-36 w-full bg-white dark:bg-slate-900 p-2 flex items-center justify-center overflow-hidden border-b border-gray-100 dark:border-slate-700">
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <ShoppingBag size={28} className="text-gray-300 dark:text-slate-600 group-hover:scale-110 transition-transform duration-300" />
+                        )}
+                      </div>
+                      <div className="p-2 sm:p-2.5 flex-1 flex flex-col justify-between space-y-1.5">
+                        <div>
+                          <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider truncate mb-0.5">{product.category}</p>
+                          <h3 className="text-xs sm:text-sm font-semibold text-text-primary dark:text-slate-200 line-clamp-2 leading-tight group-hover:text-primary dark:group-hover:text-emerald-400 transition-colors min-h-[1.8rem] sm:min-h-[2.2rem]">{product.name}</h3>
+                          <div className="flex items-baseline justify-between gap-1 pt-1">
+                            <p className="text-xs sm:text-sm font-extrabold text-primary dark:text-emerald-400">₹{product.price.toLocaleString('en-IN')}</p>
+                            <StatusBadge status={product.status} size="sm" />
+                          </div>
+                        </div>
+                        <div className="pt-1.5 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-gray-500 dark:text-slate-400">
+                          <span className="truncate max-w-[70%]">
+                            By <strong className="text-gray-700 dark:text-slate-200">{broker.name}</strong>
+                          </span>
+                          <span className="text-primary dark:text-emerald-400 font-bold">View</span>
                         </div>
                       </div>
-                      <div className="pt-1.5 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-gray-500 dark:text-slate-400">
-                        <span className="truncate max-w-[70%]">
-                          By <strong className="text-gray-700 dark:text-slate-200">{broker.name}</strong>
-                        </span>
-                        <span className="text-primary dark:text-emerald-400 font-bold">View</span>
-                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+
+              {/* Load More Search Results Button */}
+              {searchRankingResult.hasMore && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={() => setVisibleSearchCount((prev) => prev + 12)}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm font-bold shadow-xs transition-colors cursor-pointer"
+                  >
+                    <span>Load More Results</span>
+                    <span className="text-[11px] bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 px-2 py-0.5 rounded-full font-bold">
+                      {searchRankingResult.totalEligible - visibleSearchCount} remaining
+                    </span>
+                    <ChevronDown size={14} />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       ) : (
@@ -308,79 +406,132 @@ export const CustomerDashboard: React.FC = () => {
             )}
           </div>
 
-          {/* Latest Products */}
+          {/* Intelligently Ranked Discovery Products */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-text-primary dark:text-white">Latest Products</h2>
-                <span className="bg-primary/10 dark:bg-emerald-900/30 text-primary dark:text-emerald-400 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  {activeProducts.length} listings
-                </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-text-primary dark:text-white">Discover Products</h2>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Zap size={10} /> Smart Ranked
+                  </span>
+                  <span className="bg-primary/10 dark:bg-emerald-900/30 text-primary dark:text-emerald-400 text-xs font-semibold px-2 py-0.5 rounded-full">
+                    {discoveryRankingResult.totalEligible} listings
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                  Fair seller exposure across listings • Recent freshness • Verified quality
+                </p>
               </div>
+
               <Link
                 to="/customer/products"
-                className="flex items-center gap-1 text-sm text-primary dark:text-emerald-400 font-medium hover:underline"
+                className="flex items-center gap-1 text-sm text-primary dark:text-emerald-400 font-medium hover:underline self-start sm:self-auto"
               >
                 Browse All <ArrowRight size={14} />
               </Link>
             </div>
 
-            {latestProducts.length === 0 ? (
+            {discoveryRankingResult.items.length === 0 ? (
               <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-border dark:border-slate-700 p-8 text-center">
                 <ShoppingBag size={36} className="text-gray-300 dark:text-slate-600 mx-auto mb-3" />
-                <p className="text-sm text-gray-text dark:text-slate-400">No products yet. Check back when your brokers add listings.</p>
+                <p className="text-sm text-gray-text dark:text-slate-400">No products available yet. Check back when your brokers add listings.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
-                {latestProducts.map((product) => {
-                  const broker = getBrokerInfo(product.brokerId, product.brokerName);
-                  return (
-                    <div
-                      key={product.id}
-                      onClick={() => navigate(`/customer/products/${product.id}`)}
-                      className="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl border border-gray-border dark:border-slate-700 overflow-hidden hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-500 transition-all duration-200 group relative cursor-pointer flex flex-col justify-between"
-                    >
-                      <div className="relative aspect-square sm:h-36 w-full bg-white dark:bg-slate-900 p-2 flex items-center justify-center overflow-hidden border-b border-gray-100 dark:border-slate-700">
-                        {product.image ? (
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <ShoppingBag size={28} className="text-gray-300 dark:text-slate-600 group-hover:scale-110 transition-transform duration-300" />
-                        )}
-                      </div>
-                      <div className="p-2 sm:p-2.5 flex-1 flex flex-col justify-between space-y-1.5">
-                        <div>
-                          <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider truncate mb-0.5">{product.category}</p>
-                          <h3 className="text-xs sm:text-sm font-semibold text-text-primary dark:text-slate-200 line-clamp-2 leading-tight group-hover:text-primary dark:group-hover:text-emerald-400 transition-colors min-h-[1.8rem] sm:min-h-[2.2rem]">{product.name}</h3>
-                          <div className="flex items-baseline justify-between gap-1 pt-1">
-                            <p className="text-xs sm:text-sm font-extrabold text-primary dark:text-emerald-400">₹{product.price.toLocaleString('en-IN')}</p>
-                            <StatusBadge status={product.status} size="sm" />
-                          </div>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
+                  {discoveryRankingResult.items.map(({ product, scoreBreakdown }) => {
+                    const broker = getBrokerInfo(product.brokerId, product.brokerName);
+                    const isNewArrival = scoreBreakdown.tags.includes('New Arrival');
+                    const isTopRated = scoreBreakdown.tags.includes('Top Rated');
+
+                    return (
+                      <div
+                        key={product.id}
+                        onClick={() => {
+                          recordProductInteraction(product.id, 'click', product.brokerId, scoreBreakdown.finalRank);
+                          navigate(`/customer/products/${product.id}`);
+                        }}
+                        className="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl border border-gray-border dark:border-slate-700 overflow-hidden hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-500 transition-all duration-200 group relative cursor-pointer flex flex-col justify-between"
+                      >
+                        {/* Dynamic Ranking Badges */}
+                        <div className="absolute top-2 left-2 z-10 flex flex-col gap-1 items-start pointer-events-none">
+                          {isNewArrival && (
+                            <span className="flex items-center gap-1 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+                              <Sparkles size={9} /> New
+                            </span>
+                          )}
+                          {isTopRated && (
+                            <span className="flex items-center gap-1 bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+                              <Star size={9} className="fill-white" /> Top Rated
+                            </span>
+                          )}
                         </div>
 
-                        <div className="pt-1.5 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-gray-500 dark:text-slate-400">
-                          <span className="truncate max-w-[65%]">
-                            By <strong className="text-gray-700 dark:text-slate-200">{broker.name}</strong>
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/customer/messages?brokerId=${broker.id}`);
-                            }}
-                            className="text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 font-bold flex items-center gap-0.5 hover:underline shrink-0"
-                          >
-                            <MessageSquare size={11} />
-                            Chat
-                          </button>
+                        <div className="relative aspect-square sm:h-36 w-full bg-white dark:bg-slate-900 p-2 flex items-center justify-center overflow-hidden border-b border-gray-100 dark:border-slate-700">
+                          {product.image ? (
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <ShoppingBag size={28} className="text-gray-300 dark:text-slate-600 group-hover:scale-110 transition-transform duration-300" />
+                          )}
+                        </div>
+                        <div className="p-2 sm:p-2.5 flex-1 flex flex-col justify-between space-y-1.5">
+                          <div>
+                            <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider truncate mb-0.5">{product.category}</p>
+                            <h3 className="text-xs sm:text-sm font-semibold text-text-primary dark:text-slate-200 line-clamp-2 leading-tight group-hover:text-primary dark:group-hover:text-emerald-400 transition-colors min-h-[1.8rem] sm:min-h-[2.2rem]">{product.name}</h3>
+                            <div className="flex items-baseline justify-between gap-1 pt-1">
+                              <p className="text-xs sm:text-sm font-extrabold text-primary dark:text-emerald-400">₹{product.price.toLocaleString('en-IN')}</p>
+                              <StatusBadge status={product.status} size="sm" />
+                            </div>
+                          </div>
+
+                          <div className="pt-1.5 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between text-[10px] text-gray-500 dark:text-slate-400">
+                            <span className="truncate max-w-[65%]">
+                              By <strong className="text-gray-700 dark:text-slate-200">{broker.name}</strong>
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                recordProductInteraction(product.id, 'chat_inquiry', product.brokerId, scoreBreakdown.finalRank);
+                                navigate(`/customer/messages?brokerId=${broker.id}`);
+                              }}
+                              className="text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 font-bold flex items-center gap-0.5 hover:underline shrink-0"
+                            >
+                              <MessageSquare size={11} />
+                              Chat
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+
+                {/* Load More Products / Status Indicator */}
+                {discoveryRankingResult.hasMore ? (
+                  <div className="flex justify-center pt-4">
+                    <button
+                      onClick={() => setVisibleDiscoveryCount((prev) => prev + 12)}
+                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm font-bold shadow-xs transition-colors cursor-pointer"
+                    >
+                      <span>Load More Products</span>
+                      <span className="text-[11px] bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 px-2 py-0.5 rounded-full font-bold">
+                        {discoveryRankingResult.totalEligible - visibleDiscoveryCount} remaining
+                      </span>
+                      <ChevronDown size={14} />
+                    </button>
+                  </div>
+                ) : discoveryRankingResult.totalEligible > 0 ? (
+                  <div className="text-center pt-4 text-xs text-gray-400 dark:text-slate-500 flex items-center justify-center gap-1.5">
+                    <CheckCircle2 size={14} className="text-emerald-500" />
+                    <span>Showing all {discoveryRankingResult.totalEligible} intelligently ranked products</span>
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
 
