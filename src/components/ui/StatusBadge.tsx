@@ -16,7 +16,11 @@ const statusConfig: Record<string, { bg: string; text: string; dot: string }> = 
   'Pending': { bg: 'bg-orange-50', text: 'text-status-orange', dot: 'bg-status-orange' },
   'Pending Match': { bg: 'bg-blue-50', text: 'text-status-blue', dot: 'bg-status-blue' },
   'Pending Approval': { bg: 'bg-blue-50', text: 'text-status-blue', dot: 'bg-status-blue' },
-  'Cancelled': { bg: 'bg-red-50', text: 'text-status-red', dot: 'bg-status-red' },
+  'Cancelled': { bg: 'bg-red-50 dark:bg-red-950/40', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-500' },
+  'CANCELLED': { bg: 'bg-red-50 dark:bg-red-950/40', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-500' },
+  'Payment Cancelled': { bg: 'bg-red-50 dark:bg-red-950/40', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-500' },
+  'Failed': { bg: 'bg-red-50 dark:bg-red-950/40', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-500' },
+  'Payment Failed': { bg: 'bg-red-50 dark:bg-red-950/40', text: 'text-red-700 dark:text-red-400', dot: 'bg-red-500' },
   'Out of Stock': { bg: 'bg-red-50', text: 'text-status-red', dot: 'bg-status-red' },
   'Low Stock': { bg: 'bg-orange-50', text: 'text-status-orange', dot: 'bg-status-orange' },
 };

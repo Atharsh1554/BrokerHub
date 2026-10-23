@@ -23,9 +23,19 @@ export const OrderTracking: React.FC = () => {
       (order.product && order.product.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (order.items && order.items.some((item) => item.productName.toLowerCase().includes(searchTerm.toLowerCase())));
 
-    const matchesStatus =
-      selectedStatus === 'all' ||
-      order.status.toLowerCase().includes(selectedStatus.toLowerCase());
+    const isCancelled = order.status.toLowerCase().includes('cancel');
+    const isUnpaidOnline =
+      ((order.paymentStatus || '').toLowerCase() === 'pending' || (order.paymentStatus || '').toLowerCase() === 'processing') &&
+      (order.paymentMethod || '').toUpperCase() !== 'COD';
+
+    let matchesStatus = true;
+    if (selectedStatus === 'all') {
+      matchesStatus = true;
+    } else if (selectedStatus === 'pending') {
+      matchesStatus = order.status.toLowerCase().includes('pending') && !isCancelled && !isUnpaidOnline;
+    } else {
+      matchesStatus = order.status.toLowerCase().includes(selectedStatus.toLowerCase());
+    }
     return matchesSearch && matchesStatus;
   });
 
@@ -49,9 +59,16 @@ export const OrderTracking: React.FC = () => {
     }
     return sum;
   }, 0);
+
   const pendingCount = orders.filter((o) => {
     const st = o.status.toLowerCase();
-    return !st.includes('delivered') && !st.includes('completed') && !st.includes('cancel') && !st.includes('refund');
+    const ps = (o.paymentStatus || '').toLowerCase();
+    const isCancelledOrRefunded = st.includes('cancel') || st.includes('refund');
+    const isDeliveredOrCompleted = st.includes('delivered') || st.includes('completed');
+    const isUnpaidOnline =
+      (ps === 'pending' || ps === 'processing') &&
+      (o.paymentMethod || '').toUpperCase() !== 'COD';
+    return !isDeliveredOrCompleted && !isCancelledOrRefunded && !isUnpaidOnline;
   }).length;
   const deliveredCount = orders.filter((o) => o.status.toLowerCase().includes('delivered') || o.status.toLowerCase().includes('completed')).length;
 

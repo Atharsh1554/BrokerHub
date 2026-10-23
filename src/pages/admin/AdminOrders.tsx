@@ -10,10 +10,12 @@ import {
   X,
 } from 'lucide-react';
 import { getAdminOrders, updateOrderStatus } from '../../lib/api/admin';
+import { checkAndCancelAbandonedOrders } from '../../lib/api/orders';
 import { supabase } from '../../lib/supabase';
 import type { Order } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 
 export const AdminOrders: React.FC = () => {
   const { orders: appOrders } = useApp();
@@ -34,6 +36,10 @@ export const AdminOrders: React.FC = () => {
 
   const fetchOrders = async () => {
     setLoading(true);
+    // Non-blocking sweep to automatically cancel abandoned unpaid orders older than 15m
+    checkAndCancelAbandonedOrders(15).catch((err) =>
+      console.warn('Admin abandoned orders sweep:', err)
+    );
     const data = await getAdminOrders();
     const map = new Map<string, Order>();
     (data || []).forEach((o) => map.set(o.id, o));
@@ -186,6 +192,7 @@ export const AdminOrders: React.FC = () => {
                   <th className="py-4 px-4">Gross Amount</th>
                   <th className="py-4 px-4">Commission</th>
                   <th className="py-4 px-4">Broker Amount</th>
+                  <th className="py-4 px-4">Order Status</th>
                   <th className="py-4 px-4">Payment Status</th>
                   <th className="py-4 px-4">Settlement</th>
                   <th className="py-4 px-4">Order Date</th>
@@ -211,11 +218,24 @@ export const AdminOrders: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                        (o.status || '').toUpperCase() === 'CANCELLED' || (o.status || '').toLowerCase().includes('cancel')
+                          ? isLight ? 'bg-red-50 text-red-700 border-red-200' : 'bg-red-500/10 text-red-400 border-red-500/30'
+                          : (o.status || '').toLowerCase() === 'delivered' || (o.status || '').toUpperCase() === 'COMPLETED'
+                          ? isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          : (o.status || '').toLowerCase() === 'processing' || (o.status || '').toLowerCase() === 'confirmed'
+                          ? isLight ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                          : isLight ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                      }`}>
+                        {o.status || 'Pending'}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
                         (o.paymentStatus || '').toLowerCase() === 'paid' || o.paymentStatus === 'Successful'
                           ? isLight ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                           : o.paymentStatus === 'Refunded'
                           ? isLight ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-slate-800 text-slate-400 border-slate-700'
-                          : (o.paymentStatus || '').toLowerCase() === 'failed'
+                          : (o.paymentStatus || '').toLowerCase() === 'failed' || (o.paymentStatus || '').toLowerCase().includes('cancel')
                           ? isLight ? 'bg-red-50 text-red-700 border-red-200' : 'bg-red-500/10 text-red-400 border-red-500/30'
                           : isLight ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                       }`}>
@@ -286,7 +306,10 @@ export const AdminOrders: React.FC = () => {
 
             <div className={`border-b pb-4 ${isLight ? 'border-slate-100' : 'border-slate-800'}`}>
               <span className={`text-[10px] font-bold uppercase tracking-wider ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Order Audit Overview</span>
-              <h2 className={`text-lg font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{selectedOrder.id}</h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                <h2 className={`text-lg font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{selectedOrder.id}</h2>
+                <StatusBadge status={selectedOrder.status} size="sm" />
+              </div>
               <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Date: {selectedOrder.date}</p>
             </div>
 

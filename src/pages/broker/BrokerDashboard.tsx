@@ -86,7 +86,13 @@ export const BrokerDashboard: React.FC = () => {
         cancelledCount++;
       } else {
         // Pending, Pending Broker Approval, Confirmed, Processing, Shipped, In Transit
-        pendingCount++;
+        // Only count as pending action if not an unpaid online order
+        const isUnpaidOnline =
+          (paymentStatusLower === 'pending' || paymentStatusLower === 'processing') &&
+          (order.paymentMethod || '').toUpperCase() !== 'COD';
+        if (!isUnpaidOnline) {
+          pendingCount++;
+        }
       }
 
       // REVENUE: Only count orders where payment was actually Successful
@@ -355,6 +361,19 @@ export const BrokerDashboard: React.FC = () => {
       setIsUpdatingStatus(false);
     }
   };
+
+  // Filter out cancelled orders and pending unpaid online orders from active fulfillment table
+  const activeReceivedOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const st = (order.status || '').toLowerCase();
+      const ps = (order.paymentStatus || '').toLowerCase();
+      const isCancelledOrRefunded = st.includes('cancel') || st.includes('refund');
+      const isUnpaidOnline =
+        (ps === 'pending' || ps === 'processing') &&
+        (order.paymentMethod || '').toUpperCase() !== 'COD';
+      return !isCancelledOrRefunded && !isUnpaidOnline;
+    });
+  }, [orders]);
 
   return (
     <div className="space-y-6 pb-12 overflow-x-hidden">
@@ -637,14 +656,14 @@ export const BrokerDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-              {orders.length === 0 ? (
+              {activeReceivedOrders.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-gray-400 dark:text-slate-500">
-                    No orders received yet
+                    No active orders requiring fulfillment
                   </td>
                 </tr>
               ) : (
-                orders.slice(0, 6).map((order) => (
+                activeReceivedOrders.slice(0, 6).map((order) => (
                   <tr
                     key={order.id}
                     className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors text-sm"
@@ -662,9 +681,11 @@ export const BrokerDashboard: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4">
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                        (order.paymentStatus || '').toLowerCase() === 'successful'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-amber-100 text-amber-800'
+                        (order.paymentStatus || '').toLowerCase() === 'successful' || (order.paymentStatus || '').toLowerCase() === 'paid'
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
+                          : (order.paymentStatus || '').toLowerCase() === 'failed' || (order.paymentStatus || '').toLowerCase().includes('cancel')
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300'
                       }`}>
                         {order.paymentStatus || 'Successful'}
                       </span>

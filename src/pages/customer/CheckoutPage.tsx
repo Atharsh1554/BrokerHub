@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { createOrderInDB } from '../../lib/api/orders';
+import { createOrderInDB, cancelUnpaidOrderInDB, notifyBrokersOfPaidOrder } from '../../lib/api/orders';
 import type { ShippingAddress } from '../../types';
 
 export const CheckoutPage: React.FC = () => {
@@ -79,10 +79,27 @@ export const CheckoutPage: React.FC = () => {
   // Keep paymentBreakdown active so tsc does not complain
   void paymentBreakdown;
 
+  const inFlightOrderIdRef = React.useRef<string | null>(null);
 
+  // Handle abandoned payments: cancel in-flight unpaid order if user closes tab or navigates away
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (inFlightOrderIdRef.current) {
+        cancelUnpaidOrderInDB(inFlightOrderIdRef.current, 'Customer closed window/navigated away');
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (inFlightOrderIdRef.current) {
+        cancelUnpaidOrderInDB(inFlightOrderIdRef.current, 'Checkout page unmounted before payment completion');
+      }
+    };
+  }, []);
 
   const handleRazorpayPayment = async (dbOrder: any) => {
     try {
+      inFlightOrderIdRef.current = dbOrder.id;
       const { supabase } = await import('../../lib/supabase');
 
       // 1. Create order on backend — only send order DB ID, never amounts
@@ -111,9 +128,7 @@ export const CheckoutPage: React.FC = () => {
         description: 'Secure Order Payment',
         order_id: orderData.id,
         handler: async function (response: any) {
-          // 3. Verify signature on backend — NEVER trust frontend callback as final payment state.
-          //    Authoritative state comes from webhook (payment.captured event).
-          //    This handler provides immediate UX feedback only.
+          // 3. Verify signature on backend — Authoritative server-side check
           const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
             body: {
               razorpay_order_id: response.razorpay_order_id,
@@ -127,6 +142,10 @@ export const CheckoutPage: React.FC = () => {
             alert('Payment verification failed. If money was deducted, contact support with your order ID: ' + dbOrder.id);
             setIsSubmitting(false);
           } else {
+            inFlightOrderIdRef.current = null;
+            // Notify brokers of successfully paid order (idempotent backup)
+            await notifyBrokersOfPaidOrder(dbOrder.id);
+            setIsSubmitting(false);
             setOrderPlaced(true);
             clearCart();
           }
@@ -137,18 +156,34 @@ export const CheckoutPage: React.FC = () => {
         },
         theme: { color: '#059669' },
         modal: {
-          ondismiss: () => { setIsSubmitting(false); }
+          ondismiss: async () => {
+            setIsSubmitting(false);
+            if (inFlightOrderIdRef.current) {
+              const orderIdToCancel = inFlightOrderIdRef.current;
+              inFlightOrderIdRef.current = null;
+              await cancelUnpaidOrderInDB(orderIdToCancel, 'Customer closed payment window');
+            }
+          }
         }
       };
 
       const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function (response: any) {
-        alert('Payment Failed: ' + (response.error?.description || 'Unknown error'));
+      rzp.on('payment.failed', async function (response: any) {
         setIsSubmitting(false);
+        if (inFlightOrderIdRef.current) {
+          const orderIdToCancel = inFlightOrderIdRef.current;
+          inFlightOrderIdRef.current = null;
+          await cancelUnpaidOrderInDB(orderIdToCancel, response.error?.description || 'Payment Failed');
+        }
+        alert('Payment Failed: ' + (response.error?.description || 'Transaction declined') + '. Your order has been cancelled.');
       });
       rzp.open();
     } catch (err: any) {
       console.error('Razorpay Error:', err);
+      if (inFlightOrderIdRef.current) {
+        await cancelUnpaidOrderInDB(inFlightOrderIdRef.current, err.message || 'Payment initialization error');
+        inFlightOrderIdRef.current = null;
+      }
       alert(err.message || 'Could not initialize payment. Please try again.');
       setIsSubmitting(false);
     }

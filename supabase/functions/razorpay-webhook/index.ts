@@ -104,6 +104,56 @@ serve(async (req) => {
       }, { onConflict: 'transaction_id' })
 
     console.log('[razorpay-webhook] payment.captured processed for order:', orderRow.id)
+
+    // Notify broker(s) of this successfully captured order (idempotent)
+    try {
+      const { data: existingNotifs } = await supabase
+        .from('broker_notifications')
+        .select('id')
+        .eq('related_order_id', orderRow.id)
+        .limit(1)
+
+      if (!existingNotifs || existingNotifs.length === 0) {
+        const { data: fullOrder } = await supabase
+          .from('orders')
+          .select('id, customer_id, customer_name, total_amount, broker_id, broker_name, order_items(id, product_name, quantity, broker_id, broker_name)')
+          .eq('id', orderRow.id)
+          .single()
+
+        if (fullOrder) {
+          const uniqueBrokers = new Map<string, string>()
+          if (fullOrder.broker_id) uniqueBrokers.set(fullOrder.broker_id, fullOrder.broker_name || 'Verified Broker')
+          if (fullOrder.order_items) {
+            for (const it of fullOrder.order_items) {
+              if (it.broker_id) uniqueBrokers.set(it.broker_id, it.broker_name || 'Verified Broker')
+            }
+          }
+
+          const itemsSummary = (fullOrder.order_items || [])
+            .slice(0, 2)
+            .map((i: any) => `${i.product_name} (x${i.quantity})`)
+            .join(', ')
+
+          const notifRows = Array.from(uniqueBrokers.entries()).map(([bId]) => ({
+            broker_id: bId,
+            customer_id: fullOrder.customer_id,
+            customer_name: fullOrder.customer_name || 'Customer',
+            type: 'order',
+            title: `New Order #${fullOrder.id.slice(0, 8)} received`,
+            description: `${fullOrder.customer_name} placed an order: ${itemsSummary}. Total: ₹${Number(fullOrder.total_amount).toLocaleString('en-IN')}`,
+            related_order_id: fullOrder.id,
+            is_read: false,
+            status: 'pending',
+          }))
+
+          if (notifRows.length > 0) {
+            await supabase.from('broker_notifications').insert(notifRows)
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.warn('[razorpay-webhook] Broker notification warning:', notifErr)
+    }
   }
 
   // ---------------------------------------------------------------
@@ -148,13 +198,68 @@ serve(async (req) => {
     const payment = payload.payload?.payment?.entity
     if (!payment?.order_id) return new Response('ok', { status: 200 })
 
-    await supabase
+    const { data: orderRow } = await supabase
       .from('orders')
-      .update({
-        payment_status: 'Failed',
-        updated_at: new Date().toISOString(),
-      })
+      .select('id, payment_status, status')
       .eq('razorpay_order_id', payment.order_id)
+      .single()
+
+    if (orderRow) {
+      // Never cancel if the order was already paid by a prior/duplicate callback
+      if (orderRow.payment_status !== 'paid' && orderRow.payment_status !== 'Successful') {
+        await supabase
+          .from('orders')
+          .update({
+            status: 'Cancelled',
+            payment_status: 'Failed',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', orderRow.id)
+
+        // Restore product inventory
+        try {
+          const { data: items } = await supabase
+            .from('order_items')
+            .select('product_id, quantity')
+            .eq('order_id', orderRow.id)
+
+          if (items && items.length > 0) {
+            for (const item of items) {
+              if (item.product_id) {
+                const { data: prod } = await supabase
+                  .from('products')
+                  .select('stock')
+                  .eq('id', item.product_id)
+                  .single()
+
+                if (prod && typeof prod.stock === 'number') {
+                  const newStock = prod.stock + (item.quantity || 1)
+                  const newStatus = newStock === 0 ? 'Out of Stock' : (newStock < 10 ? 'Low Stock' : 'In Stock')
+                  await supabase
+                    .from('products')
+                    .update({ stock: newStock, status: newStatus })
+                    .eq('id', item.product_id)
+                }
+              }
+            }
+          }
+        } catch (stockErr) {
+          console.warn('[razorpay-webhook] Stock restoration warning:', stockErr)
+        }
+
+        // Clean up any false broker notifications linked to this order
+        try {
+          await supabase
+            .from('broker_notifications')
+            .delete()
+            .eq('related_order_id', orderRow.id)
+        } catch (notifErr) {
+          console.warn('[razorpay-webhook] Notification cleanup warning:', notifErr)
+        }
+
+        console.log('[razorpay-webhook] Cancelled unpaid order and restored stock for:', orderRow.id)
+      }
+    }
 
     console.log('[razorpay-webhook] payment.failed for razorpay order:', payment.order_id)
   }

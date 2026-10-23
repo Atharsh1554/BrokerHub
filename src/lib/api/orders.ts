@@ -296,7 +296,13 @@ export const createOrderInDB = async (payload: {
       }
     }
 
-    // 3. Notify every unique broker involved in this order
+    // 3. Notify unique brokers ONLY if payment is already confirmed or method is COD
+    // Online orders will notify the broker ONLY after payment verification succeeds (prevents false notifications)
+    const isPaymentConfirmed =
+      (payload.paymentStatus || '').toLowerCase() === 'successful' ||
+      (payload.paymentStatus || '').toLowerCase() === 'paid' ||
+      (payload.paymentMethod || '').toUpperCase() === 'COD';
+
     const uniqueBrokers = new Map<string, string>();
     // Include order-level broker
     if (isUuidStr(primaryBrokerId)) {
@@ -309,7 +315,7 @@ export const createOrderInDB = async (payload: {
       }
     }
 
-    if (uniqueBrokers.size > 0 && isUuidStr(validCustomerId)) {
+    if (isPaymentConfirmed && uniqueBrokers.size > 0 && isUuidStr(validCustomerId)) {
       const productSummary = payload.items
         .slice(0, 2)
         .map((i) => `${i.productName} (x${i.quantity})`)
@@ -321,6 +327,7 @@ export const createOrderInDB = async (payload: {
         type: 'order',
         title: `New Order #${newOrder.id.slice(0, 8)} received`,
         description: `${payload.customerName} placed an order: ${productSummary}${payload.items.length > 2 ? ` +${payload.items.length - 2} more` : ''}. Total: ₹${payload.totalAmount.toLocaleString('en-IN')}`,
+        related_order_id: newOrder.id,
         is_read: false,
         status: 'pending',
       }));
@@ -415,6 +422,239 @@ export const updateOrderStatusInDB = async (orderId: string, newStatus: string):
   return true;
 };
 
+/**
+ * Notifies all brokers involved in an order once online payment has been confirmed.
+ * Safe & idempotent: avoids duplicate notifications.
+ */
+export const notifyBrokersOfPaidOrder = async (orderId: string): Promise<boolean> => {
+  if (!isUuidStr(orderId)) return false;
+
+  try {
+    // 1. Check if broker notification already exists for this order
+    const { data: existing } = await supabase
+      .from('broker_notifications')
+      .select('id')
+      .eq('related_order_id', orderId)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return true; // Already notified
+    }
+
+    // 2. Fetch order and items
+    const { data: orderRow, error: orderErr } = await supabase
+      .from('orders')
+      .select('id, customer_id, customer_name, total_amount, broker_id, broker_name, order_items(id, product_name, quantity, broker_id, broker_name)')
+      .eq('id', orderId)
+      .single();
+
+    if (orderErr || !orderRow) return false;
+
+    const uniqueBrokers = new Map<string, string>();
+    if (isUuidStr(orderRow.broker_id)) {
+      uniqueBrokers.set(orderRow.broker_id, orderRow.broker_name || 'Verified Broker');
+    }
+    if (orderRow.order_items) {
+      for (const item of orderRow.order_items) {
+        if (isUuidStr(item.broker_id) && item.broker_id) {
+          uniqueBrokers.set(item.broker_id, item.broker_name || 'Verified Broker');
+        }
+      }
+    }
+
+    if (uniqueBrokers.size === 0) return false;
+
+    const itemsSummary = (orderRow.order_items || [])
+      .slice(0, 2)
+      .map((i: any) => `${i.product_name} (x${i.quantity})`)
+      .join(', ');
+
+    const notifRows = Array.from(uniqueBrokers.entries()).map(([bId]) => ({
+      broker_id: bId,
+      customer_id: orderRow.customer_id,
+      customer_name: orderRow.customer_name || 'Customer',
+      type: 'order',
+      title: `New Order #${orderRow.id.slice(0, 8)} received`,
+      description: `${orderRow.customer_name} placed an order: ${itemsSummary}. Total: ₹${Number(orderRow.total_amount).toLocaleString('en-IN')}`,
+      related_order_id: orderRow.id,
+      is_read: false,
+      status: 'pending',
+    }));
+
+    await supabase.from('broker_notifications').insert(notifRows);
+    return true;
+  } catch (err) {
+    console.error('Failed to notify brokers of paid order:', err);
+    return false;
+  }
+};
+
+/**
+ * Automatically cancel an unpaid order (when checkout is dismissed, window closed, or payment failed).
+ * Invokes the backend edge function (with Razorpay status verification to prevent incorrect cancellation)
+ * and falls back to direct client database reconciliation with inventory restoration.
+ */
+export const cancelUnpaidOrderInDB = async (
+  orderId: string,
+  reason: string = 'Payment cancelled'
+): Promise<boolean> => {
+  if (!isUuidStr(orderId)) return false;
+
+  console.log(`[cancelUnpaidOrderInDB] Cancelling order ${orderId}. Reason: ${reason}`);
+
+  try {
+    // 1. Try authoritative edge function first (which checks Razorpay directly)
+    const { data: edgeData, error: edgeErr } = await supabase.functions.invoke('cancel-unpaid-order', {
+      body: { order_db_id: orderId, reason },
+    });
+
+    if (!edgeErr && edgeData) {
+      if (edgeData.already_paid || edgeData.result?.status === 'confirmed_paid') {
+        console.warn(`[cancelUnpaidOrderInDB] Order ${orderId} was already paid, not cancelling.`);
+        return false;
+      }
+      if (edgeData.success) {
+        // Broadcast to all tabs/windows
+        try {
+          const bc = new BroadcastChannel('brokerhub_orders_live');
+          bc.postMessage({ type: 'ORDER_STATUS_UPDATE', orderId, newStatus: 'Cancelled' });
+          bc.close();
+        } catch {}
+        return true;
+      }
+    }
+  } catch (edgeInvokeErr) {
+    console.warn('[cancelUnpaidOrderInDB] Edge function invoke warning, falling back to client DB:', edgeInvokeErr);
+  }
+
+  // 2. Client-side fallback: direct Supabase reconciliation
+  try {
+    const { data: orderRow } = await supabase
+      .from('orders')
+      .select('id, payment_status, status')
+      .eq('id', orderId)
+      .single();
+
+    if (!orderRow) return false;
+
+    // Never cancel if payment is already Successful / paid
+    if (orderRow.payment_status === 'Successful' || orderRow.payment_status === 'paid') {
+      console.warn(`[cancelUnpaidOrderInDB] Order ${orderId} is already paid. Cancellation skipped.`);
+      return false;
+    }
+
+    // Update status to Cancelled and payment_status to Failed
+    const { error: updateErr } = await supabase
+      .from('orders')
+      .update({
+        status: 'Cancelled',
+        payment_status: 'Failed',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+
+    if (updateErr) {
+      console.error('[cancelUnpaidOrderInDB] Error updating order status:', updateErr);
+      return false;
+    }
+
+    // Restore stock for products in this order
+    const { data: items } = await supabase
+      .from('order_items')
+      .select('product_id, quantity')
+      .eq('order_id', orderId);
+
+    if (items && items.length > 0) {
+      for (const item of items) {
+        if (isUuidStr(item.product_id)) {
+          try {
+            const { data: prodData } = await supabase
+              .from('products')
+              .select('stock')
+              .eq('id', item.product_id)
+              .single();
+
+            if (prodData && typeof prodData.stock === 'number') {
+              const newStock = prodData.stock + (item.quantity || 1);
+              const newStatus = newStock === 0 ? 'Out of Stock' : (newStock < 10 ? 'Low Stock' : 'In Stock');
+              await supabase
+                .from('products')
+                .update({ stock: newStock, status: newStatus })
+                .eq('id', item.product_id);
+            }
+          } catch (stkErr) {
+            console.warn(`[cancelUnpaidOrderInDB] Could not restore stock for item ${item.product_id}:`, stkErr);
+          }
+        }
+      }
+    }
+
+    // Clean up any false broker notifications linked to this order
+    await supabase.from('broker_notifications').delete().eq('related_order_id', orderId);
+    await supabase.from('broker_notifications').delete().ilike('title', `%#${orderId.slice(0, 8)}%`);
+
+    // Broadcast live status update across tabs
+    try {
+      const bc = new BroadcastChannel('brokerhub_orders_live');
+      bc.postMessage({ type: 'ORDER_STATUS_UPDATE', orderId, newStatus: 'Cancelled' });
+      bc.close();
+    } catch {}
+
+    return true;
+  } catch (fallbackErr) {
+    console.error('[cancelUnpaidOrderInDB] Direct fallback failed:', fallbackErr);
+    return false;
+  }
+};
+
+/**
+ * Sweep and cancel abandoned unpaid online orders older than timeoutMinutes (default: 15 minutes).
+ * Reconciles with Razorpay to ensure late-paid orders are confirmed rather than cancelled.
+ */
+export const checkAndCancelAbandonedOrders = async (
+  timeoutMinutes: number = 15
+): Promise<{ processed: number; cancelled: number }> => {
+  try {
+    // 1. Try edge function sweep
+    const { data, error } = await supabase.functions.invoke('cancel-unpaid-order', {
+      body: { sweep_abandoned: true, timeout_minutes: timeoutMinutes },
+    });
+
+    if (!error && data?.success) {
+      return {
+        processed: data.processed_count || 0,
+        cancelled: (data.cancelled || []).length,
+      };
+    }
+  } catch (err) {
+    console.warn('[checkAndCancelAbandonedOrders] Edge sweep warning, trying DB check:', err);
+  }
+
+  // 2. Fallback DB sweep
+  try {
+    const cutoff = new Date(Date.now() - timeoutMinutes * 60 * 1000).toISOString();
+    const { data: abandoned } = await supabase
+      .from('orders')
+      .select('id, payment_status, status, payment_method')
+      .eq('status', 'Pending')
+      .in('payment_status', ['Pending', 'Processing'])
+      .not('payment_method', 'ilike', '%cod%')
+      .lte('created_at', cutoff);
+
+    let cancelledCount = 0;
+    if (abandoned && abandoned.length > 0) {
+      for (const ord of abandoned) {
+        const ok = await cancelUnpaidOrderInDB(ord.id, `Abandoned payment timeout (${timeoutMinutes}m)`);
+        if (ok) cancelledCount++;
+      }
+    }
+
+    return { processed: (abandoned || []).length, cancelled: cancelledCount };
+  } catch (sweepErr) {
+    console.warn('[checkAndCancelAbandonedOrders] Sweep error:', sweepErr);
+    return { processed: 0, cancelled: 0 };
+  }
+};
 
 /**
  * Format numerical amounts in compact Indian Rupee format (e.g. ₹0, ₹50k, ₹1.2L, ₹1.5Cr)

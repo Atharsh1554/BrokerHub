@@ -95,6 +95,56 @@ serve(async (req) => {
     } catch (paymentsErr) {
       // Non-fatal: payments table audit log failed, but order is already marked paid
       console.warn('[verify-razorpay-payment] Payments table insert skipped:', paymentsErr)
+    // ---------------------------------------------------------------
+    // 6. Notify the broker(s) of this verified, successfully paid order
+    // ---------------------------------------------------------------
+    try {
+      const { data: existingNotifs } = await supabase
+        .from('broker_notifications')
+        .select('id')
+        .eq('related_order_id', order_db_id)
+        .limit(1)
+
+      if (!existingNotifs || existingNotifs.length === 0) {
+        const { data: fullOrder } = await supabase
+          .from('orders')
+          .select('id, customer_id, customer_name, total_amount, broker_id, broker_name, order_items(id, product_name, quantity, broker_id, broker_name)')
+          .eq('id', order_db_id)
+          .single()
+
+        if (fullOrder) {
+          const uniqueBrokers = new Map<string, string>()
+          if (fullOrder.broker_id) uniqueBrokers.set(fullOrder.broker_id, fullOrder.broker_name || 'Verified Broker')
+          if (fullOrder.order_items) {
+            for (const it of fullOrder.order_items) {
+              if (it.broker_id) uniqueBrokers.set(it.broker_id, it.broker_name || 'Verified Broker')
+            }
+          }
+
+          const itemsSummary = (fullOrder.order_items || [])
+            .slice(0, 2)
+            .map((i: any) => `${i.product_name} (x${i.quantity})`)
+            .join(', ')
+
+          const notifRows = Array.from(uniqueBrokers.entries()).map(([bId]) => ({
+            broker_id: bId,
+            customer_id: fullOrder.customer_id,
+            customer_name: fullOrder.customer_name || 'Customer',
+            type: 'order',
+            title: `New Order #${fullOrder.id.slice(0, 8)} received`,
+            description: `${fullOrder.customer_name} placed an order: ${itemsSummary}. Total: ₹${Number(fullOrder.total_amount).toLocaleString('en-IN')}`,
+            related_order_id: fullOrder.id,
+            is_read: false,
+            status: 'pending',
+          }))
+
+          if (notifRows.length > 0) {
+            await supabase.from('broker_notifications').insert(notifRows)
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.warn('[verify-razorpay-payment] Broker notification warning:', notifErr)
     }
 
     return new Response(JSON.stringify({ success: true }), {

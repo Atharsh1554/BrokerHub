@@ -11,7 +11,7 @@ import {
   deleteBrokerProduct,
   syncUnsyncedBrokerProducts
 } from '../lib/api/products';
-import { getOrders } from '../lib/api/orders';
+import { getOrders, checkAndCancelAbandonedOrders } from '../lib/api/orders';
 import { getAppointments } from '../lib/api/appointments';
 import { sendDBMessage, getUserConversations, getMessagesBetweenUsers } from '../lib/api/messages';
 
@@ -177,6 +177,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const userRole = user.role === 'broker' ? 'broker' : 'customer';
         const fetchedOrders = await getOrders(user.id, userRole);
         setOrders(fetchedOrders);
+
+        // Run non-blocking sweep to identify & cancel abandoned unpaid orders older than 15m
+        checkAndCancelAbandonedOrders(15).catch((err) =>
+          console.warn('Abandoned orders background sweep:', err)
+        );
         
         const fetchedAppointments = await getAppointments(user.id, userRole);
         setAppointments(fetchedAppointments);
@@ -319,18 +324,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
           if (payload.eventType === 'INSERT') {
             if (userRole === 'broker') {
-              showToast('🔔 New order received!', 'info');
+              const isPaidOrCod =
+                newRecord?.payment_status === 'Successful' ||
+                newRecord?.payment_status === 'paid' ||
+                (newRecord?.payment_method || '').toUpperCase() === 'COD';
+              if (isPaidOrCod) {
+                showToast('🔔 New order received!', 'info');
+              }
             }
           } else if (payload.eventType === 'UPDATE') {
-            // Broker gets a "Payment received" toast when payment flips to Successful
-            if (
-              userRole === 'broker' &&
-              newRecord?.payment_status === 'Successful' &&
-              oldRecord?.payment_status !== 'Successful'
-            ) {
+            // Broker gets a "Payment received" notification toast when payment flips to Successful
+            const wasSuccessful = oldRecord?.payment_status === 'Successful' || oldRecord?.payment_status === 'paid';
+            const isNowSuccessful = newRecord?.payment_status === 'Successful' || newRecord?.payment_status === 'paid';
+
+            if (userRole === 'broker' && isNowSuccessful && !wasSuccessful) {
               const amount = newRecord?.total_amount ?? newRecord?.amount ?? 0;
               const formatted = `₹${Number(amount).toLocaleString('en-IN')}`;
-              showToast(`💰 Payment received: ${formatted} — Pending Admin Settlement`, 'success');
+              showToast(`🔔 New order confirmed! Payment: ${formatted}`, 'success');
             }
           }
         }
